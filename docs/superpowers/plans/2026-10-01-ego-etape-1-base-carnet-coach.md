@@ -6,13 +6,14 @@
 
 **Architecture :** application Laravel 12 monolithique. Les pages sont des composants Livewire 3 ; l'écran de séance est un composant Alpine.js autonome qui garde l'état dans `localStorage` et envoie la séance terminée à une route JSON idempotente. La logique métier vit dans des services PHP purs (`app/Services`, `app/Support`) testés avec Pest.
 
-**Tech Stack :** PHP 8.4, Laravel 12, Livewire 3, Alpine.js (fourni par Livewire), Tailwind CSS 4 + Vite, SQLite (local et tests) / MySQL (production), Pest 3, Vitest.
+**Tech Stack :** PHP 8.4, Laravel 12, Livewire 3, Alpine.js (fourni par Livewire), Tailwind CSS 4 + Vite, MariaDB 11 (connexion Laravel `mariadb`, en local via WampServer), Pest 3, Vitest.
 
 **Spec :** `docs/superpowers/specs/2026-10-01-ego-design.md`
 
 ## Global Constraints
 
 - Interface entièrement en français ; charges en kg ; fuseau horaire `Europe/Paris`.
+- Base de données : **MariaDB** partout (connexion Laravel `mariadb`). En local : WampServer, `127.0.0.1:3307`, utilisateur `root` sans mot de passe, bases `ego` (développement) et `ego_testing` (tests), encodage `utf8mb4_unicode_ci`. **WampServer doit être démarré** (icône verte) pour lancer l'app et les tests PHP.
 - PHP 8.4, Laravel `^12.0`, Livewire `^3.6` (versions épinglées, ne pas monter en version majeure).
 - Connexion par prénom + date de naissance uniquement : la table `users` n'a ni email ni mot de passe.
 - Clé d'identité = prénom normalisé (minuscules, sans accents, espaces fusionnés) + `|` + date `Y-m-d`.
@@ -80,22 +81,29 @@ tests/Unit/…, tests/Feature/…, resources/js/workout/*.test.js
 ### Task 1 : Environnement et squelette Laravel
 
 **Files :**
-- Modify : `C:\Users\theai\php\php.ini` (extensions)
+- Modify : `C:\Users\theai\php\php.ini` (extension `pdo_mysql`)
 - Create : tout le squelette Laravel à la racine de `C:\Users\theai\Documents\EGO`
 - Modify : `config/app.php`, `.env`, `.env.example`, `phpunit.xml`, `bootstrap/app.php`, `routes/web.php`, `config/livewire.php`
 - Delete : `resources/views/welcome.blade.php`
 - Test : `tests/Feature/SmokeTest.php`
 
 **Interfaces :**
-- Produces : projet Laravel 12 avec Pest, Livewire 3 (assets intégrés manuellement), locale `fr`, fuseau `Europe/Paris`, SQLite.
+- Produces : projet Laravel 12 avec Pest, Livewire 3 (assets intégrés manuellement), locale `fr`, fuseau `Europe/Paris`, MariaDB (`ego` et `ego_testing`).
 
-- [ ] **Step 1 : Activer les extensions PHP SQLite et MySQL**
+- [ ] **Step 1 : Activer les extensions PHP (MariaDB, et SQLite pour la base temporaire créée par l'installeur Laravel)**
 
 ```bash
-sed -i 's/^;extension=pdo_sqlite/extension=pdo_sqlite/; s/^;extension=sqlite3/extension=sqlite3/; s/^;extension=pdo_mysql/extension=pdo_mysql/' /c/Users/theai/php/php.ini
-php -m | grep -iE "pdo_sqlite|pdo_mysql|sqlite3"
+sed -i 's/^;extension=pdo_mysql/extension=pdo_mysql/; s/^;extension=pdo_sqlite/extension=pdo_sqlite/; s/^;extension=sqlite3/extension=sqlite3/' /c/Users/theai/php/php.ini
+php -m | grep -iE "pdo_mysql|pdo_sqlite|sqlite3"
 ```
 Attendu : les trois lignes `pdo_mysql`, `pdo_sqlite`, `sqlite3`. Si une ligne manque, ouvrir `php.ini`, chercher le nom de l'extension et retirer le `;` en début de ligne.
+
+- [ ] **Step 1b : Créer les bases MariaDB** (WampServer démarré)
+
+```bash
+/c/wamp64/bin/mariadb/mariadb11.3.2/bin/mariadb.exe -h 127.0.0.1 -P 3307 -u root -e "CREATE DATABASE IF NOT EXISTS ego CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS ego_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; SHOW DATABASES LIKE 'ego%';"
+```
+Attendu : `ego` et `ego_testing` dans la liste. Si la connexion est refusée, vérifier dans le menu de WampServer que MariaDB est bien lancé et sur quel port (MySQL utilise 3306, MariaDB 3307 par défaut).
 
 - [ ] **Step 2 : Créer le squelette Laravel dans un dossier temporaire puis le remonter à la racine** (le dossier contient déjà `docs/` et `.git/`, et `create-project` exige un dossier vide)
 
@@ -107,7 +115,7 @@ rm -rf _scaffold
 composer dump-autoload
 php artisan --version
 ```
-Attendu : `Laravel Framework 12.x.x`.
+Attendu : `Laravel Framework 12.x.x`. (L'installeur crée au passage une base SQLite temporaire ; elle est remplacée par MariaDB au step 4.)
 
 - [ ] **Step 3 : Installer Pest, Livewire et Vitest**
 
@@ -128,19 +136,31 @@ Dans `config/app.php`, remplacer `'timezone' => 'UTC',` par :
     'timezone' => env('APP_TIMEZONE', 'Europe/Paris'),
 ```
 
-Dans `.env` **et** `.env.example`, fixer ces valeurs (remplacer les lignes existantes) :
+Dans `.env` **et** `.env.example`, fixer ces valeurs (remplacer les lignes existantes, décommenter les lignes `DB_*` et supprimer `database/database.sqlite`) :
 ```dotenv
 APP_NAME=EGO
 APP_LOCALE=fr
 APP_FALLBACK_LOCALE=fr
 APP_FAKER_LOCALE=fr_FR
 APP_TIMEZONE=Europe/Paris
-```
 
-Dans `phpunit.xml`, vérifier que ces deux lignes existent **sans commentaire** dans `<php>` (les décommenter si besoin) :
+DB_CONNECTION=mariadb
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_DATABASE=ego
+DB_USERNAME=root
+DB_PASSWORD=
+```
+```bash
+rm -f database/database.sqlite
+php artisan migrate
+```
+Attendu : migrations exécutées sur MariaDB.
+
+Dans `phpunit.xml`, dans `<php>`, remplacer les lignes `DB_CONNECTION` / `DB_DATABASE` (commentées ou non) par :
 ```xml
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_CONNECTION" value="mariadb"/>
+        <env name="DB_DATABASE" value="ego_testing"/>
 ```
 
 Dans `config/livewire.php`, mettre :
@@ -192,6 +212,8 @@ Supprimer les exemples : `rm -f tests/Feature/ExampleTest.php tests/Unit/Example
 ```php
 <?php
 
+use Illuminate\Support\Facades\DB;
+
 it('répond sur la route de santé', function () {
     $this->get('/up')->assertOk();
 });
@@ -199,6 +221,11 @@ it('répond sur la route de santé', function () {
 it('utilise le français et le fuseau de Paris', function () {
     expect(app()->getLocale())->toBe('fr')
         ->and(config('app.timezone'))->toBe('Europe/Paris');
+});
+
+it('teste sur la base MariaDB dédiée', function () {
+    expect(DB::connection()->getDriverName())->toBe('mariadb')
+        ->and(DB::connection()->getDatabaseName())->toBe('ego_testing');
 });
 ```
 
@@ -215,7 +242,7 @@ use Illuminate\Support\Facades\Route;
 - [ ] **Step 9 : Lancer les tests**
 
 Run : `./vendor/bin/pest`
-Attendu : 2 tests PASS.
+Attendu : 3 tests PASS.
 
 - [ ] **Step 10 : Commit**
 
@@ -4152,7 +4179,7 @@ Attendu : tout PASS, build sans erreur.
 
 - [ ] **Step 2 : Vérification manuelle complète en vue mobile** (outils de développement, appareil « iPhone 12 Pro » ou équivalent)
 
-Run : `php artisan migrate:fresh --seed && php artisan serve`
+Run (WampServer démarré) : `php artisan migrate:fresh --seed && php artisan serve`
 Vérifier dans l'ordre :
 1. `/register` : inscription « Élise » + date → accueil « Salut Élise ».
 2. Déconnexion depuis Profil, puis connexion avec « ELISE » : ça fonctionne.
@@ -4174,7 +4201,8 @@ La musculation entre amis : séances guidées, carnet, records (et bientôt prog
 
 ## Prérequis
 
-- PHP 8.4 avec les extensions `pdo_sqlite` (local) et `pdo_mysql` (production)
+- PHP 8.4 avec l'extension `pdo_mysql`
+- MariaDB 11 (en local : WampServer, port 3307, bases `ego` et `ego_testing` en `utf8mb4_unicode_ci`)
 - Composer 2
 - Node 20+ (uniquement pour compiler les assets)
 
@@ -4204,7 +4232,7 @@ npm test             # JavaScript
 1. En local : `npm run build` (génère `public/build`).
 2. Envoyer le projet sur le serveur (sans `node_modules`). Sur un mutualisé sans SSH, envoyer aussi `vendor/` après `composer install --no-dev --optimize-autoloader` en local.
 3. Faire pointer le domaine sur le dossier `public/`.
-4. `.env` : `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://…`, `DB_CONNECTION=mysql` + identifiants.
+4. `.env` : `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://…`, `DB_CONNECTION=mariadb` + hôte, port (3306 en général), base et identifiants.
 5. `php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache`.
 6. HTTPS obligatoire (service worker et installation de la PWA).
 
