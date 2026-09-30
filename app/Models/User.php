@@ -2,48 +2,43 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    public const AVATAR_COLORS = ['#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#eab308', '#14b8a6', '#ef4444'];
+
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'first_name', 'identity_key', 'birth_date', 'avatar_color',
+        'sex', 'height_cm', 'weight_kg', 'level', 'goal', 'days_per_week', 'equipment',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['identity_key', 'remember_token'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'birth_date' => 'date',
+            'height_cm' => 'integer',
+            'weight_kg' => 'float',
+            'days_per_week' => 'integer',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    public function bmi(): ?float
+    {
+        if (! $this->height_cm || ! $this->weight_kg) {
+            return null;
+        }
+
+        $meters = $this->height_cm / 100;
+
+        return round($this->weight_kg / ($meters * $meters), 1);
     }
 }
