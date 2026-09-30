@@ -27,7 +27,7 @@ Fil d'activité, commentaires et réactions, nutrition, poids/mensurations/photo
 
 | Sujet | Décision |
 |---|---|
-| Stack | Laravel 12 (PHP 8.4) + Livewire 3 + Alpine.js + Tailwind CSS 4 (Vite) ; MySQL en production, SQLite en local et pour les tests |
+| Stack | Laravel 12 (PHP 8.4) + Livewire 3 + Alpine.js + Tailwind CSS 4 (Vite) ; MariaDB partout : en local (WampServer, MariaDB 11.3, port 3307), pour les tests (base `ego_testing`) et en production |
 | Budget | Quelques euros par mois (VPS) ; essai possible sur InfinityFree |
 | Langue / unités | Interface en français, charges en kg |
 | Connexion | Prénom + date de naissance (choix assumé, remplaçable plus tard) |
@@ -70,7 +70,7 @@ Chaque étape donne une version utilisable.
 - **Limite connue et acceptée :** quiconque connaît le prénom et la date de naissance d'un utilisateur peut se connecter à sa place. Tout est isolé dans `IdentityKey` et les composants Livewire `Auth\Register` / `Auth\Login`, pour pouvoir ajouter plus tard un PIN ou un email sans toucher au reste de l'app.
 - **Affichage :** le prénom est le nom visible. Chaque profil reçoit une couleur d'avatar pour distinguer deux prénoms identiques.
 
-## 6. Modèle de données (migrations Laravel, MySQL / SQLite)
+## 6. Modèle de données (migrations Laravel, MariaDB)
 
 Toutes les tables ont `id` (bigint auto-incrémenté) et `created_at` / `updated_at`. Les colonnes « liste » ou « objet » sont en `json` (cast `array` côté Eloquent).
 
@@ -89,7 +89,7 @@ Toutes les tables ont `id` (bigint auto-incrémenté) et `created_at` / `updated
 | `challenges` | `user_id` (créateur), `group_id` (nullable = ouvert à tous), `title`, `type` (workout_count/total_volume/max_weight), `exercise_id` (requis si max_weight), `target` (nullable), `starts_on`, `ends_on` |
 | `challenge_user` | `challenge_id`, `user_id` (unique ensemble) |
 
-### Calculs (en PHP, requêtes Eloquent / Query Builder compatibles MySQL et SQLite)
+### Calculs (en PHP, requêtes Eloquent / Query Builder, connexion Laravel `mariadb`)
 
 - **Records :** `WorkoutSync::sync(User $user, array $payload)` enregistre la séance dans une transaction, puis met à jour `personal_records` pour les exercices de la séance. Elle renvoie la séance et la liste des nouveaux records. Si le `client_id` existe déjà, elle renvoie la séance existante sans rien dupliquer.
 - **Classement :** `Leaderboard::rank(string $metric, string $period, ?Group $group)` avec
@@ -197,5 +197,5 @@ Le questionnaire a 5 étapes : **(1) morphologie** (sexe, taille, poids — pré
   - `StartingLoad` : charges de départ selon le poids, le sexe et le niveau (arrondi à 2,5 kg, rien pour le poids du corps)
   - `RecordCalculator` : 1RM (Epley : `charge × (1 + reps / 30)`, et `charge` si reps = 1), ratio × poids de corps, volume des exercices au poids du corps
   - `IdentityKey` : normalisation du prénom et de la clé d'identité
-- **Fonctionnels (Pest + SQLite en mémoire) :** inscription (doublon compris), connexion et limitation des tentatives, `WorkoutSync` (idempotence, records), `Leaderboard`, `ChallengeProgress`, Policies (impossible de modifier les données d'un autre).
+- **Fonctionnels (Pest + base MariaDB `ego_testing`) :** inscription (doublon compris), connexion et limitation des tentatives, `WorkoutSync` (idempotence, records), `Leaderboard`, `ChallengeProgress`, Policies (impossible de modifier les données d'un autre).
 - **JavaScript (Vitest) :** `resources/js/workout/store.js` (reprise, file d'attente, nouvelle tentative).
