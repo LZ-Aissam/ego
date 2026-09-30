@@ -49,7 +49,7 @@ Chaque étape donne une version utilisable.
 - **Application Laravel monolithique**, rendue côté serveur. Les pages sont des composants **Livewire** ; l'interactivité locale (minuteur, boutons +/−) est en **Alpine.js** (fourni avec Livewire).
 - **Mise en page mobile-first** (Tailwind). Sur écran large (≥ 1024 px), les onglets passent dans une barre latérale et le contenu est centré (largeur max. ~720 px).
 - **Écran « Séance en cours » :** composant Alpine autonome (`resources/js/workout/`). Il garde l'état dans `localStorage` et envoie la séance terminée à une route JSON (`POST /workouts/sync`, authentifiée par la session et protégée par CSRF). Il ne fait aucun aller-retour serveur pendant la séance, donc il fonctionne hors ligne.
-- **PWA :** `public/manifest.webmanifest` + `public/sw.js` (mise en cache de l'écran de séance et des assets compilés ; stratégie « réseau d'abord » pour les pages).
+- **PWA :** `public/manifest.json` + `public/sw.js` (mise en cache de l'écran de séance et des assets compilés ; stratégie « réseau d'abord » pour les pages).
 - **Assets :** compilés en local avec Vite (`npm run build`) puis déployés dans `public/build`. Le serveur n'a pas besoin de Node.
 - **Autorisation :** Policies Laravel. Toute page nécessite d'être connecté. Tout utilisateur connecté peut **lire** les données des autres ; chacun ne **modifie** que ce qui lui appartient.
 - **Services métier isolés (PHP pur, testables sans HTTP) :**
