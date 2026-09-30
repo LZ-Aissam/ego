@@ -17,7 +17,7 @@ EGO est une application web de musculation, conçue d'abord pour le mobile (inst
 - Un nouvel utilisateur s'inscrit, génère un programme et termine sa première séance guidée en moins de 5 minutes, depuis son téléphone.
 - Une séance en cours n'est jamais perdue (fermeture de l'app, perte de réseau).
 - Le classement et les défis se mettent à jour sans action manuelle.
-- Coût d'hébergement : 0 €.
+- Coût d'hébergement : environ 4–6 €/mois (petit VPS). L'app reste compatible avec un hébergement mutualisé sans SSH (InfinityFree) pour un essai : aucun worker de file d'attente ni cron n'est obligatoire.
 
 ### Hors périmètre (pour l'instant)
 
@@ -27,8 +27,8 @@ Fil d'activité, commentaires et réactions, nutrition, poids/mensurations/photo
 
 | Sujet | Décision |
 |---|---|
-| Stack | Next.js (App Router, TypeScript) + Tailwind CSS + Supabase (Auth + PostgreSQL + RLS), hébergé sur Vercel |
-| Budget | Offres gratuites uniquement |
+| Stack | Laravel 12 (PHP 8.4) + Livewire 3 + Alpine.js + Tailwind CSS 4 (Vite) ; MySQL en production, SQLite en local et pour les tests |
+| Budget | Quelques euros par mois (VPS) ; essai possible sur InfinityFree |
 | Langue / unités | Interface en français, charges en kg |
 | Connexion | Prénom + date de naissance (choix assumé, remplaçable plus tard) |
 | Visibilité | Tout est public entre inscrits ; groupes facultatifs |
@@ -46,58 +46,57 @@ Chaque étape donne une version utilisable.
 
 ## 4. Architecture
 
-- **Frontend :** Next.js App Router, rendu mobile-first. Sur écran large (≥ 1024 px), les onglets passent dans une barre latérale et le contenu est centré (largeur max. ~720 px).
-- **Backend :** Supabase. Aucun serveur applicatif dédié : le code appelle Supabase directement (client ou Server Components), et la sécurité repose sur les règles RLS. Les opérations qui demandent la clé de service (inscription, réinitialisation) passent par des Route Handlers Next.js côté serveur.
-- **PWA :** manifest + service worker (icônes, écran de démarrage, installation).
-- **Modules isolés (TypeScript pur, testables sans base) :**
-  - `lib/auth` : identification prénom + date de naissance (voir §5)
-  - `lib/generator` : moteur de génération de programmes (voir §8)
-  - `lib/records` : calcul des records et du 1RM estimé
-  - `lib/challenges` : calcul de la progression des défis
-  - `lib/session-store` : sauvegarde locale de la séance en cours
+- **Application Laravel monolithique**, rendue côté serveur. Les pages sont des composants **Livewire** ; l'interactivité locale (minuteur, boutons +/−) est en **Alpine.js** (fourni avec Livewire).
+- **Mise en page mobile-first** (Tailwind). Sur écran large (≥ 1024 px), les onglets passent dans une barre latérale et le contenu est centré (largeur max. ~720 px).
+- **Écran « Séance en cours » :** composant Alpine autonome (`resources/js/workout/`). Il garde l'état dans `localStorage` et envoie la séance terminée à une route JSON (`POST /workouts/sync`, authentifiée par la session et protégée par CSRF). Il ne fait aucun aller-retour serveur pendant la séance, donc il fonctionne hors ligne.
+- **PWA :** `public/manifest.webmanifest` + `public/sw.js` (mise en cache de l'écran de séance et des assets compilés ; stratégie « réseau d'abord » pour les pages).
+- **Assets :** compilés en local avec Vite (`npm run build`) puis déployés dans `public/build`. Le serveur n'a pas besoin de Node.
+- **Autorisation :** Policies Laravel. Toute page nécessite d'être connecté. Tout utilisateur connecté peut **lire** les données des autres ; chacun ne **modifie** que ce qui lui appartient.
+- **Services métier isolés (PHP pur, testables sans HTTP) :**
+  - `App\Support\IdentityKey` : normalisation prénom + date (voir §5)
+  - `App\Services\ProgramGenerator` : génération de programmes (voir §8)
+  - `App\Services\StartingLoad` : charges de départ suggérées
+  - `App\Services\RecordCalculator` : 1RM estimé, volume, ratio au poids de corps
+  - `App\Services\WorkoutSync` : enregistrement idempotent d'une séance + mise à jour des records
+  - `App\Services\Leaderboard` et `App\Services\ChallengeProgress` : classement et défis
 
 ## 5. Authentification
 
 - **Inscription :** prénom + date de naissance.
-- **Connexion :** les mêmes deux champs. La session Supabase est persistante (on reste connecté sur l'appareil).
+- **Connexion :** les mêmes deux champs. `Auth::login($user, remember: true)` pose un cookie « se souvenir de moi » : on reste connecté sur l'appareil.
 - **Clé d'identité :** `normaliser(prénom) + date`. La normalisation passe en minuscules, retire les accents et supprime les espaces en début et fin (`« Élise »` → `elise`).
-- **Mise en œuvre :** chaque utilisateur est un compte Supabase Auth avec un email technique interne dérivé de la clé d'identité (ex. `elise-2001-04-12@users.ego.local`) et un mot de passe dérivé de cette même clé et d'un secret serveur (`EGO_AUTH_SECRET`), via HMAC. L'inscription et la connexion passent par un Route Handler serveur, pour que le secret ne quitte jamais le serveur.
+- **Mise en œuvre :** la table `users` n'a ni email ni mot de passe ; elle a une colonne `identity_key` (unique). La connexion cherche l'utilisateur par `identity_key` et ouvre la session. Les tentatives de connexion sont limitées (`RateLimiter` : 5 essais par minute et par IP), pour qu'on ne puisse pas essayer des dates de naissance à la chaîne.
 - **Doublon :** si la clé d'identité existe déjà, l'inscription est refusée avec le message « Ce prénom et cette date de naissance sont déjà utilisés — connecte-toi ».
-- **Limite connue et acceptée :** quiconque connaît le prénom et la date de naissance d'un utilisateur peut se connecter à sa place. Tout est isolé dans `lib/auth` et les Route Handlers `/api/auth/*`, pour pouvoir ajouter plus tard un PIN ou un email sans toucher au reste de l'app.
+- **Limite connue et acceptée :** quiconque connaît le prénom et la date de naissance d'un utilisateur peut se connecter à sa place. Tout est isolé dans `IdentityKey` et les composants Livewire `Auth\Register` / `Auth\Login`, pour pouvoir ajouter plus tard un PIN ou un email sans toucher au reste de l'app.
 - **Affichage :** le prénom est le nom visible. Chaque profil reçoit une couleur d'avatar pour distinguer deux prénoms identiques.
 
-## 6. Modèle de données (PostgreSQL / Supabase)
+## 6. Modèle de données (migrations Laravel, MySQL / SQLite)
 
-Toutes les tables ont `id uuid` (clé primaire) et `created_at timestamptz`.
+Toutes les tables ont `id` (bigint auto-incrémenté) et `created_at` / `updated_at`. Les colonnes « liste » ou « objet » sont en `json` (cast `array` côté Eloquent).
 
 | Table | Colonnes principales |
 |---|---|
-| `profiles` | `id` (= auth.users.id), `first_name`, `identity_key` (unique), `birth_date`, `avatar_color`, `sex` (male/female, nullable), `height_cm` (100–250, nullable), `weight_kg` (30–300, nullable), `level` (beginner/intermediate/advanced, nullable), `goal` (strength/hypertrophy/fitness, nullable), `days_per_week` (2–6, nullable), `equipment` (gym/dumbbells/bodyweight, nullable), `active_program_id` (nullable), `is_admin` |
-| `exercises` | `name`, `primary_muscles` (text[]), `equipment` (text[] : gym/dumbbells/bodyweight), `kind` (compound/isolation), `slots` (text[] : emplacements qu'il peut occuper), `is_bodyweight` (bool), `start_ratio` (jsonb : ratio charge/poids de corps par sexe et niveau, nullable) |
-| `programs` | `owner_id`, `name`, `split` (full_body/upper_lower/ppl_ul/ppl), `params` (jsonb : niveau, objectif, jours, matériel), `copied_from_id` (nullable) |
+| `users` | `first_name`, `identity_key` (unique), `birth_date`, `avatar_color`, `sex` (male/female, nullable), `height_cm` (100–250, nullable), `weight_kg` (decimal 5,1 ; 30–300, nullable), `level` (beginner/intermediate/advanced, nullable), `goal` (strength/hypertrophy/fitness, nullable), `days_per_week` (2–6, nullable), `equipment` (gym/dumbbells/bodyweight, nullable), `active_program_id` (nullable), `is_admin` (bool), `remember_token` |
+| `exercises` | `slug` (unique), `name`, `primary_muscles` (json), `equipment` (json : gym/dumbbells/bodyweight), `kind` (compound/isolation), `slots` (json : emplacements qu'il peut occuper), `is_bodyweight` (bool), `start_ratio` (json : ratio charge/poids de corps par sexe et niveau, nullable) |
+| `programs` | `user_id`, `name`, `split` (full_body/upper_lower/ppl_ul/ppl), `params` (json : niveau, objectif, jours, matériel), `copied_from_id` (nullable) |
 | `program_days` | `program_id`, `position`, `name` (ex. « Push A ») |
 | `program_exercises` | `program_day_id`, `position`, `exercise_id`, `slot`, `sets`, `reps_min`, `reps_max`, `rest_seconds` |
-| `workouts` | `user_id`, `program_day_id` (nullable = séance libre), `started_at`, `finished_at`, `client_id` (unique, pour une synchronisation idempotente) |
-| `workout_sets` | `workout_id`, `exercise_id`, `position`, `weight_kg` (≥ 0), `reps` (≥ 1), `done_at` |
+| `workouts` | `user_id`, `program_day_id` (nullable = séance libre), `client_id` (uuid, unique : synchronisation idempotente), `started_at`, `finished_at`, `bodyweight_kg` (poids de l'utilisateur au moment de la séance, nullable) |
+| `workout_sets` | `workout_id`, `exercise_id`, `position`, `weight_kg` (decimal 6,2 ; ≥ 0 ; pour un exercice au poids du corps, c'est la charge additionnelle), `reps` (≥ 1), `done_at` |
 | `personal_records` | `user_id`, `exercise_id` (unique ensemble), `max_weight_kg`, `max_weight_reps`, `best_e1rm_kg`, `achieved_at` |
-| `groups` | `name`, `owner_id`, `invite_code` (unique, 6 caractères) |
-| `group_members` | `group_id`, `user_id` (unique ensemble) |
-| `challenges` | `creator_id`, `group_id` (nullable = ouvert à tous), `title`, `type` (workout_count/total_volume/max_weight), `exercise_id` (requis si max_weight), `target` (nullable), `starts_on`, `ends_on` |
-| `challenge_participants` | `challenge_id`, `user_id` (unique ensemble) |
+| `groups` | `name`, `user_id` (créateur), `invite_code` (unique, 6 caractères) |
+| `group_user` | `group_id`, `user_id` (unique ensemble) |
+| `challenges` | `user_id` (créateur), `group_id` (nullable = ouvert à tous), `title`, `type` (workout_count/total_volume/max_weight), `exercise_id` (requis si max_weight), `target` (nullable), `starts_on`, `ends_on` |
+| `challenge_user` | `challenge_id`, `user_id` (unique ensemble) |
 
-### Règles RLS
+### Calculs (en PHP, requêtes Eloquent / Query Builder compatibles MySQL et SQLite)
 
-- **Lecture :** tout utilisateur connecté peut lire toutes les tables (l'app est publique entre inscrits).
-- **Écriture :** chacun ne modifie que ses propres lignes (`owner_id`, `user_id` ou `creator_id` = `auth.uid()`, ou via le parent dont il est propriétaire). `exercises` est en lecture seule (données initiales chargées par migration). `group_members` : on ne s'ajoute soi-même qu'avec le bon code d'invitation, via une fonction RPC `join_group(code)`.
-
-### Calculs côté base
-
-- **Records :** une fonction `finish_workout(workout_id)` appelée à la fin de la séance recalcule `personal_records` pour les exercices de la séance, et renvoie la liste des nouveaux records.
-- **Classement :** une fonction `leaderboard(metric, period, group_id?)` avec
-  - `metric` : `volume` (Σ charge × répétitions ; au poids du corps : poids de corps × répétitions + charge additionnelle), `workouts` (nombre de séances terminées), `relative` (moyenne des 3 meilleurs 1RM estimés / poids de corps, exercices poly-articulaires ; les membres sans poids renseigné sont exclus) ou `streak` (semaines consécutives avec au moins une séance, jusqu'à la semaine en cours) ;
-  - `period` : `week` (semaine en cours), `month` (mois en cours) ou `all` ;
-  - `streak` ignore `period`.
-- **Défis :** une vue ou fonction `challenge_progress(challenge_id)` calcule pour chaque participant la valeur atteinte entre `starts_on` et `ends_on`.
+- **Records :** `WorkoutSync::sync(User $user, array $payload)` enregistre la séance dans une transaction, puis met à jour `personal_records` pour les exercices de la séance. Elle renvoie la séance et la liste des nouveaux records. Si le `client_id` existe déjà, elle renvoie la séance existante sans rien dupliquer.
+- **Classement :** `Leaderboard::rank(string $metric, string $period, ?Group $group)` avec
+  - `metric` : `volume` (Σ charge × répétitions ; au poids du corps : (poids de corps de la séance + charge additionnelle) × répétitions), `workouts` (nombre de séances terminées), `relative` (moyenne des 3 meilleurs 1RM estimés / poids de corps actuel, exercices poly-articulaires ; les membres sans poids renseigné sont exclus) ou `streak` (semaines consécutives avec au moins une séance, jusqu'à la semaine en cours) ;
+  - `period` : `week` (semaine en cours, du lundi au dimanche), `month` (mois en cours) ou `all` ;
+  - `streak` et `relative` ignorent `period`.
+- **Défis :** `ChallengeProgress::for(Challenge $challenge)` calcule pour chaque participant la valeur atteinte entre `starts_on` et `ends_on`.
 
 ## 7. Écrans
 
@@ -133,9 +132,9 @@ Navigation : une barre d'onglets en bas sur mobile, une barre latérale sur PC. 
 
 **Écrans d'entrée :** Inscription et Connexion, chacun avec deux champs (prénom, date de naissance).
 
-## 8. Générateur de programmes (`lib/generator`)
+## 8. Générateur de programmes (`App\Services\ProgramGenerator`)
 
-Fonction pure : `generateProgram(params, exercises) → Program`.
+Service sans accès à la base : `generate(GeneratorParams $params, Collection $exercises): GeneratedProgram` (objets de valeur). C'est l'appelant qui enregistre le résultat.
 
 **Entrées :** `sex`, `heightCm`, `weightKg`, `level`, `goal`, `daysPerWeek` (2–6), `equipment`.
 
@@ -172,30 +171,31 @@ Le questionnaire a 5 étapes : **(1) morphologie** (sexe, taille, poids — pré
 | hypertrophy | 4 × 6–10, 120 s (débutant : 3 séries) | 3 × 10–15, 60 s |
 | fitness | 3 × 10–12, 90 s | 3 × 12–15, 60 s (débutant : 2 séries) |
 
-**6. Remplacement :** `alternativesFor(slot, equipment, exercises)` renvoie les autres exercices qui peuvent remplir le même emplacement.
+**6. Remplacement :** `alternativesFor(string $slot, string $equipment, Collection $exercises)` renvoie les autres exercices qui peuvent remplir le même emplacement.
 
-**Bibliothèque initiale :** environ 60 exercices en français, chargés par une migration SQL (seed). Chaque emplacement a au moins un exercice pour chaque type de matériel, quand ça a du sens (poids du corps compris).
+**Bibliothèque initiale :** environ 60 exercices en français, chargés par un seeder (`ExerciseSeeder`, idempotent grâce au `slug`). Chaque emplacement a au moins un exercice pour chaque type de matériel, quand ça a du sens (poids du corps compris).
 
 ## 9. Séance en cours et hors ligne
 
-- L'état de la séance (exercices, séries validées, minuteur) est conservé dans `localStorage` par `lib/session-store`, à chaque série validée.
-- Au lancement de l'app, si une séance non terminée existe, l'app propose « Reprendre la séance ».
-- « Terminer » envoie la séance (avec son `client_id` généré localement) puis appelle `finish_workout`. En cas d'échec réseau, la séance reste en attente et l'envoi est retenté au prochain lancement ou au retour du réseau. `client_id` garantit qu'une séance n'est jamais enregistrée deux fois.
+- **Démarrage :** la page `/workout` (ou `/workout/day/{programDay}`) fournit au composant Alpine, en JSON intégré à la page, les exercices prévus, la « dernière fois » par exercice, les charges de départ suggérées et la bibliothèque d'exercices (pour « Ajouter un exercice »).
+- **Pendant :** l'état (exercices, séries validées, minuteur) est écrit dans `localStorage` (clé `ego.activeWorkout`) à chaque action, par `resources/js/workout/store.js`. Aucun appel réseau.
+- **Reprise :** au chargement de n'importe quelle page, si `ego.activeWorkout` existe, un bandeau propose « Reprendre la séance ».
+- **Fin :** « Terminer » envoie `POST /workouts/sync` avec le `client_id` (uuid généré au démarrage). En cas d'échec réseau, la séance passe dans `ego.pendingWorkouts`, et l'envoi est retenté au chargement des pages suivantes et à l'événement `online`. Le `client_id` garantit qu'une séance n'est jamais enregistrée deux fois.
+- **Session expirée (419/401) :** la séance reste en attente ; elle est envoyée automatiquement après la reconnexion.
 
 ## 10. Gestion des erreurs
 
-- **Formulaires :** validation dans le formulaire (Zod), avec des messages en français (champ requis, date de naissance invalide ou dans le futur, taille hors 100–250 cm, poids hors 30–300 kg, charge < 0, répétitions < 1).
-- **Réseau :** un bandeau non bloquant « Hors ligne — tes données seront synchronisées ». Les actions qui nécessitent le réseau (générer, rejoindre un groupe…) sont désactivées hors ligne, avec une explication.
-- **Erreurs serveur :** un message générique affiché dans un toast, avec le détail envoyé dans la console.
+- **Formulaires :** validation Laravel (règles dans les composants Livewire), avec des messages en français (`lang/fr`) : champ requis, date de naissance invalide ou dans le futur, taille hors 100–250 cm, poids hors 30–300 kg, charge < 0, répétitions < 1.
+- **Synchronisation :** `POST /workouts/sync` valide le contenu (exercices existants, charges et répétitions dans les bornes, `client_id` au format uuid) et répond 422 avec le détail. La séance reste alors en attente, et un message l'indique.
+- **Réseau :** un bandeau non bloquant « Hors ligne — ta séance sera synchronisée ». Les actions qui nécessitent le réseau sont désactivées hors ligne, avec une explication.
+- **Erreurs serveur :** pages d'erreur Laravel personnalisées en français ; les erreurs sont journalisées (`storage/logs`).
 
 ## 11. Tests
 
-- **Unitaires (Vitest) :**
-  - `lib/generator` : découpage par nombre de jours, respect du matériel, nombre d'exercices selon le niveau, séries et répétitions selon l'objectif, pas de doublon dans un même jour
-  - `lib/records` : 1RM (Epley : `charge × (1 + reps / 30)`), ratio × poids de corps, volume des exercices au poids du corps
-  - `lib/generator` : charges de départ suggérées selon poids, sexe et niveau (arrondi à 2,5 kg, rien pour le poids du corps)
-  - `lib/auth` : normalisation du prénom et de la clé d'identité
-  - `lib/challenges` : progression selon le type de défi
-  - `lib/session-store` : reprise d'une séance
-- **Bout en bout (Playwright, viewport mobile) :** inscription → génération d'un programme → séance complète → le record apparaît sur l'accueil.
-- **Base :** les fonctions SQL (`finish_workout`, `leaderboard`, `challenge_progress`) sont testées sur une base Supabase locale (`supabase start`).
+- **Unitaires (Pest) :**
+  - `ProgramGenerator` : découpage selon le nombre de jours, respect du matériel, nombre d'exercices selon le niveau, séries et répétitions selon l'objectif, pas de doublon dans un même jour
+  - `StartingLoad` : charges de départ selon le poids, le sexe et le niveau (arrondi à 2,5 kg, rien pour le poids du corps)
+  - `RecordCalculator` : 1RM (Epley : `charge × (1 + reps / 30)`, et `charge` si reps = 1), ratio × poids de corps, volume des exercices au poids du corps
+  - `IdentityKey` : normalisation du prénom et de la clé d'identité
+- **Fonctionnels (Pest + SQLite en mémoire) :** inscription (doublon compris), connexion et limitation des tentatives, `WorkoutSync` (idempotence, records), `Leaderboard`, `ChallengeProgress`, Policies (impossible de modifier les données d'un autre).
+- **JavaScript (Vitest) :** `resources/js/workout/store.js` (reprise, file d'attente, nouvelle tentative).
