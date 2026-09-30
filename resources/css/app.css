@@ -5,7 +5,17 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+[x-cloak] { display: none !important; }
+
+.input {
+    @apply w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-lime-400 focus:outline-none;
+}
+.btn-primary {
+    @apply inline-flex w-full items-center justify-center rounded-xl bg-lime-400 px-4 py-3 text-base font-bold text-zinc-950 active:bg-lime-300 disabled:opacity-40;
+}
+.btn-secondary {
+    @apply inline-flex w-full items-center justify-center rounded-xl border border-zinc-700 px-4 py-3 text-base font-semibold text-zinc-100 active:bg-zinc-800 disabled:opacity-40;
+}
+.card {
+    @apply rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4;
 }
