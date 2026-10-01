@@ -23,8 +23,19 @@ final class PlayerStats
                 ->where('workouts.finished_at', '>=', $since)
                 ->sum('workout_sets.reps'), 50),
             'progression' => 10 * (int) $user->xpEvents()->where('source', 'record')->where('created_at', '>=', $since)->sum('quantity'),
-            'regularite' => null,
+            'regularite' => $this->regularity($user),
         ];
+    }
+
+    private function regularity(User $user): ?int
+    {
+        $base = $user->quests()->whereIn('type', ['training', 'rest'])->whereIn('status', ['done', 'failed'])
+            ->where('date', '>=', now()->subDays(self::WINDOW_DAYS)->toDateString())
+            ->where('date', '<', now()->toDateString());
+
+        $total = (clone $base)->count();
+
+        return $total === 0 ? null : (int) round((clone $base)->where('status', 'done')->count() / $total * 100);
     }
 
     private function force(User $user): ?int
