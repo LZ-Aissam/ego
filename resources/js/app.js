@@ -7,6 +7,7 @@ import '@fontsource/jetbrains-mono/800.css';
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
 import workout from './workout/component';
 import sysNotifications from './ui/notifications';
+import { initCountUps } from './ui/count-up';
 import { createStore } from './workout/store';
 import { flushPending, sendWorkout } from './workout/sync';
 
@@ -14,6 +15,7 @@ window.Alpine = Alpine;
 Alpine.data('workout', workout);
 Alpine.data('sysNotifications', sysNotifications);
 Livewire.start();
+document.addEventListener('livewire:navigated', () => initCountUps());
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -50,6 +52,7 @@ document.addEventListener('submit', (event) => {
 window.addEventListener('online', () => { updateOfflineBanner(); syncPending(); });
 window.addEventListener('offline', updateOfflineBanner);
 document.addEventListener('DOMContentLoaded', () => {
+    initCountUps();
     updateOfflineBanner();
     showResumeBanner();
     if (!document.getElementById('workout-boot')) syncPending();
