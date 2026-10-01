@@ -25,6 +25,14 @@ final class ProgramGenerator
         'legs' => ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'core'],
     ];
 
+    /**
+     * Ordre d'exécution, quand il diffère de l'ordre de choix : le mouvement le plus exigeant d'abord,
+     * dos et prise encore frais, puis les tirages, l'isolation, mollets et gainage en dernier.
+     */
+    public const EXECUTION_ORDER = [
+        'pull' => ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'calves', 'core'],
+    ];
+
     public const SLOTS_BY_LEVEL = ['beginner' => 5, 'intermediate' => 6, 'advanced' => 7];
 
     /** [séries, reps min, reps max, repos s] */
@@ -55,10 +63,19 @@ final class ProgramGenerator
                 $items[] = ['exercise_id' => $pick->id, 'slot' => $slot, ...$this->prescription($params['goal'], $params['level'], $pick->kind)];
             }
 
-            $out[] = ['name' => $name, 'type' => $type, 'exercises' => $items];
+            $out[] = ['name' => $name, 'type' => $type, 'exercises' => self::inExecutionOrder($type, $items)];
         }
 
         return ['split' => $split, 'days' => $out];
+    }
+
+    /** @param  list<array{slot: string}>  $items */
+    public static function inExecutionOrder(string $type, array $items): array
+    {
+        $order = self::EXECUTION_ORDER[$type] ?? self::DAY_SLOTS[$type];
+        usort($items, fn (array $a, array $b) => array_search($a['slot'], $order, true) <=> array_search($b['slot'], $order, true));
+
+        return $items;
     }
 
     public function candidates(string $slot, string $equipment, Collection $exercises): Collection

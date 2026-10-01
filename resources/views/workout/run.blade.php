@@ -89,7 +89,12 @@
                             </div>
                         </div>
 
-                        <button type="button" class="sys-btn sys-btn--pulse py-4 text-lg" @click="validateSet()">VALIDER LA SÉRIE</button>
+                        <div class="sys-window !p-3 text-center text-sm" x-show="allDone">
+                            <span class="font-bold text-ice">Toutes les séries sont faites.</span>
+                            <button type="button" class="sys-btn mt-2" :disabled="finishing" @click="finish()">Terminer la séance</button>
+                        </div>
+                        <button type="button" class="sys-btn py-4 text-lg" :class="{ 'sys-btn--pulse': !resting, 'opacity-50': resting }" :disabled="resting" @click="validateSet()"
+                                x-text="resting ? 'Repos en cours · ' + clock(restRemaining) : 'VALIDER LA SÉRIE'">VALIDER LA SÉRIE</button>
                         <button type="button" class="sys-label w-full text-center" x-show="current.sets.length" @click="undoSet()">Annuler la dernière série</button>
                     </div>
                 </template>
@@ -130,7 +135,7 @@
                 <div class="sys-ring" :style="`--p: ${restPercent}%`"><span x-text="clock(restRemaining)"></span></div>
                 <div class="flex-1">
                     <p class="sys-label">Repos</p>
-                    <p class="mt-0.5 text-sm text-mist">Prochaine série en préparation</p>
+                    <p class="mt-0.5 text-sm text-mist" x-text="state.justAdvanced && current ? 'Exercice suivant : ' + current.name : 'Prochaine série en préparation'">Prochaine série en préparation</p>
                     <div class="mt-2 flex gap-2">
                         <button type="button" class="sys-btn sys-btn--ghost !w-auto !px-3 !py-2 text-xs" @click="moreRest()">+30 s</button>
                         <button type="button" class="sys-btn !w-auto !px-3 !py-2 text-xs" @click="skipRest()">Passer</button>

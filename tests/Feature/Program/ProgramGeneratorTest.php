@@ -76,3 +76,19 @@ it('propose des alternatives du même emplacement et du même matériel', functi
         ->and($alternatives)->not->toBeEmpty()
         ->and($alternatives->every(fn ($e) => in_array('squat', $e->slots) && in_array('gym', $e->equipment)))->toBeTrue();
 });
+
+it('fait commencer la journée Pull par la charnière de hanche, isolation et gainage en dernier', function (string $level, array $slots) {
+    $pull = $this->generator->generate(($this->params)(['level' => $level, 'days' => 6]), $this->exercises)['days'][1];
+
+    expect($pull['name'])->toBe('Pull A')->and(array_column($pull['exercises'], 'slot'))->toBe($slots);
+})->with([
+    ['beginner', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps']],
+    ['advanced', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'calves', 'core']],
+]);
+
+it('garde l\'ordre des autres journées, polyarticulaires d\'abord', function () {
+    $days = $this->generator->generate(($this->params)(['level' => 'advanced', 'days' => 6]), $this->exercises)['days'];
+
+    expect(array_column($days[0]['exercises'], 'slot'))->toBe(ProgramGenerator::DAY_SLOTS['push'])
+        ->and(array_column($days[2]['exercises'], 'slot'))->toBe(ProgramGenerator::DAY_SLOTS['legs']);
+});

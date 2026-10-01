@@ -56,9 +56,31 @@ export function adjustDraft(state, field, delta) {
     return state;
 }
 
+export function isResting(state, nowMs) {
+    return state.restEndsAt !== null && state.restEndsAt !== undefined && nowMs < state.restEndsAt;
+}
+
+const targetDone = (ex) => ex.target !== null && ex.target !== undefined && ex.sets.length >= ex.target.sets;
+
+// Prochain exercice de la quête pas encore terminé : d'abord ceux qui suivent, puis ceux laissés en arrière.
+function nextUnfinished(state) {
+    const n = state.exercises.length;
+    for (let step = 1; step < n; step++) {
+        const i = (state.currentIndex + step) % n;
+        const ex = state.exercises[i];
+        if (ex.target && !targetDone(ex)) return i;
+    }
+    return null;
+}
+
+export function allTargetsDone(state) {
+    const planned = state.exercises.filter((ex) => ex.target);
+    return planned.length > 0 && planned.every(targetDone);
+}
+
 export function logSet(state, nowMs) {
     const ex = current(state);
-    if (!ex) return state;
+    if (!ex || isResting(state, nowMs)) return state;
     ex.sets.push({
         weightKg: Math.max(0, round2(toNumber(ex.draft.weightKg))),
         reps: Math.max(1, Math.round(toNumber(ex.draft.reps))),
@@ -66,6 +88,14 @@ export function logSet(state, nowMs) {
     });
     state.restEndsAt = nowMs + ex.restSeconds * 1000;
     state.restTotalMs = ex.restSeconds * 1000;
+    state.justAdvanced = false;
+    if (targetDone(ex)) {
+        const next = nextUnfinished(state);
+        if (next !== null) {
+            state.currentIndex = next;
+            state.justAdvanced = true;
+        }
+    }
     return state;
 }
 

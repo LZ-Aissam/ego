@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-    addExercise, addRest, adjustDraft, createStore, finishWorkout, goTo, hasSets,
-    logSet, newWorkout, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
+    addExercise, addRest, adjustDraft, allTargetsDone, createStore, finishWorkout, goTo, hasSets,
+    isResting, logSet, newWorkout, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
 } from './store';
 
 function memoryStorage() {
@@ -179,5 +179,69 @@ describe('restProgress', () => {
         expect(restProgress(s, 999_999)).toBe(0);
         s = skipRest(s);
         expect(restProgress(s, 0)).toBe(0);
+    });
+});
+
+describe('enchaînement des séries', () => {
+    const quest = () => {
+        let s = newWorkout('id', 't');
+        s = addExercise(s, bench, { restSeconds: 60, target: { sets: 2, repsMin: 6, repsMax: 10 } });
+        s = addExercise(s, pullUp, { restSeconds: 60, target: { sets: 1, repsMin: 5, repsMax: 8 } });
+        s = addExercise(s, { id: 3, name: 'Curl', isBodyweight: false }, { restSeconds: 60, target: { sets: 1, repsMin: 10, repsMax: 12 } });
+        return goTo(s, 0);
+    };
+
+    it("refuse une série pendant le repos, l'accepte après « Passer » ou à la fin du chrono", () => {
+        let s = quest();
+        s = logSet(s, 0);
+        expect(isResting(s, 1000)).toBe(true);
+        s = logSet(s, 1000);
+        expect(s.exercises[0].sets).toHaveLength(1);
+
+        s = skipRest(s);
+        expect(isResting(s, 1000)).toBe(false);
+        s = logSet(s, 1000);
+        expect(s.exercises[0].sets).toHaveLength(2);
+
+        s = goTo(s, 0);
+        s.exercises[0].target.sets = 3;
+        s = logSet(s, 61000 + 1000);
+        expect(s.exercises[0].sets).toHaveLength(3);
+    });
+
+    it("passe à l'exercice suivant après la dernière série prévue", () => {
+        let s = quest();
+        s = logSet(s, 0);
+        expect(s.currentIndex).toBe(0);
+        expect(s.justAdvanced).toBe(false);
+        s = logSet(skipRest(s), 0);
+        expect(s.currentIndex).toBe(1);
+        expect(s.justAdvanced).toBe(true);
+    });
+
+    it('saute un exercice déjà terminé et revient à un exercice laissé en arrière', () => {
+        let s = quest();
+        s = goTo(s, 1);
+        s = logSet(s, 0);                                   // tractions finies → curl (pas encore fait)
+        expect(s.currentIndex).toBe(2);
+        s = logSet(skipRest(s), 0);                         // curl fini → retour au développé couché
+        expect(s.currentIndex).toBe(0);
+    });
+
+    it('reste sur place quand tout est fait et le signale', () => {
+        let s = quest();
+        for (let i = 0; i < 4; i++) s = logSet(skipRest(s), 0);
+        expect(allTargetsDone(s)).toBe(true);
+        expect(s.justAdvanced).toBe(false);
+        expect(s.currentIndex).toBe(2);
+    });
+
+    it("ne change pas d'exercice en séance libre", () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 60 });
+        s = addExercise(s, pullUp, { restSeconds: 60 });
+        s = goTo(s, 0);
+        for (let i = 0; i < 5; i++) s = logSet(skipRest(s), 0);
+        expect(s.currentIndex).toBe(0);
+        expect(allTargetsDone(s)).toBe(false);
     });
 });

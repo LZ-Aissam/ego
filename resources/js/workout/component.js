@@ -1,6 +1,6 @@
 import {
-    addExercise, addRest, adjustDraft, createStore, finishWorkout, goTo, hasSets,
-    logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
+    addExercise, addRest, adjustDraft, allTargetsDone, createStore, finishWorkout, goTo, hasSets,
+    isResting, logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
 
@@ -81,6 +81,14 @@ export default function workout() {
                 .slice(0, 50);
         },
 
+        get resting() {
+            return isResting(this.state, this.now);
+        },
+
+        get allDone() {
+            return allTargetsDone(this.state);
+        },
+
         get canFinish() {
             return hasSets(this.state);
         },
@@ -138,7 +146,9 @@ export default function workout() {
         validateSet() {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!this.audio && Ctx) this.audio = new Ctx();
-            logSet(this.state, Date.now());
+            this.now = Date.now();
+            if (this.resting) return;
+            logSet(this.state, this.now);
         },
 
         async finish() {
