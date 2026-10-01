@@ -46,12 +46,28 @@ it('refuse une série test vide ou hors limites', function (string $kg, string $
         ->call('saveTest')->assertHasErrors()->assertSee('Indique la charge et le nombre de répétitions réalisées');
 })->with([['', '10'], ['0', '10'], ['50', '0'], ['50', '31']]);
 
-it('n\'ouvre la quête de calibrage que pour son propriétaire, le jour même', function () {
-    app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
-    $quest = $this->user->quests()->create(['date' => today(), 'type' => 'calibration', 'title' => 'Calibrage', 'objectives' => [], 'status' => 'pending']);
+function calibrationQuest(User $user): Quest
+{
+    app(ProgramBuilder::class)->build($user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
 
-    $this->get(route('calibration.quest', $quest))->assertOk();
+    return $user->quests()->create(['date' => today(), 'type' => 'calibration', 'title' => 'Calibrage', 'objectives' => [], 'status' => 'pending']);
+}
+
+// Une requête par test : un abort() pendant le mount d'un composant Livewire laisse son redirecteur
+// interne en place pour les requêtes suivantes du même processus (artefact de test, pas de production).
+it('ouvre la quête de calibrage de son propriétaire, le jour même', function () {
+    $this->get(route('calibration.quest', calibrationQuest($this->user)))->assertOk();
+});
+
+it('refuse la quête de calibrage d\'un autre joueur', function () {
+    $quest = calibrationQuest($this->user);
+
     $this->actingAs(User::factory()->create())->get(route('calibration.quest', $quest))->assertForbidden();
+});
+
+it('renvoie à l\'accueil pour une quête de calibrage déjà accomplie', function () {
+    $quest = calibrationQuest($this->user);
     $quest->update(['status' => 'done']);
-    $this->actingAs($this->user)->get(route('calibration.quest', $quest))->assertRedirect(route('home'));
+
+    $this->get(route('calibration.quest', $quest))->assertRedirect(route('home'));
 });
