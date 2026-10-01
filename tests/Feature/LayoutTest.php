@@ -18,9 +18,3 @@ it('affiche l\'accueil avec la navigation « Système » à 4 onglets', function
 it('expose l\'identifiant de l\'utilisateur connecté pour ranger ses séances locales', function () {
     $this->get('/')->assertSee('data-user-id="'.auth()->id().'"', false);
 });
-
-it('affiche les pages à venir', function (string $url, string $text) {
-    $this->get($url)->assertOk()->assertSee($text);
-})->with([
-    ['/community', 'Crew'],
-]);

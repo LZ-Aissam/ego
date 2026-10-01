@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\CrewJoinController;
+use App\Livewire\Crew\CrewPage;
+use App\Livewire\Crew\GroupPage;
+use App\Livewire\Crew\MemberPage;
 use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutSyncController;
@@ -26,10 +30,11 @@ Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/program', ProgramPage::class)->name('program');
     Route::get('/calibration', CalibrationPage::class)->name('calibration');
     Route::get('/calibration/quest/{quest}', CalibrationPage::class)->name('calibration.quest');
-    Route::view('/community', 'pages.soon', [
-        'title' => 'Crew',
-        'message' => 'Le Crew débarque bientôt : records des amis, classement, défis et groupes.',
-    ])->name('community');
+    Route::redirect('/community', '/crew');
+    Route::get('/crew', CrewPage::class)->name('community');
+    Route::get('/crew/membres/{member}', MemberPage::class)->name('crew.member');
+    Route::get('/crew/groupes/{crew}', GroupPage::class)->name('crew.group');
+    Route::get('/crew/rejoindre/{code}', CrewJoinController::class)->name('crew.join');
     Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
     Route::get('/workout/quest/{quest}', [WorkoutController::class, 'quest'])->name('workout.quest');
     Route::get('/history', History::class)->name('history');

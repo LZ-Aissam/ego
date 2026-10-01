@@ -3,7 +3,7 @@
     $tabs = [
         ['home', 'Accueil', 'home', ['home']],
         ['program', 'Programme', 'program', ['program*']],
-        ['community', 'Crew', 'community', ['community*']],
+        ['community', 'Crew', 'community', ['community*', 'crew.*']],
         ['profile', 'Profil', 'profile', ['profile*', 'history*', 'records*', 'progress*']],
     ];
 @endphp
