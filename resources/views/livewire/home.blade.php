@@ -1,6 +1,6 @@
 <div class="space-y-5">
     <header>
-        <x-sys.label>SYSTÈME EGO · EN LIGNE</x-sys.label>
+        <x-sys.label>TON EGO · EN LIGNE</x-sys.label>
         {{-- « Salut Prénom » reste d'un seul tenant (vérifié par LayoutTest) --}}
         <h1 class="mt-2 text-3xl font-bold leading-tight"><span class="text-ice [text-shadow:0_0_16px_var(--glow-ice)]">Salut {{ $user->first_name }}</span>.<br>Prêt à forger ?</h1>
     </header>
@@ -10,7 +10,7 @@
     @if (! $user->sex || ! $user->weight_kg)
         <a href="{{ route('profile') }}" class="block">
             <x-sys.window title="CALIBRAGE REQUIS" :index="1">
-                <p class="text-sm text-mist">Complète ton profil (sexe, taille, poids) pour que le Système te suggère tes charges de départ. <span class="text-ice">→</span></p>
+                <p class="text-sm text-mist">Complète ton profil (sexe, taille, poids) pour que TON EGO te suggère tes charges de départ. <span class="text-ice">→</span></p>
             </x-sys.window>
         </a>
     @endif

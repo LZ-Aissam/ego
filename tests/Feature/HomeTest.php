@@ -33,7 +33,7 @@ it('affiche la console du joueur en fenêtres système avec un volume animé', f
     ]);
 
     $this->get('/')
-        ->assertSee('SYSTÈME EGO · EN LIGNE')
+        ->assertSee('TON EGO · EN LIGNE')
         ->assertSee('DERNIÈRE SÉANCE')
         ->assertSee('DERNIERS RECORDS')
         ->assertSee('data-count-up="480"', false);

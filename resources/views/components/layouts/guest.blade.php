@@ -8,7 +8,7 @@
     @include('partials.backdrop')
     <main class="w-full max-w-sm py-10">
         <p class="sys-logo mb-2 text-center text-5xl">EGO</p>
-        <p class="sys-label mb-8 text-center">Système d'entraînement</p>
+        <p class="sys-label mb-8 text-center">TON EGO · système d'entraînement</p>
         {{ $slot }}
     </main>
     @livewireScriptConfig

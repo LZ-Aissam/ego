@@ -67,3 +67,7 @@ it('limite les tentatives d\'inscription pour empêcher de deviner une date de n
 it('présente l\'inscription comme une fenêtre système ÉVEIL', function () {
     $this->get('/register')->assertSee('ÉVEIL')->assertSee('class="sys-window"', false)->assertSee('class="sys-input"', false);
 });
+
+it('présente le Système sous son nom, TON EGO', function () {
+    $this->get('/register')->assertSee('TON EGO a besoin de ton identité')->assertDontSee('Le Système');
+});

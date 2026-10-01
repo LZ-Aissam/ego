@@ -1,7 +1,7 @@
 <div>
     <x-sys.window title="IDENTIFICATION">
         <h1 class="mb-1 text-xl font-bold">Connexion</h1>
-        <p class="mb-5 text-sm text-mist">Déclare-toi au Système.</p>
+        <p class="mb-5 text-sm text-mist">Déclare-toi à TON EGO.</p>
         <form wire:submit="login" class="space-y-4" novalidate>
             <x-sys.field name="firstName" label="Prénom" wire:model="firstName" autocomplete="given-name" autocapitalize="words" />
             <x-sys.field name="birthDate" label="Date de naissance" type="date" wire:model="birthDate" autocomplete="bday" />
