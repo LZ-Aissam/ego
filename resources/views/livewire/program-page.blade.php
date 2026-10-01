@@ -73,6 +73,19 @@
             @endif
         </div>
     @else
+        @if ($justForged)
+            <x-sys.window :title="auth()->user()->calibrated_at ? 'TEST DE PUISSANCE' : 'TON EGO DOIT MESURER TA PUISSANCE'">
+                <p class="text-sm text-mist">
+                    @if (auth()->user()->calibrated_at)
+                        Nouveau programme : refais le test pour des charges au plus juste.
+                    @else
+                        Pour fixer tes charges de départ et suivre ta progression, fais le test maintenant : 3 ou 4 mouvements, environ 15 minutes.
+                    @endif
+                </p>
+                <x-sys.button class="mt-3" :pulse="true" :href="route('calibration')">Tester maintenant</x-sys.button>
+                <button type="button" class="sys-label mt-2 block w-full text-center" wire:click="dismissTest">Plus tard</button>
+            </x-sys.window>
+        @endif
         <x-sys.label>Programme</x-sys.label>
         <h1 class="text-2xl font-bold">{{ $program->name }}</h1>
         <p class="text-sm text-mist">

@@ -18,6 +18,9 @@ class ProgramPage extends Component
 
     public bool $editing = false;
 
+    /** Programme qui vient d'être forgé : TON EGO propose le test de puissance, une seule fois. */
+    public bool $justForged = false;
+
     public ?string $sex = null;
 
     public $heightCm = null;
@@ -36,6 +39,7 @@ class ProgramPage extends Component
 
     public function mount(): void
     {
+        $this->justForged = (bool) session()->pull('program_forged', false);
         $user = auth()->user();
         $this->sex = $user->sex;
         $this->heightCm = $user->height_cm;
@@ -83,8 +87,14 @@ class ProgramPage extends Component
         ]);
 
         $notifier->push($user, SystemMessage::programForged($program->name));
+        session()->put('program_forged', true);
 
         return $this->redirectRoute('program');
+    }
+
+    public function dismissTest(): void
+    {
+        $this->justForged = false;
     }
 
     public function replace(int $programExerciseId, int $exerciseId): void

@@ -100,3 +100,31 @@ it('affiche un message en français pour une valeur invalide, jamais une clé br
     ['goal', 'beginner', 3, 'Choisis ton objectif.'],
     ['equipment', 'jardin', 5, 'Choisis ton matériel.'],
 ]);
+
+it('propose le test de puissance juste après la création, une seule fois', function () {
+    answerQuestionnaire(Livewire::test(ProgramPage::class))->call('generate');
+
+    $this->get('/program')->assertSee('TON EGO DOIT MESURER TA PUISSANCE')->assertSee('Tester maintenant')->assertSee(route('calibration'));
+    $this->get('/program')->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE');
+});
+
+it('propose de refaire le test après un nouveau programme quand on est déjà calibré', function () {
+    $this->user->forceFill(['calibrated_at' => now()])->save();
+    answerQuestionnaire(Livewire::test(ProgramPage::class))->call('generate');
+
+    $this->get('/program')->assertSee('Nouveau programme : refais le test pour des charges au plus juste')
+        ->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE');
+});
+
+it('ferme la proposition de test avec « Plus tard »', function () {
+    answerQuestionnaire(Livewire::test(ProgramPage::class))->call('generate');
+
+    Livewire::test(ProgramPage::class)->assertSet('justForged', true)
+        ->call('dismissTest')->assertSet('justForged', false)->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE');
+});
+
+it('ne propose pas le test lors d\'une simple visite', function () {
+    app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
+
+    $this->get('/program')->assertOk()->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE')->assertDontSee('Tester maintenant');
+});
