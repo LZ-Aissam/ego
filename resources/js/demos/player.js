@@ -15,6 +15,12 @@ function el(tag, attrs = {}, parent = null) {
     return node;
 }
 
+/** Cadre de l'animation, posé en JS : un `:viewBox` Alpine dans le HTML devient « viewbox », que le SVG ignore. */
+export function frameSvg(svg) {
+    svg.setAttribute('viewBox', VIEWBOX.join(' '));
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
 const points = (pts) => pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
 
 export default function exerciseDemo(initialSlug = null) {
@@ -24,7 +30,6 @@ export default function exerciseDemo(initialSlug = null) {
         note: '',
         speed: 1,
         paused: false,
-        viewBox: VIEWBOX.join(' '),
         clock: 0,
         last: null,
         raf: null,
@@ -50,6 +55,7 @@ export default function exerciseDemo(initialSlug = null) {
             const svg = this.$refs.svg;
             if (!svg || !this.slug) return;
             svg.replaceChildren();
+            frameSvg(svg);
             const glow = `demo-glow-${++uid}`;
             const filter = el('filter', { id: glow, x: '-50%', y: '-50%', width: '200%', height: '200%' }, el('defs', {}, svg));
             el('feGaussianBlur', { stdDeviation: '2.2', result: 'b' }, filter);

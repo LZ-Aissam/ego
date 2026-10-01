@@ -5,7 +5,7 @@
 <div class="relative mt-3 aspect-[240/215] border border-ice/15 [background:repeating-linear-gradient(0deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px),repeating-linear-gradient(90deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px)]">
     <span class="sys-num absolute left-2 top-1.5 text-[11px] uppercase tracking-widest text-ice" x-text="phase"></span>
     <span class="sys-num absolute right-2 top-1.5 text-[11px] text-mist">{{ $guide['tempo'] }}</span>
-    <svg x-ref="svg" :viewBox="viewBox" class="h-full w-full" role="img" aria-label="Démonstration animée : {{ $name }}"></svg>
+    <svg x-ref="svg" class="h-full w-full" role="img" aria-label="Démonstration animée : {{ $name }}"></svg>
     <span class="sys-num absolute bottom-1 left-2 text-[10px] text-mist" x-text="note"></span>
 </div>
 
