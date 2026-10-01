@@ -94,6 +94,64 @@ final class LoadPrescriber
         });
     }
 
+    /** Meilleur 1RM estimé : calibrage ou record ; sinon charge déduite rapportée à un 1RM (Epley sur repsMax). */
+    public function bestE1rm(User $user, Exercise $exercise, int $repsMax): ?float
+    {
+        $calibrated = $user->exerciseMaxes()->where('exercise_id', $exercise->id)->value('e1rm_kg');
+        $record = $user->personalRecords()->where('exercise_id', $exercise->id)->value('best_e1rm_kg');
+        $best = max((float) $calibrated, (float) $record);
+        if ($best > 0) {
+            return round($best, 1);
+        }
+
+        $derived = $this->derivedLoad($exercise, $user);
+
+        return $derived === null ? null : round($derived * (1 + $repsMax / 30), 1);
+    }
+
+    /** Charge prescrite pour une ligne de programme selon son intention (null : rien à prescrire). */
+    public function prescriptionFor(User $user, Exercise $exercise, ?string $intent, int $repsMax): ?float
+    {
+        if ($exercise->is_bodyweight) {
+            return null;
+        }
+
+        $pct = \App\Game\Intent::META[$intent]['pct'] ?? null;
+        if ($pct === null) {
+            $stored = $user->workingLoads()->where('exercise_id', $exercise->id)->value('target_kg');
+
+            return $stored === null ? null : (float) $stored;
+        }
+
+        $best = $this->bestE1rm($user, $exercise, $repsMax);
+        if ($best === null) {
+            return null;
+        }
+
+        $value = $best * $pct;
+        $rounded = $intent === 'max' ? floor($value / 2.5) * 2.5 : round($value / 2.5) * 2.5;
+
+        return max(2.5, $rounded);
+    }
+
+    /** Lignes dont la charge est stockée et progresse par les répétitions : intention « masse » ou aucune. */
+    public function loadLines(User $user): Collection
+    {
+        $program = $user->activeProgram()->with('days.exercises.exercise')->first();
+        if (! $program) {
+            return collect();
+        }
+
+        return $program->days->flatMap->exercises
+            ->filter(fn (ProgramExercise $l) => $l->intent === null || $l->intent === 'mass')
+            ->groupBy('exercise_id')->map(function (Collection $occurrences) {
+                $first = clone $occurrences->first();
+                $first->reps_max = $occurrences->min('reps_max');
+
+                return $first;
+            });
+    }
+
     /** @param  list<int>  $overwrite  exercices dont la charge est recalculée même si elle existe déjà */
     public function prescribeProgram(User $user, array $overwrite = []): void
     {
@@ -101,7 +159,7 @@ final class LoadPrescriber
         $existing = $user->workingLoads()->pluck('target_kg', 'exercise_id');
         $measured = $this->measuredFactors($user);
 
-        foreach ($this->planLines($user) as $exerciseId => $line) {
+        foreach ($this->loadLines($user) as $exerciseId => $line) {
             /** @var ProgramExercise $line */
             if ($line->exercise->is_bodyweight || ($existing->has($exerciseId) && ! in_array($exerciseId, $overwrite, true))) {
                 continue;
@@ -122,7 +180,7 @@ final class LoadPrescriber
     /** Double progression après une séance. @return list<array> notifications */
     public function progress(User $user, Workout $workout): array
     {
-        $plan = $this->planLines($user);
+        $plan = $this->loadLines($user);
         if ($plan->isEmpty()) {
             return [];
         }
