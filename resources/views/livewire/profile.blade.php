@@ -21,6 +21,7 @@
             <p class="mt-2 text-xs text-mist">Renseigne ton poids ci-dessous pour mesurer ta FORCE.</p>
         @endif
     </x-sys.window>
+    <a href="{{ route('crew.member', $user) }}" class="sys-label block text-right">Voir comme les autres</a>
 
     <div class="grid grid-cols-2 gap-3">
         <x-sys.button :href="route('history')" variant="ghost">Historique</x-sys.button>
