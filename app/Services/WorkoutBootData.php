@@ -20,7 +20,9 @@ final class WorkoutBootData
             'restSeconds' => self::REST_SECONDS,
             'exercises' => Exercise::orderBy('name')->get()->map(fn (Exercise $e) => [
                 'id' => $e->id,
+                'slug' => $e->slug,
                 'name' => $e->name,
+                'guide' => \App\Support\ExerciseGuide::for($e->slug),
                 'isBodyweight' => $e->is_bodyweight,
                 'suggestedKg' => $this->startingLoad->suggest($e, $user),
                 'prescribedKg' => isset($loads[$e->id]) ? (float) $loads[$e->id] : null,

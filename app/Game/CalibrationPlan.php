@@ -48,13 +48,14 @@ final class CalibrationPlan
     {
         return $this->movementsFor($user)->map(function (Exercise $exercise) use ($user) {
             if ($exercise->is_bodyweight) {
-                return ['exercise_id' => $exercise->id, 'name' => $exercise->name, 'isBodyweight' => true, 'estimate' => null, 'warmups' => [[0.0, 5], [0.0, 3]]];
+                return ['exercise_id' => $exercise->id, 'slug' => $exercise->slug, 'name' => $exercise->name, 'isBodyweight' => true, 'estimate' => null, 'warmups' => [[0.0, 5], [0.0, 3]]];
             }
 
             $estimate = $this->startingLoad->suggest($exercise, $user) ?? self::DEFAULT_ESTIMATE;
 
             return [
                 'exercise_id' => $exercise->id,
+                'slug' => $exercise->slug,
                 'name' => $exercise->name,
                 'isBodyweight' => false,
                 'perDumbbell' => $exercise->isPerDumbbell(),

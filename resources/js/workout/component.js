@@ -81,6 +81,19 @@ export default function workout() {
                 .slice(0, 50);
         },
 
+        demoId: null,
+
+        get demo() {
+            return this.demoId === null ? null : this.boot.exercises.find((e) => e.id === this.demoId) ?? null;
+        },
+
+        guideOf(exerciseId) {
+            return this.boot.exercises.find((e) => e.id === exerciseId)?.guide ?? null;
+        },
+
+        openDemo(exerciseId) { this.demoId = exerciseId; },
+        closeDemo() { this.demoId = null; },
+
         get resting() {
             return isResting(this.state, this.now);
         },

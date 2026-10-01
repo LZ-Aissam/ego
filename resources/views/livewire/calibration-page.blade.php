@@ -4,6 +4,7 @@
 
     @if ($current)
         <x-sys.window :title="$current['name']" wire:key="calibration-{{ $index }}">
+            <x-exercise-demo :slug="$current['slug']" :name="$current['name']" class="mb-3" />
             <x-sys.label>Échauffement</x-sys.label>
             @foreach ($current['warmups'] as $i => $warmup)
                 <div @class(['sys-row gap-2', 'text-ice' => $warmupsDone[$i] ?? false]) wire:key="warmup-{{ $index }}-{{ $i }}">
