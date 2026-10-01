@@ -16,6 +16,7 @@ beforeEach(function () {
 function withProgram(User $user): void
 {
     app(ProgramBuilder::class)->build($user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
+    $user->forceFill(['calibrated_at' => now()])->save();
 }
 
 it('invite à forger un programme quand il n\'y en a pas', function () {

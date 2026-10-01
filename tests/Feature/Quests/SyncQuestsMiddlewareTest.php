@@ -11,6 +11,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'fitness', 'weekdays' => [1, 3, 5], 'equipment' => 'bodyweight'])
         ->forceFill(['created_at' => Carbon::parse('2026-10-05 08:00')])->save();
+    $this->user->forceFill(['calibrated_at' => now()])->save();
     $this->actingAs($this->user);
 });
 

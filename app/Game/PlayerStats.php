@@ -29,7 +29,7 @@ final class PlayerStats
 
     private function regularity(User $user): ?int
     {
-        $base = $user->quests()->whereIn('type', ['training', 'rest'])->whereIn('status', ['done', 'failed'])
+        $base = $user->quests()->whereIn('type', ['training', 'calibration', 'rest'])->whereIn('status', ['done', 'failed'])
             ->where('date', '>=', now()->subDays(self::WINDOW_DAYS)->toDateString())
             ->where('date', '<', now()->toDateString());
 

@@ -46,7 +46,7 @@
             <p class="text-sm text-mist">TON EGO attend ton retour. Ta série ({{ $user->streak_days }} j) est gelée.</p>
             <a href="{{ route('profile') }}" class="sys-label mt-2 block text-right">Reprendre</a>
         </x-sys.window>
-    @elseif ($quest && $quest->type === 'training')
+    @elseif ($quest && in_array($quest->type, ['training', 'calibration'], true))
         <x-sys.window title="QUÊTE DU JOUR" :index="2">
             <p class="mb-2 text-center text-sm text-mist">TON EGO t'assigne : <span class="font-bold text-frost">{{ $quest->title }}</span></p>
             @foreach ($quest->objectives as $i => $objective)
@@ -58,7 +58,7 @@
             @endforeach
             <p class="sys-num mt-2 text-center text-xs text-mist">Récompense : +{{ $quest->status === 'done' ? $quest->xp_awarded : $reward }} XP · avant minuit</p>
             @if ($quest->status === 'pending')
-                <x-sys.button class="mt-3" :pulse="true" :href="route('workout.quest', $quest)">Accepter la quête</x-sys.button>
+                <x-sys.button class="mt-3" :pulse="true" :href="$quest->type === 'calibration' ? route('calibration.quest', $quest) : route('workout.quest', $quest)">Accepter la quête</x-sys.button>
             @elseif ($quest->status === 'done')
                 <p class="mt-3 text-center font-bold text-ice">QUÊTE ACCOMPLIE ✓</p>
             @endif

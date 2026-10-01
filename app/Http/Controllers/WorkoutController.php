@@ -16,6 +16,10 @@ class WorkoutController extends Controller
     {
         abort_unless($quest->user_id === $request->user()->id, 403);
 
+        if ($quest->type === 'calibration') {
+            return redirect()->route('calibration.quest', $quest);
+        }
+
         if ($quest->status !== 'pending' || ! $quest->date->isToday()) {
             return redirect()->route('home');
         }

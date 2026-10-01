@@ -26,6 +26,7 @@ final class QuestScheduler
         private PenaltyCircuit $penalties,
         private XpLedger $ledger,
         private QuestEvaluator $evaluator,
+        private CalibrationPlan $calibrationPlan,
     ) {}
 
     public function rewardFor(int $streak): int
@@ -67,13 +68,13 @@ final class QuestScheduler
 
             if ($user->paused_at) {
                 for ($day = Carbon::parse($user->paused_at->toDateString()); $day->lt($today); $day = $day->copy()->addDay()) {
-                    if (! $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'rest'])->exists()) {
+                    if (! $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'calibration', 'rest'])->exists()) {
                         $user->quests()->create(['date' => $day->toDateString(), 'type' => 'rest', 'title' => 'Pause', 'objectives' => [], 'status' => 'cancelled']);
                     }
                 }
             }
 
-            $user->quests()->where('date', $today->toDateString())->whereIn('type', ['training', 'rest'])->where('status', 'cancelled')->delete();
+            $user->quests()->where('date', $today->toDateString())->whereIn('type', ['training', 'calibration', 'rest'])->where('status', 'cancelled')->delete();
             $user->forceFill(['paused_at' => null, 'paused_until' => null])->save();
         });
     }
@@ -86,7 +87,7 @@ final class QuestScheduler
         // La séance peut arriver avant toute page ouverte ce jour-là (hors ligne) : on crée d'abord les quêtes dues.
         $notes = $this->process($user, $day);
 
-        $quests = $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'penalty'])
+        $quests = $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'calibration', 'penalty'])
             ->whereIn('status', ['pending', 'failed'])->orderBy('id')->get();
         $sets = $this->setsOn($user, $day);
 
@@ -151,15 +152,20 @@ final class QuestScheduler
     /** @return list<array> */
     private function ensureQuest(User $user, Program $program, Carbon $day): array
     {
-        if ($user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'rest'])->exists()) {
+        if ($user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'calibration', 'rest'])->exists()) {
             return [];
         }
 
         if (in_array($day->isoWeekday(), $user->training_weekdays ?? [], true)) {
             $programDay = $this->nextProgramDay($user, $program);
+            $calibrating = $user->calibrated_at === null;
             $quest = $user->quests()->create([
-                'date' => $day->toDateString(), 'type' => 'training', 'program_day_id' => $programDay->id,
-                'title' => $programDay->name, 'objectives' => $programDay->objectives(), 'status' => 'pending',
+                'date' => $day->toDateString(),
+                'type' => $calibrating ? 'calibration' : 'training',
+                'program_day_id' => $programDay->id,
+                'title' => $calibrating ? 'Calibrage' : $programDay->name,
+                'objectives' => $calibrating ? $this->calibrationPlan->objectives($user) : $programDay->objectives(),
+                'status' => 'pending',
             ]);
 
             // Des séances de ce jour ont pu être envoyées avant la création de la quête.
@@ -259,7 +265,7 @@ final class QuestScheduler
         foreach ($user->quests()->where('date', $day->toDateString())->where('status', 'pending')->orderBy('id')->get() as $quest) {
             $quest->update(['status' => 'failed']);
 
-            if ($quest->type === 'training') {
+            if (in_array($quest->type, ['training', 'calibration'], true)) {
                 $notes[] = SystemMessage::questFailed($quest);
                 $next = $day->copy()->addDay();
                 // Lendemain en pause : la pénalité existe mais est annulée (la série reste gelée, pas cassée).

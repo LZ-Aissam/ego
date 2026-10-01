@@ -31,7 +31,7 @@ final class StreakCalculator
             if ($ofDay->contains(fn ($q) => $q->type === 'penalty' && $q->status === 'failed')) {
                 break;
             }
-            $main = $ofDay->first(fn ($q) => in_array($q->type, ['training', 'rest'], true));
+            $main = $ofDay->first(fn ($q) => in_array($q->type, ['training', 'calibration', 'rest'], true));
 
             if (! $main || in_array($main->status, ['pending', 'cancelled'], true)) {
                 continue;

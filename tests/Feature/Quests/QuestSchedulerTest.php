@@ -18,6 +18,7 @@ function programOn(User $user, string $createdAt = '2026-10-05', array $weekdays
 {
     $program = app(ProgramBuilder::class)->build($user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => $weekdays, 'equipment' => 'gym']);
     $program->forceFill(['created_at' => Carbon::parse($createdAt.' 09:00')])->save();
+    $user->forceFill(['calibrated_at' => now()])->save();
 
     return $program;
 }

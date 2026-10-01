@@ -16,6 +16,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $program = app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
     $program->forceFill(['created_at' => Carbon::parse('2026-10-05 08:00')])->save();
+    $this->user->forceFill(['calibrated_at' => now()])->save();
     $this->travelTo(Carbon::parse('2026-10-05 18:00'));
     app(QuestScheduler::class)->sync($this->user, now());
 });

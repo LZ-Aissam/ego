@@ -14,6 +14,7 @@ beforeEach(function () {
     $this->travelTo(Carbon::parse('2026-10-05 10:00'));
     $this->user = User::factory()->create();
     app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'fitness', 'weekdays' => [1, 3, 5], 'equipment' => 'gym']);
+    $this->user->forceFill(['calibrated_at' => now()])->save();
     $this->actingAs($this->user);
     $this->get('/');
 });
