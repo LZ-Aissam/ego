@@ -257,9 +257,10 @@ final class QuestScheduler
     {
         $days = $program->days;
 
-        // Programme personnalisé, une journée par jour d'entraînement : chaque journée garde son jour de la semaine.
+        // Programme personnalisé ou Force × Vitesse, une journée par jour d'entraînement : chaque journée garde son jour de la semaine.
         $weekdays = collect($user->training_weekdays ?? [])->sort()->values();
-        if (($program->params['custom'] ?? false) && $weekdays->count() === $days->count()) {
+        $attached = ($program->params['custom'] ?? false) || ($program->params['goal'] ?? null) === 'power';
+        if ($attached && $weekdays->count() === $days->count()) {
             $index = $weekdays->search($date->isoWeekday());
             if ($index !== false) {
                 return $days[$index];

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ProgramBuilder
 {
-    public const GOALS = ['strength' => 'Force', 'hypertrophy' => 'Prise de muscle', 'fitness' => 'Remise en forme'];
+    public const GOALS = ['strength' => 'Force', 'hypertrophy' => 'Prise de muscle', 'fitness' => 'Remise en forme', 'power' => 'Force × Vitesse'];
     public const LEVELS = ['beginner' => 'Débutant', 'intermediate' => 'Intermédiaire', 'advanced' => 'Avancé'];
     public const EQUIPMENT = ['gym' => 'Salle complète', 'dumbbells' => 'Haltères seuls', 'bodyweight' => 'Poids du corps'];
 

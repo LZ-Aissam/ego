@@ -127,7 +127,7 @@ class ProgramPage extends Component
         $rules = match ($step) {
             1 => ['sex' => ['required', 'in:male,female'], 'heightCm' => ['required', 'integer', 'between:100,250'], 'weightKg' => ['required', 'numeric', 'between:30,300']],
             2 => ['level' => ['required', 'in:beginner,intermediate,advanced']],
-            3 => ['goal' => ['required', 'in:strength,hypertrophy,fitness']],
+            3 => ['goal' => ['required', 'in:'.implode(',', array_keys(ProgramBuilder::GOALS))]],
             4 => ['weekdays' => ['required', 'array', 'min:2', 'max:6'], 'weekdays.*' => ['integer', 'between:1,7', 'distinct']],
             5 => ['equipment' => ['required', 'in:gym,dumbbells,bodyweight']],
         };
