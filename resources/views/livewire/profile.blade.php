@@ -57,7 +57,7 @@
         @forelse ($maxes as $max)
             <div class="sys-row text-sm">
                 <span>{{ $max->exercise->name }}</span>
-                <span class="sys-num"><span class="font-bold text-ice">{{ \App\Support\Format::kg($max->e1rm_kg) }}</span> <span class="text-mist">· {{ $max->measured_at->translatedFormat('j M') }}</span></span>
+                <span class="sys-num"><span class="font-bold text-ice">{{ $max->label() }}</span> <span class="text-mist">· {{ $max->measured_at->translatedFormat('j M') }}</span></span>
             </div>
         @empty
             <p class="text-sm text-mist">Pas encore calibré : TON EGO ne connaît pas ta puissance.</p>

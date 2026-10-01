@@ -110,7 +110,9 @@ class ProgramPage extends Component
         $allowed = $generator->alternativesFor($line->slot, $user->equipment ?? 'gym', Exercise::all(), $line->exercise_id)->pluck('id');
         if ($allowed->contains($exerciseId)) {
             $line->update(['exercise_id' => $exerciseId]);
-            app(\App\Game\LoadPrescriber::class)->prescribeProgram($user);
+            if ($user->calibrated_at) {
+                app(\App\Game\LoadPrescriber::class)->prescribeProgram($user);
+            }
         }
 
         $this->replacing = null;

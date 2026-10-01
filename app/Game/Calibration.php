@@ -54,8 +54,12 @@ final class Calibration
             [$kg, $reps] = $result['test'];
             $e1rm = $this->calc->estimatedOneRepMax($this->calc->effectiveLoad((float) $kg, $exercise->is_bodyweight, $user->weight_kg), (int) $reps);
 
-            $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $exercise->id], ['e1rm_kg' => $e1rm, 'source' => 'calibration', 'measured_at' => $now]);
-            $lines[] = $exercise->name.' : 1RM ≈ '.Format::kg($e1rm).((int) $reps > 12 ? ' (mesure moins précise)' : '');
+            $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $exercise->id], [
+                'e1rm_kg' => $e1rm, 'best_reps' => $exercise->is_bodyweight ? (int) $reps : null, 'source' => 'calibration', 'measured_at' => $now,
+            ]);
+            $lines[] = $exercise->is_bodyweight
+                ? $exercise->name.' : '.(int) $reps.' répétitions max'
+                : $exercise->name.' : 1RM ≈ '.Format::kg($e1rm).((int) $reps > 12 ? ' (mesure moins précise)' : '');
 
             if (! $exercise->is_bodyweight) {
                 $repsMax = $planLines[$exercise->id]->reps_max ?? 10;
@@ -75,6 +79,7 @@ final class Calibration
             'notifications' => [
                 SystemMessage::powerMeasured($lines),
                 SystemMessage::workoutDone($synced['workout'], $play['xp']),
+                ...array_map(fn ($record) => SystemMessage::record($record), $synced['newRecords']),
                 ...$play['notifications'],
             ],
         ];
