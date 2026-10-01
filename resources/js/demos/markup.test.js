@@ -20,13 +20,11 @@ describe('chaque exercice a sa propre animation', () => {
         expect(twins).toEqual([]);
     });
 
-    it('montre la largeur de prise des tractions en vue de face', () => {
-        const width = (slug) => {
-            const { armR, armL } = sceneAt(slug, 0).chains;
-            return armR.at(-1)[0] - armL.at(-1)[0];
-        };
+    it('montre la pronation de face, mains larges, et la supination de profil', () => {
+        const { armR, armL } = sceneAt('pull-up', 0).chains;
         expect(sceneAt('pull-up', 0).note).toBe('Vue de face');
-        expect(width('pull-up')).toBeGreaterThan(width('chin-up') + 15);
+        expect(armR.at(-1)[0] - armL.at(-1)[0]).toBeGreaterThan(60);
+        expect(sceneAt('chin-up', 0).note).toBe('');
     });
 
     it.each([
@@ -60,5 +58,25 @@ describe('détails des silhouettes', () => {
         expect(Math.round(sceneAt('bench-press', 0).gaze)).toBeGreaterThan(70);
         expect(sceneMarkup(sceneAt('back-squat', 0.5))).toContain('data-part="gaze"');
         expect(sceneAt('lateral-raise', 0.5).gaze).toBeNull();
+    });
+});
+
+describe('coudes des tractions', () => {
+    it("pronation de face : les coudes partent vers l'extérieur et restent sous la barre", () => {
+        for (const t of [0.3, 0.5, 0.8, 1]) {
+            const { armR, armL } = sceneAt('pull-up', t).chains;
+            expect(armR[1][0], `t=${t}`).toBeGreaterThan(armR[0][0]);
+            expect(armL[1][0], `t=${t}`).toBeLessThan(armL[0][0]);
+            expect(armR[1][1], `t=${t}`).toBeGreaterThan(-182);
+        }
+    });
+
+    it('supination de profil : les coudes restent devant le corps et arrivent au niveau des épaules en haut', () => {
+        for (const t of [0.3, 0.5, 0.8, 1]) {
+            const [shoulder, elbow] = sceneAt('chin-up', t).chains.arm;
+            expect(elbow[0], `t=${t}`).toBeGreaterThan(shoulder[0] + 5);
+        }
+        const [shoulder, elbow] = sceneAt('chin-up', 1).chains.arm;
+        expect(elbow[1]).toBeGreaterThan(shoulder[1] - 8);
     });
 });

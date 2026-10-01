@@ -381,10 +381,21 @@ const FAMILIES = {
         },
     },
 
-    // Vue de face : la largeur des mains distingue pronation (large) et supination (largeur d'épaules).
+    // Pronation de face (mains larges, coudes ouverts) ; supination de profil (coudes devant).
     pullup: {
         segments: [['Tirage', 1200], ['Menton au-dessus de la barre', 300], ['Descente contrôlée', 2000], ['Bras tendus', 400]],
         pose(t, v) {
+            if (v === 'narrow') {
+                // Supination de profil : les coudes descendent devant le corps, ce qu'une vue de face ne montre pas.
+                const bar = [10, -182];
+                const shoulder = lerpP([-10, -136], [-4, -165], t);       // épaules en retrait : le bras se voit devant le visage
+                const hip = add(shoulder, L.torso, -98);                   // corps légèrement penché en arrière
+                const knee = add(hip, L.thigh, -70);
+                return scene(
+                    { torso: [hip, shoulder], leg: [hip, knee, add(knee, L.shin, -150)], arm: arm(shoulder, bar, 1) },
+                    headOf(hip, shoulder), [], [line([-30, -182], [50, -182])],
+                );
+            }
             const wide = v === 'wide';
             const y = lerp(-133, -164, t);
             const shR = [18, y], shL = [-18, y];
@@ -397,7 +408,7 @@ const FAMILIES = {
             };
             return scene(
                 { legR: legs(1), legL: legs(-1), torso: [hipL, hipR, shR, shL, hipL],
-                  armR: ik(shR, [handX, -182], L.upper, L.fore, -1), armL: ik(shL, [-handX, -182], L.upper, L.fore, 1) },
+                  armR: ik(shR, [handX, -182], L.upper, L.fore, 1), armL: ik(shL, [-handX, -182], L.upper, L.fore, -1) },     // coudes vers l'extérieur
                 [0, y - 20], [], [line([-60, -182], [60, -182])], [], 'Vue de face',
             );
         },
