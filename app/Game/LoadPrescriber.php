@@ -15,7 +15,7 @@ final class LoadPrescriber
     /** Isolation sous ce seuil : la charge monte de 1 kg, pas de 2,5 kg. */
     public const SMALL_LOAD_KG = 20.0;
 
-    public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves'];
+    public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
 
     public function __construct(private StartingLoad $startingLoad) {}
 

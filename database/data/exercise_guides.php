@@ -675,4 +675,60 @@ return [
         ],
         'mistake' => 'Tirer avec les bras ou s\'asseoir sur les talons.',
     ],
+    // Puissance et explosivité
+    'push-press' => [
+        'muscles' => 'Épaules · triceps · jambes',
+        'tempo' => 'Impulsion explosive · Descente 2 s',
+        'steps' => [
+            'Debout, barre posée en haut de la poitrine, coudes légèrement devant.',
+            'Fléchis légèrement les genoux, buste droit, sans t\'asseoir.',
+            'Pousse le sol avec les jambes et enchaîne la poussée des bras d\'un seul geste explosif.',
+            'Redescends la barre en contrôle sur la poitrine.',
+        ],
+        'mistake' => 'Plier les genoux trop bas ou se pencher en avant pendant l\'impulsion.',
+    ],
+    'clap-push-up' => [
+        'muscles' => 'Pectoraux · triceps · épaules',
+        'tempo' => 'Descente contrôlée · Poussée explosive',
+        'steps' => [
+            'Position de pompe, corps gainé.',
+            'Descends en contrôle, poitrine près du sol.',
+            'Pousse le sol si fort que les mains décollent, frappe dans les mains.',
+            'Réceptionne-toi bras souples et enchaîne.',
+        ],
+        'mistake' => 'Atterrir bras tendus et verrouillés : risque pour les coudes.',
+    ],
+    'box-jump' => [
+        'muscles' => 'Quadriceps · fessiers · mollets',
+        'tempo' => 'Impulsion explosive · Réception souple',
+        'steps' => [
+            'Face à une box stable, pieds largeur de hanches.',
+            'Fléchis rapidement hanches et genoux en lançant les bras en arrière.',
+            'Saute en lançant les bras vers l\'avant et pose les deux pieds entiers sur la box.',
+            'Redescends en marchant, ne saute pas en arrière.',
+        ],
+        'mistake' => 'Choisir une box trop haute et atterrir en squat profond.',
+    ],
+    'broad-jump' => [
+        'muscles' => 'Fessiers · quadriceps · ischio-jambiers',
+        'tempo' => 'Impulsion explosive · Réception stable',
+        'steps' => [
+            'Pieds largeur de hanches, bras tendus devant.',
+            'Lance les bras en arrière en fléchissant les hanches.',
+            'Projette-toi le plus loin possible vers l\'avant en tendant hanches et genoux.',
+            'Réceptionne-toi genoux fléchis, stable, puis reviens en marchant.',
+        ],
+        'mistake' => 'Genoux qui rentrent vers l\'intérieur à la réception.',
+    ],
+    'jump-squat' => [
+        'muscles' => 'Quadriceps · fessiers · mollets',
+        'tempo' => 'Descente rapide · Saut maximal',
+        'steps' => [
+            'Pieds largeur d\'épaules, mains sur les hanches ou devant toi.',
+            'Descends en quart de squat, rapidement.',
+            'Saute le plus haut possible en tendant hanches, genoux et chevilles.',
+            'Réceptionne-toi souplement et enchaîne.',
+        ],
+        'mistake' => 'Atterrir jambes tendues et talons en premier.',
+    ],
 ];

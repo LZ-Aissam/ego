@@ -259,14 +259,16 @@ const FAMILIES = {
 
     pushup: {
         segments: [['Descente', 2000], ['Poitrine près du sol', 300], ['Poussée', 1000], ['Bras tendus', 700]],
-        pose(t) {
+        pose(t, v) {
             const ankle = [-70, -3];
-            const height = lerp(44, 14, t);
+            const clap = v === 'clap';
+            const height = lerp(clap ? 68 : 44, 14, t);
             const shoulder = [-70 + Math.sqrt(130 ** 2 - (height - 3) ** 2), -height];
             const u = [(shoulder[0] - ankle[0]) / 130, (shoulder[1] - ankle[1]) / 130];
             const at = (k) => [ankle[0] + u[0] * k, ankle[1] + u[1] * k];
+            const lift = clap ? Math.max(0, height - 44) : 0;               // mains en l'air : le claquement
             return scene(
-                { body: [ankle, at(40), at(80), shoulder], foot: [ankle, [-73, 0]], arm: arm(shoulder, [55, 0], 1) },
+                { body: [ankle, at(40), at(80), shoulder], foot: [ankle, [-73, 0]], arm: arm(shoulder, [55 - lift * 1.1, -lift], 1) },
                 add(shoulder, L.head, angleOf(ankle, shoulder)),
             );
         },
@@ -318,6 +320,16 @@ const FAMILIES = {
     ohp: {
         segments: [['Poussée', 1000], ['Bras tendus', 300], ['Descente contrôlée', 2000], ['Départ', 400]],
         pose(t, v) {
+            if (v === 'push') {
+                const dip = t < 0.25 ? Math.sin((t / 0.25) * Math.PI / 2) : Math.max(0, 1 - (t - 0.25) / 0.25);
+                const b = standing(2 + 14 * dip, 16 * dip, 3);
+                const press = Math.min(1, Math.max(0, (t - 0.3) / 0.7));
+                const hand = lerpP(shift(b.shoulder, 12, -2), shift(b.shoulder, 4, -48), press);
+                return scene(
+                    { leg: [b.ankle, b.knee, b.hip], foot: b.foot, torso: [b.hip, b.shoulder], arm: arm(b.shoulder, hand, 1) },
+                    headOf(b.hip, b.shoulder), [plate(hand, 12)], [], [guide([10, -184], [10, -120], 'axe de la barre')],
+                );
+            }
             const standingPress = v === 'bar';
             const b = standingPress ? standing(2, 0, 3) : seated([-20, -40], 92);
             const start = standingPress ? shift(b.shoulder, 12, -2) : shift(b.shoulder, 20, -6);
@@ -582,6 +594,26 @@ const FAMILIES = {
         },
     },
 
+    // Sauts : flexion avec élan des bras, envol, réception.
+    jump: {
+        segments: [['Flexion et élan', 600], ['Envol', 300], ['Réception souple', 900], ['Stabilisation', 600]],
+        pose(t, v) {
+            const crouch = t < 0.35 ? Math.sin((t / 0.35) * Math.PI / 2) : Math.max(0, 1 - (t - 0.35) / 0.25);
+            const air = t < 0.35 ? 0 : 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, (t - 0.35) / 0.65));
+            const x = { box: 62 * air, broad: -45 + 95 * air, squat: 0 }[v];
+            const lift = { box: 30 * air, broad: 26 * Math.sin(Math.PI * air), squat: 30 * Math.sin(Math.PI * air) }[v];
+            const b = standing(4 + 30 * crouch, 50 * crouch, 6 + 30 * crouch, x);
+            const up = (p) => [p[0], p[1] - lift];
+            // Bras : élan en arrière, lancés vers le haut à l'envol, ramenés devant soi à la réception.
+            const swing = (air < 0.6 ? lerp(-120, 60, air / 0.6) : lerp(60, 0, (air - 0.6) / 0.4)) - 40 * crouch;
+            const shoulder = up(b.shoulder);
+            return scene(
+                { foot: b.foot.map(up), leg: [b.ankle, b.knee, b.hip].map(up), torso: [up(b.hip), shoulder], arm: fixedArm(shoulder, swing, swing) },
+                headOf(up(b.hip), shoulder), [], v === 'box' ? [rect(40, -30, 50, 30)] : [],
+            );
+        },
+    },
+
     // Vues de face : les bras tournent dans le plan du corps.
     lateral: {
         segments: [['Montée', 1000], ['Bras à l\'horizontale', 300], ['Descente contrôlée', 2000], ['Bas', 400]],
@@ -698,6 +730,11 @@ export const DEMOS = {
     crunch: ['crunch'],
     'hanging-leg-raise': ['legRaise'],
     'cable-crunch': ['cableCrunch'],
+    'push-press': ['ohp', 'push'],
+    'clap-push-up': ['pushup', 'clap'],
+    'box-jump': ['jump', 'box'],
+    'broad-jump': ['jump', 'broad'],
+    'jump-squat': ['jump', 'squat'],
 };
 
 const family = (slug) => FAMILIES[DEMOS[slug][0]];

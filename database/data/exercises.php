@@ -79,4 +79,10 @@ return [
     ['crunch', 'Crunch', ['abdominaux'], ['bodyweight', 'dumbbells', 'gym'], 'isolation', ['core'], null],
     ['hanging-leg-raise', 'Relevés de jambes suspendu', ['abdominaux'], ['gym', 'bodyweight'], 'isolation', ['core'], null],
     ['cable-crunch', 'Crunch à la poulie', ['abdominaux'], ['gym'], 'isolation', ['core'], 0.3],
+    // Puissance et explosivité
+    ['push-press', 'Développé poussé (barre)', ['épaules', 'triceps', 'jambes'], ['gym'], 'compound', ['vertical_push'], 0.4],
+    ['clap-push-up', 'Pompes claquées', ['pectoraux', 'triceps', 'épaules'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['horizontal_push'], null],
+    ['box-jump', 'Sauts sur box', ['quadriceps', 'fessiers', 'mollets'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
+    ['broad-jump', 'Saut en longueur', ['fessiers', 'quadriceps', 'ischio-jambiers'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
+    ['jump-squat', 'Squat sauté', ['quadriceps', 'fessiers', 'mollets'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
 ];
