@@ -29,6 +29,7 @@ class User extends Authenticatable
             'weight_kg' => 'float',
             'days_per_week' => 'integer',
             'is_admin' => 'boolean',
+            'xp_total' => 'integer',
         ];
     }
 
@@ -40,6 +41,16 @@ class User extends Authenticatable
     public function personalRecords(): HasMany
     {
         return $this->hasMany(PersonalRecord::class);
+    }
+
+    public function xpEvents(): HasMany
+    {
+        return $this->hasMany(XpEvent::class);
+    }
+
+    public function titles(): HasMany
+    {
+        return $this->hasMany(UserTitle::class);
     }
 
     public function bmi(): ?float
