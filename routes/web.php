@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\LogoutController;
+use App\Http\Controllers\WorkoutSyncController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Home;
@@ -26,5 +27,6 @@ Route::middleware('auth')->group(function () {
     Route::view('/history', 'pages.soon', ['title' => 'Historique', 'message' => 'Bientôt.'])->name('history');
     Route::view('/records', 'pages.soon', ['title' => 'Records', 'message' => 'Bientôt.'])->name('records');
     Route::view('/profile', 'pages.soon', ['title' => 'Profil', 'message' => 'Bientôt.'])->name('profile');
+    Route::post('/workouts/sync', WorkoutSyncController::class)->name('workouts.sync');
     Route::post('/logout', LogoutController::class)->name('logout');
 });
