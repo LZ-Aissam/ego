@@ -3,6 +3,7 @@
 use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutSyncController;
+use App\Http\Middleware\SyncQuests;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\History;
@@ -19,7 +20,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/', Home::class)->name('home');
     Route::get('/program', ProgramPage::class)->name('program');
     Route::view('/community', 'pages.soon', [
