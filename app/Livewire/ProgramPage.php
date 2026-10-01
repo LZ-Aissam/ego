@@ -122,14 +122,19 @@ class ProgramPage extends Component
         try {
             $this->validate($rules, [
                 'sex.required' => 'Choisis homme ou femme.',
+                'sex.in' => 'Choisis homme ou femme.',
                 'heightCm.*' => 'Indique ta taille en cm (100 à 250).',
                 'weightKg.*' => 'Indique ton poids en kg (30 à 300).',
                 'level.required' => 'Choisis ton niveau.',
+                'level.in' => 'Choisis ton niveau.',
                 'goal.required' => 'Choisis ton objectif.',
+                'goal.in' => 'Choisis ton objectif.',
                 'weekdays.required' => 'Coche tes jours d\'entraînement.',
                 'weekdays.min' => 'Coche au moins 2 jours.',
                 'weekdays.max' => 'Coche au plus 6 jours : garde au moins un jour de repos.',
+                'weekdays.*.*' => 'Jour invalide.',
                 'equipment.required' => 'Choisis ton matériel.',
+                'equipment.in' => 'Choisis ton matériel.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->step = $step;

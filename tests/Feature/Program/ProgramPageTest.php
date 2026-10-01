@@ -81,3 +81,22 @@ it('rouvre le questionnaire pour régénérer', function () {
 
     Livewire::test(ProgramPage::class)->call('regenerate')->assertSet('editing', true)->assertSee('MORPHOLOGIE');
 });
+
+it('isole les champs de chaque étape pour que Livewire ne recycle pas les boutons d\'une étape à l\'autre', function () {
+    Livewire::test(ProgramPage::class)
+        ->assertSeeHtml('wire:key="program-step-1"')
+        ->call('next')
+        ->assertSeeHtml('wire:key="program-step-2"')
+        ->assertDontSeeHtml('wire:key="program-step-1"');
+});
+
+it('affiche un message en français pour une valeur invalide, jamais une clé brute', function (string $field, string $value, int $step, string $message) {
+    $component = Livewire::test(ProgramPage::class)->set('level', 'beginner')->set('goal', 'fitness')->set('weekdays', [1, 3])->set('equipment', 'gym')->set($field, $value);
+
+    $component->call('generate')->assertHasErrors([$field])->assertSee($message)->assertDontSee('validation.')->assertSet('step', $step);
+})->with([
+    ['sex', 'autre', 1, 'Choisis homme ou femme.'],
+    ['level', 'strength', 2, 'Choisis ton niveau.'],
+    ['goal', 'beginner', 3, 'Choisis ton objectif.'],
+    ['equipment', 'jardin', 5, 'Choisis ton matériel.'],
+]);

@@ -4,6 +4,9 @@
         <h1 class="text-2xl font-bold">TON EGO VA FORGER TON PROGRAMME</h1>
         <p class="sys-num text-sm text-mist">Étape {{ $step }} / 5</p>
 
+        {{-- wire:key par étape : Livewire reconstruit les champs au lieu de recycler les boutons radio
+             de l'étape précédente (qui garderaient leur ancien wire:model et écraseraient le niveau). --}}
+        <div wire:key="program-step-{{ $step }}">
         <x-sys.window :title="['MORPHOLOGIE', 'NIVEAU', 'OBJECTIF', 'JOURS D\'ENTRAÎNEMENT', 'MATÉRIEL'][$step - 1]">
             @if ($step === 1)
                 <div class="space-y-4">
@@ -59,6 +62,7 @@
                 @error('equipment') <p class="sys-error">{{ $message }}</p> @enderror
             @endif
         </x-sys.window>
+        </div>
 
         <div class="grid grid-cols-2 gap-3">
             <x-sys.button variant="ghost" wire:click="back" :disabled="$step === 1">Retour</x-sys.button>
