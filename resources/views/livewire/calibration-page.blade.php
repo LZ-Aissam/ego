@@ -5,11 +5,16 @@
     @if ($current)
         <x-sys.window :title="$current['name']" wire:key="calibration-{{ $index }}">
             <x-sys.label>Échauffement</x-sys.label>
-            @foreach ($current['warmups'] as $i => [$kg, $reps])
-                <button type="button" wire:click="toggleWarmup({{ $i }})" @class(['sys-row w-full text-left', 'text-ice' => $warmupsDone[$i] ?? false])>
-                    <span class="sys-num">{{ $current['isBodyweight'] ? 'Poids du corps' : \App\Support\Format::kg($kg) }} × {{ $reps }}</span>
-                    <span class="sys-label">{{ ($warmupsDone[$i] ?? false) ? 'Fait ✓' : 'Valider' }}</span>
-                </button>
+            @foreach ($current['warmups'] as $i => $warmup)
+                <div @class(['sys-row gap-2', 'text-ice' => $warmupsDone[$i] ?? false]) wire:key="warmup-{{ $index }}-{{ $i }}">
+                    @if ($current['isBodyweight'])
+                        <span class="sys-num text-sm">Poids du corps</span>
+                    @else
+                        <label class="flex items-center gap-1 text-sm"><input type="text" inputmode="decimal" class="sys-input sys-num !w-16 !py-1 text-center" wire:model="warmupKg.{{ $i }}" aria-label="Charge de l'échauffement {{ $i + 1 }}"> kg</label>
+                    @endif
+                    <label class="flex items-center gap-1 text-sm">× <input type="text" inputmode="numeric" class="sys-input sys-num !w-14 !py-1 text-center" wire:model="warmupReps.{{ $i }}" aria-label="Répétitions de l'échauffement {{ $i + 1 }}"></label>
+                    <button type="button" class="sys-label ml-auto" wire:click="toggleWarmup({{ $i }})">{{ ($warmupsDone[$i] ?? false) ? 'Fait ✓' : 'Valider' }}</button>
+                </div>
             @endforeach
             @error('warmups') <p class="sys-error">{{ $message }}</p> @enderror
 

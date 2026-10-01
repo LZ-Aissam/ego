@@ -42,6 +42,16 @@ class CalibrationPage extends Component
     #[Locked]
     public bool $finished = false;
 
+    /** Échauffements réellement faits, modifiables par le joueur (pré-remplis avec la proposition). */
+    public array $warmupKg = [];
+
+    public array $warmupReps = [];
+
+    private function progressKey(): string
+    {
+        return 'calibration_progress.'.auth()->id();
+    }
+
     public function mount(?Quest $quest = null)
     {
         $user = auth()->user();
@@ -60,6 +70,14 @@ class CalibrationPage extends Component
         $this->movements = app(CalibrationPlan::class)->plan($user);
         $this->startedAt = now()->toIso8601String();
         $this->clientId = (string) Str::uuid();
+
+        // Page rechargée en plein calibrage : on reprend les mouvements déjà mesurés aujourd'hui.
+        $saved = session($this->progressKey());
+        if (is_array($saved) && ($saved['date'] ?? null) === today()->toDateString()
+            && ($saved['ids'] ?? null) === array_column($this->movements, 'exercise_id')) {
+            [$this->results, $this->index, $this->clientId, $this->startedAt] = [$saved['results'], $saved['index'], $saved['clientId'], $saved['startedAt']];
+        }
+
         $this->prepare();
     }
 
@@ -69,6 +87,8 @@ class CalibrationPage extends Component
         $current = $this->movements[$this->index] ?? null;
         $this->testKg = $current && ! $current['isBodyweight'] ? $current['estimate'] : 0;
         $this->testReps = null;
+        $this->warmupKg = array_map(fn ($w) => $w[0], $current['warmups'] ?? []);
+        $this->warmupReps = array_map(fn ($w) => $w[1], $current['warmups'] ?? []);
     }
 
     public function toggleWarmup(int $i): void
@@ -96,14 +116,20 @@ class CalibrationPage extends Component
             'testReps' => ['required', 'integer', 'between:1,30'],
         ], ['*' => $message, 'testKg.*' => $message, 'testReps.*' => $message])->validate();
 
-        $this->results[] = ['exercise_id' => $current['exercise_id'], 'warmups' => $current['warmups'], 'test' => [(float) $kg, (int) $this->testReps]];
+        $this->results[] = ['exercise_id' => $current['exercise_id'], 'warmups' => $this->validatedWarmups($current), 'test' => [(float) $kg, (int) $this->testReps]];
 
         if ($this->index + 1 < count($this->movements)) {
             $this->index++;
             $this->prepare();
+            session()->put($this->progressKey(), [
+                'date' => today()->toDateString(), 'ids' => array_column($this->movements, 'exercise_id'),
+                'results' => $this->results, 'index' => $this->index, 'clientId' => $this->clientId, 'startedAt' => $this->startedAt,
+            ]);
 
             return null;
         }
+
+        session()->forget($this->progressKey());
 
         $user = auth()->user();
         $this->finished = true;
@@ -113,6 +139,23 @@ class CalibrationPage extends Component
         }
 
         return $this->redirectRoute('home');
+    }
+
+    /** @return list<array{0: float, 1: int}> */
+    private function validatedWarmups(array $current): array
+    {
+        $warmups = [];
+        foreach ([0, 1] as $i) {
+            $kg = $current['isBodyweight'] ? 0.0 : str_replace(',', '.', (string) ($this->warmupKg[$i] ?? ''));
+            $reps = $this->warmupReps[$i] ?? null;
+            $valid = is_numeric($kg) && $kg >= 0 && $kg <= 500 && filter_var($reps, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 50]]) !== false;
+            if (! $valid) {
+                throw ValidationException::withMessages(['warmups' => 'Indique la charge et les répétitions de tes échauffements.']);
+            }
+            $warmups[] = [(float) $kg, (int) $reps];
+        }
+
+        return $warmups;
     }
 
     public function render()

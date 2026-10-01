@@ -74,3 +74,49 @@ it('ne crée pas de charges en remplaçant un exercice avant le calibrage', func
 
     expect($user->workingLoads()->count())->toBe(0);
 });
+
+it('reprend le calibrage du jour après un rechargement de la page', function () {
+    $user = User::factory()->withMorphology()->create();
+    forge($user);
+    $this->actingAs($user);
+
+    $first = Livewire::test(\App\Livewire\CalibrationPage::class)
+        ->call('toggleWarmup', 0)->call('toggleWarmup', 1)->set('testKg', '50')->set('testReps', '10')->call('saveTest');
+
+    Livewire::test(\App\Livewire\CalibrationPage::class)
+        ->assertSet('index', 1)->assertSet('clientId', $first->get('clientId'))
+        ->assertCount('results', 1)->assertSee('DÉJÀ MESURÉ');
+
+    $this->travelTo(Carbon::parse('2026-10-06 10:00'));
+    Livewire::test(\App\Livewire\CalibrationPage::class)->assertSet('index', 0)->assertCount('results', 0);
+});
+
+it('enregistre les échauffements tels que le joueur les a réellement faits', function () {
+    $user = User::factory()->withMorphology()->create();
+    forge($user);
+    $this->actingAs($user);
+
+    $page = Livewire::test(\App\Livewire\CalibrationPage::class);
+    $firstId = $page->get('movements')[0]['exercise_id'];
+    foreach ($page->get('movements') as $i => $movement) {
+        if ($i === 0) {
+            $page->set('warmupKg', ['15', '22,5'])->set('warmupReps', ['10', '5']);
+        }
+        $page->call('toggleWarmup', 0)->call('toggleWarmup', 1)
+            ->set('testKg', $movement['isBodyweight'] ? '0' : '50')->set('testReps', '10')->call('saveTest')->assertHasNoErrors();
+    }
+
+    $sets = \App\Models\WorkoutSet::where('exercise_id', $firstId)->orderBy('position')->get();
+    expect($sets->take(2)->map(fn ($s) => [$s->weight_kg, $s->reps])->all())->toBe([[15.0, 10], [22.5, 5]]);
+});
+
+it('refuse un échauffement vide ou hors limites', function () {
+    $user = User::factory()->withMorphology()->create();
+    forge($user);
+    $this->actingAs($user);
+
+    Livewire::test(\App\Livewire\CalibrationPage::class)
+        ->set('warmupReps', ['0', '5'])
+        ->call('toggleWarmup', 0)->call('toggleWarmup', 1)->set('testKg', '50')->set('testReps', '10')->call('saveTest')
+        ->assertHasErrors('warmups')->assertSet('index', 0);
+});
