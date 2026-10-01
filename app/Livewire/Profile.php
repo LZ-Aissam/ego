@@ -16,6 +16,8 @@ class Profile extends Component
 
     public bool $saved = false;
 
+    public ?string $pauseUntil = null;
+
     public function mount(): void
     {
         $user = auth()->user();
@@ -49,6 +51,34 @@ class Profile extends Component
         ]);
 
         $this->saved = true;
+    }
+
+    public function pause()
+    {
+        $notifier = app(\App\Support\SystemNotifier::class);
+        $this->validate(
+            ['pauseUntil' => ['nullable', 'date', 'after_or_equal:today']],
+            ['pauseUntil.date' => 'Date invalide.', 'pauseUntil.after_or_equal' => 'La date de fin doit être aujourd\'hui ou plus tard.'],
+        );
+
+        $user = auth()->user();
+        $until = $this->pauseUntil ? \Illuminate\Support\Carbon::parse($this->pauseUntil) : null;
+        $user->forceFill(['paused_at' => today(), 'paused_until' => $until])->save();
+        $user->quests()->where('status', 'pending')->where('date', '>=', today()->toDateString())->update(['status' => 'cancelled']);
+        $notifier->push($user, \App\Support\SystemMessage::pauseOn($until));
+
+        return $this->redirectRoute('profile');
+    }
+
+    public function resume()
+    {
+        $notifier = app(\App\Support\SystemNotifier::class);
+        $user = auth()->user();
+        $user->forceFill(['paused_at' => null, 'paused_until' => null])->save();
+        $user->quests()->where('date', today()->toDateString())->whereIn('type', ['training', 'rest'])->where('status', 'cancelled')->delete();
+        $notifier->push($user, \App\Support\SystemMessage::pauseOff());
+
+        return $this->redirectRoute('profile');
     }
 
     public function equipTitle(string $key): void

@@ -52,6 +52,21 @@
         </form>
     </x-sys.window>
 
+    <x-sys.window title="MODE PAUSE" :index="3">
+        @if ($user->isPaused())
+            <p class="text-sm text-mist">
+                QUÊTES SUSPENDUES depuis le {{ $user->paused_at->translatedFormat('j F') }}
+                {{ $user->paused_until ? 'jusqu\'au '.$user->paused_until->translatedFormat('j F').' inclus' : 'jusqu\'à ton retour' }}.
+                Ta série ({{ $user->streak_days }} j) est gelée.
+            </p>
+            <x-sys.button class="mt-3" wire:click="resume">Reprendre les quêtes</x-sys.button>
+        @else
+            <p class="mb-3 text-sm text-mist">Blessure, vacances ? Suspends tes quêtes : aucune pénalité, ta série est gelée.</p>
+            <x-sys.field name="pauseUntil" label="Jusqu'au (facultatif)" type="date" wire:model="pauseUntil" />
+            <x-sys.button variant="ghost" class="mt-3" wire:click="pause">Suspendre les quêtes</x-sys.button>
+        @endif
+    </x-sys.window>
+
     <x-sys.window title="TITRES" :index="2">
         @foreach (\App\Game\Titles::CATALOG as $key => $title)
             @if (in_array($key, $unlocked, true))
