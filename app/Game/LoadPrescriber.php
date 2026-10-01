@@ -12,6 +12,9 @@ use Illuminate\Support\Collection;
 
 final class LoadPrescriber
 {
+    /** Isolation sous ce seuil : la charge monte de 1 kg, pas de 2,5 kg. */
+    public const SMALL_LOAD_KG = 20.0;
+
     public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves'];
 
     public function __construct(private StartingLoad $startingLoad) {}
@@ -145,20 +148,25 @@ final class LoadPrescriber
                 continue;
             }
 
+            $small = $line->exercise->kind === 'isolation' && $load->target_kg < self::SMALL_LOAD_KG;
             $kept = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $load->target_kg);
-            if ($kept->isEmpty()) {
-                continue;
-            }
+            // Tout fait plus léger que la cible : la charge est trop lourde, cela compte comme un échec.
+            $failed = $kept->isEmpty() || $kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min);
 
-            if ($kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min)) {
+            if ($failed) {
                 $load->fail_streak += 1;
                 if ($load->fail_streak >= 2) {
-                    $load->target_kg = max(2.5, round($load->target_kg * 0.9 / 2.5) * 2.5);
+                    $step = $small ? 1.0 : 2.5;
+                    $target = round($load->target_kg * 0.9 / $step) * $step;
+                    if ($kept->isEmpty()) {
+                        $target = min($target, floor($sets->max('weight_kg') / $step) * $step);
+                    }
+                    $load->target_kg = max($step, $target);
                     $load->fail_streak = 0;
                     $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
                 }
             } elseif ($kept->count() >= $line->sets && $kept->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max)) {
-                $load->target_kg += in_array($line->slot, self::LOWER_BODY_SLOTS, true) ? 5.0 : 2.5;
+                $load->target_kg += $small ? 1.0 : (in_array($line->slot, self::LOWER_BODY_SLOTS, true) ? 5.0 : 2.5);
                 $load->fail_streak = 0;
                 $notes[] = \App\Support\SystemMessage::loadUp($line->exercise->name, $load->target_kg);
             } else {

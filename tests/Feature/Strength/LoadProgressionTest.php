@@ -68,13 +68,25 @@ it('décharge de 10 % après deux séances d\'échec', function () {
         ->and($notes[0]['title'])->toBe('DÉCHARGE');
 });
 
-it('ignore une séance faite plus léger que prescrit', function () {
+it('compte une séance entièrement plus légère comme un échec et ramène la cible à la charge réelle', function () {
     $sq = $this->squat->exercise_id;
     $this->user->workingLoads()->where('exercise_id', $sq)->update(['fail_streak' => 1]);
 
     $notes = lift($this->user, [[$sq, 50, 4], [$sq, 50, 12], [$sq, 50, 12]]);
 
-    expect(target($this->user, $sq))->toBe([60.0, 1])->and($notes)->toBe([]);
+    // −10 % donnerait 55 kg, mais le joueur n'a soulevé que 50 kg : la cible suit la charge réelle
+    expect(target($this->user, $sq))->toBe([50.0, 0])->and($notes[0]['title'])->toBe('DÉCHARGE');
+});
+
+it("monte de 1 kg les petites charges d'isolation", function () {
+    $user = User::factory()->withMorphology()->create();
+    $program = app(ProgramBuilder::class)->build($user, ['level' => 'intermediate', 'goal' => 'hypertrophy', 'weekdays' => [1, 2, 4, 5], 'equipment' => 'gym']);
+    $iso = $program->days->flatMap->exercises->firstWhere('slot', 'shoulder_iso');
+    $user->workingLoads()->updateOrCreate(['exercise_id' => $iso->exercise_id], ['target_kg' => 6, 'fail_streak' => 0]);
+
+    lift($user, array_fill(0, $iso->sets, [$iso->exercise_id, 6, $iso->reps_max]));
+
+    expect(target($user, $iso->exercise_id))->toBe([7.0, 0]);
 });
 
 it('n\'évalue qu\'une fois un exercice présent deux fois', function () {
