@@ -9,7 +9,7 @@ return [
             ['horizontal_push', 'explosive', 4, 3, 3, 120, ['clap-push-up']],
             ['horizontal_push', 'max', 5, 2, 3, 240, ['bench-press', 'dumbbell-bench-press', 'push-up']],
             ['horizontal_push', 'mass', 4, 6, 8, 120, ['incline-dumbbell-press', 'dumbbell-bench-press', 'push-up']],
-            ['triceps', 'max', 4, 3, 5, 180, ['dips', 'bench-dips']],
+            ['triceps', 'max', 4, 3, 5, 180, ['dips']],
             ['triceps', 'mass', 3, 8, 10, 90, ['skull-crusher', 'overhead-dumbbell-extension', 'diamond-push-up']],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
@@ -66,6 +66,10 @@ return [
             ['hinge', 'max', 4, 3, 5, 180, ['hip-thrust', 'glute-bridge']],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
+    ],
+    // Séances sans assez d'exercices pour un matériel : au poids du corps, pas d'isolation d'épaules ni de 2ᵉ poussée verticale.
+    'substitutes' => [
+        'bodyweight' => ['shoulders' => 'upper'],
     ],
     // Séances dans l'ordre de la semaine ; les jambes explosives toujours en dernier.
     'weeks' => [

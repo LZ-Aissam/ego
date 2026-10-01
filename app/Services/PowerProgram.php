@@ -15,13 +15,13 @@ final class PowerProgram
         $days = [];
 
         foreach ($templates['weeks'][$params['days']] as $key) {
-            [$name, $lines] = $templates['sessions'][$key];
+            [$name, $lines] = $templates['sessions'][$templates['substitutes'][$params['equipment']][$key] ?? $key];
             $used = [];
             $main = [];
             $core = [];
 
             foreach ($lines as [$slot, $intent, $sets, $min, $max, $rest, $preferred]) {
-                $pick = $this->pick($slot, $preferred, $params['equipment'], $exercises, $used);
+                $pick = $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used);
                 if (! $pick) {
                     continue;
                 }
@@ -37,7 +37,7 @@ final class PowerProgram
     }
 
     /** Premier slug préféré disponible, sinon le premier exercice de l'emplacement pour ce matériel. */
-    private function pick(string $slot, array $preferred, string $equipment, Collection $exercises, array $used): ?Exercise
+    private function pick(string $slot, string $intent, array $preferred, string $equipment, Collection $exercises, array $used): ?Exercise
     {
         // Une salle complète a tout : barre de traction, barres parallèles et sol pour le poids du corps.
         $owned = $equipment === 'gym' ? ['gym', 'bodyweight'] : [$equipment];
@@ -50,7 +50,9 @@ final class PowerProgram
             }
         }
 
-        return $exercises->filter(fn (Exercise $e) => in_array($slot, $e->slots, true) && $fits($e))->sortBy('id')->first();
+        // En repli, lourd, rapide ou explosif seulement sur un poly-articulaire : jamais un pull-over à 87,5 %.
+        return $exercises->filter(fn (Exercise $e) => in_array($slot, $e->slots, true) && $fits($e) && ($intent === 'mass' || $e->kind === 'compound'))
+            ->sortBy('id')->first();
     }
 
     private function adapt(array $item, Exercise $exercise, string $level, string $equipment): array

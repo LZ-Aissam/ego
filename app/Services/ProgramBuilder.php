@@ -26,7 +26,9 @@ final class ProgramBuilder
             'level' => $params['level'], 'goal' => $params['goal'], 'days' => count($weekdays), 'equipment' => $params['equipment'],
         ], Exercise::all());
 
-        return DB::transaction(function () use ($user, $params, $weekdays, $generated) {
+        $goalChanged = $user->goal !== $params['goal'];
+
+        return DB::transaction(function () use ($user, $params, $weekdays, $generated, $goalChanged) {
             $program = $user->programs()->create([
                 'name' => 'Programme '.self::GOALS[$params['goal']].' · '.count($weekdays).' j',
                 'split' => $generated['split'],
@@ -50,7 +52,8 @@ final class ProgramBuilder
             ])->save();
 
             if ($user->calibrated_at) {
-                $this->prescriber->prescribeProgram($user);
+                // Nouvel objectif : les charges de l'ancien (87,5 % en force max, par exemple) ne valent plus pour les nouvelles plages.
+                $this->prescriber->prescribeProgram($user, $goalChanged ? $program->days->flatMap->exercises->pluck('exercise_id')->all() : []);
             }
 
             return $program->load('days.exercises.exercise');
