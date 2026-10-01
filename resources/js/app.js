@@ -6,11 +6,13 @@ import '@fontsource/jetbrains-mono/700.css';
 import '@fontsource/jetbrains-mono/800.css';
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
 import workout from './workout/component';
+import sysNotifications from './ui/notifications';
 import { createStore } from './workout/store';
 import { flushPending, sendWorkout } from './workout/sync';
 
 window.Alpine = Alpine;
 Alpine.data('workout', workout);
+Alpine.data('sysNotifications', sysNotifications);
 Livewire.start();
 
 if ('serviceWorker' in navigator) {

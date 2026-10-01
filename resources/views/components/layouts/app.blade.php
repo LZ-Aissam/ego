@@ -52,6 +52,7 @@
         </div>
     @endif
 
+    <x-sys.notifications :items="$systemNotifications ?? []" />
     @livewireScriptConfig
 </body>
 </html>
