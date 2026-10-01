@@ -3,35 +3,56 @@
 namespace App\Livewire;
 
 use App\Models\Exercise;
-use App\Models\WorkoutSet;
+use App\Services\ProgressStats;
 use App\Support\Sparkline;
-use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Title('Progression')]
 class Progress extends Component
 {
+    public const METRICS = ['max_kg' => 'Charge max', 'e1rm' => '1RM estimé', 'volume' => 'Volume'];
+
+    public const PERIODS = ['3m' => '3 mois', '1y' => '1 an', 'all' => 'Depuis le début'];
+
     public Exercise $exercise;
 
-    public function render()
+    // Valeurs d'URL non typées : ramenées à des valeurs connues par sanitize().
+    #[Url(as: 'courbe')]
+    public $metric = 'max_kg';
+
+    #[Url(as: 'periode')]
+    public $period = 'all';
+
+    public function mount(): void
     {
-        $rows = WorkoutSet::query()
-            ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
-            ->where('workouts.user_id', auth()->id())
-            ->where('workout_sets.exercise_id', $this->exercise->id)
-            ->groupBy('workouts.id', 'workouts.finished_at')
-            ->orderByDesc('workouts.finished_at')
-            ->limit(30)
-            ->selectRaw('workouts.finished_at as finished_at, MAX(workout_sets.weight_kg) as max_kg')
-            ->get()
-            ->reverse()
-            ->values()
-            ->map(fn ($row) => ['date' => Carbon::parse($row->finished_at), 'kg' => (float) $row->max_kg]);
+        $this->sanitize();
+    }
+
+    public function updated(): void
+    {
+        $this->sanitize();
+    }
+
+    private function sanitize(): void
+    {
+        $this->metric = is_string($this->metric) && isset(self::METRICS[$this->metric]) ? $this->metric : 'max_kg';
+        $this->period = is_string($this->period) && isset(self::PERIODS[$this->period]) ? $this->period : 'all';
+    }
+
+    public function render(ProgressStats $stats)
+    {
+        $user = auth()->user();
+        $rows = $stats->exerciseSeries($user, $this->exercise, $this->period);
+        $values = $rows->pluck($this->metric)->all();
 
         return view('livewire.progress', [
             'rows' => $rows,
-            'points' => Sparkline::points($rows->pluck('kg')->all(), 320, 140),
+            'summary' => $stats->summary($user, $this->exercise),
+            'points' => $values === [] ? [] : explode(' ', Sparkline::points($values, 320, 140)),
+            'minValue' => $values === [] ? null : min($values),
+            'maxValue' => $values === [] ? null : max($values),
         ]);
     }
 }

@@ -23,6 +23,35 @@
     </x-sys.window>
     <a href="{{ route('crew.member', $user) }}" class="sys-label block text-right">Voir comme les autres</a>
 
+    <x-sys.window title="BILAN" :index="1">
+        <x-sys.label>Volume par semaine</x-sys.label>
+        <div class="mt-2 flex h-24 items-end gap-1" role="img" aria-label="Volume soulevé chaque semaine sur 12 semaines">
+            @foreach ($weeks as $week)
+                <div class="flex-1 rounded-t-sm bg-ice/70 shadow-[0_0_8px_var(--glow-ice)] {{ $loop->last ? '!bg-ice' : '' }}"
+                     style="height: {{ max(2, round($week['volume'] / $maxWeekVolume * 100)) }}%" title="{{ \Illuminate\Support\Carbon::parse($week['week'])->translatedFormat('j M') }} · {{ \App\Support\Format::kg($week['volume']) }}"></div>
+            @endforeach
+        </div>
+        <div class="sys-num mt-1 flex justify-between text-xs text-steel">
+            <span>{{ \Illuminate\Support\Carbon::parse($weeks->first()['week'])->translatedFormat('j M') }}</span>
+            <span>cette semaine · {{ \App\Support\Format::kg($weeks->last()['volume']) }}</span>
+        </div>
+
+        <div class="sys-row mt-3 text-sm">
+            <span>Séances cette semaine</span>
+            <span class="sys-num font-bold text-ice">{{ $weeks->last()['sessions'] }}@if ($sessionGoal) / {{ $sessionGoal }}@endif</span>
+        </div>
+
+        <x-sys.label class="mt-3">Meilleures progressions du mois</x-sys.label>
+        @forelse ($topProgress as $row)
+            <a href="{{ route('progress', $row['exercise']) }}" class="sys-row text-sm">
+                <span>{{ $row['exercise']->name }}</span>
+                <span class="sys-num font-bold text-ice">+{{ $row['gain_pct'] }} %</span>
+            </a>
+        @empty
+            <p class="mt-1 text-sm text-mist">Continue à t'entraîner : tes progressions du mois apparaîtront ici.</p>
+        @endforelse
+    </x-sys.window>
+
     <div class="grid grid-cols-2 gap-3">
         <x-sys.button :href="route('history')" variant="ghost">Historique</x-sys.button>
         <x-sys.button :href="route('records')" variant="ghost">Records</x-sys.button>

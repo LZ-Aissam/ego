@@ -7,7 +7,12 @@
     </div>
     @foreach ($groups as $sets)
         <x-sys.window :index="$loop->index + 2">
-            <a href="{{ route('progress', $sets->first()->exercise) }}" class="font-semibold">{{ $sets->first()->exercise->name }} <span class="text-ice">→</span></a>
+            <div class="flex items-baseline justify-between gap-3">
+                <a href="{{ route('progress', $sets->first()->exercise) }}" class="font-semibold">{{ $sets->first()->exercise->name }} <span class="text-ice">→</span></a>
+                @php $delta = $deltas[$sets->first()->exercise_id] ?? null; @endphp
+                <span @class(['sys-num shrink-0 text-xs', 'text-ice font-bold' => $delta && str_starts_with($delta, '+'), 'text-steel' => ! $delta || ! str_starts_with($delta, '+')])
+                      title="Comparé à la séance précédente">{{ $delta ?? 'Première fois' }}</span>
+            </div>
             <ol class="mt-2">
                 @foreach ($sets as $set)
                     <li class="sys-row sys-num text-sm">

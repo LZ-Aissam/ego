@@ -11,12 +11,13 @@ class WorkoutShow extends Component
 {
     public Workout $workout;
 
-    public function render()
+    public function render(\App\Services\ProgressStats $stats)
     {
         $this->workout->load('sets.exercise', 'user');
 
         return view('livewire.workout-show', [
             'groups' => $this->workout->sets->groupBy('exercise_id'),
+            'deltas' => $stats->comparedToPrevious($this->workout),
         ]);
     }
 }

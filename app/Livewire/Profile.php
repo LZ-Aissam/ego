@@ -91,9 +91,10 @@ class Profile extends Component
         $user->forceFill(['equipped_title' => $key])->save();
     }
 
-    public function render(\App\Game\PlayerStats $stats)
+    public function render(\App\Game\PlayerStats $stats, \App\Services\ProgressStats $progress)
     {
         $user = auth()->user()->fresh();
+        $weeks = $progress->weeklyVolume($user);
 
         return view('livewire.profile', [
             'user' => $user,
@@ -101,6 +102,10 @@ class Profile extends Component
             'stats' => $stats->for($user),
             'unlocked' => $user->titles()->pluck('title_key')->all(),
             'maxes' => $user->exerciseMaxes()->with('exercise')->orderByDesc('e1rm_kg')->get(),
+            'weeks' => $weeks,
+            'maxWeekVolume' => max(1.0, (float) $weeks->max('volume')),
+            'sessionGoal' => count($user->training_weekdays ?? []) ?: null,
+            'topProgress' => $progress->topProgress($user),
         ]);
     }
 }
