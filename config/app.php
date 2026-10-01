@@ -67,6 +67,9 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'Europe/Paris'),
 
+    // Code de la page /systeme/maj (migrations sans ligne de commande en production). Vide : la page n'existe pas.
+    'deploy_token' => env('DEPLOY_TOKEN'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

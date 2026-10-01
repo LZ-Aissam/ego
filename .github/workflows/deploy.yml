@@ -1,0 +1,120 @@
+name: Tests et mise en ligne
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 'yes'
+          MARIADB_DATABASE: ego_testing
+        ports: ['3307:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci && npm run build
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test
+      - run: npx vitest run
+
+  deploy:
+    needs: tests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency: deploy
+    env:
+      # Valeurs publiques de l'hébergement ; les mots de passe et clés sont dans les secrets du dépôt.
+      APP_URL: https://ego.freedev.app
+      DB_HOST: sql211.infinityfree.com
+      DB_DATABASE: if0_43063367_ego
+      ACCOUNT: if0_43063367
+      FTP_SERVER: ftpupload.net
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+      - run: npm ci && npm run build
+
+      - name: Fabriquer le .env de production
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          test -n "$APP_KEY" && test -n "$DB_PASSWORD" && test -n "$DEPLOY_TOKEN" || { echo "Secrets APP_KEY, DB_PASSWORD ou DEPLOY_TOKEN manquants"; exit 1; }
+          cat > .env <<ENV
+          APP_NAME=EGO
+          APP_ENV=production
+          APP_KEY=$APP_KEY
+          APP_DEBUG=false
+          APP_URL=$APP_URL
+          APP_LOCALE=fr
+          APP_FALLBACK_LOCALE=fr
+          APP_FAKER_LOCALE=fr_FR
+          APP_TIMEZONE=Europe/Paris
+          APP_MAINTENANCE_DRIVER=file
+          LOG_CHANNEL=single
+          LOG_LEVEL=error
+          DB_CONNECTION=mysql
+          DB_HOST=$DB_HOST
+          DB_PORT=3306
+          DB_DATABASE=$DB_DATABASE
+          DB_USERNAME=$ACCOUNT
+          DB_PASSWORD="$DB_PASSWORD"
+          SESSION_DRIVER=database
+          SESSION_LIFETIME=10080
+          SESSION_SECURE_COOKIE=true
+          CACHE_STORE=database
+          QUEUE_CONNECTION=sync
+          MAIL_MAILER=log
+          DEPLOY_TOKEN=$DEPLOY_TOKEN
+          ENV
+
+      - name: Dossiers d'écriture
+        # Les .gitignore de ces dossiers ne sont pas envoyés : un fichier témoin les crée sur le serveur.
+        run: for d in storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do mkdir -p $d && touch $d/.keep; done
+
+      - name: Envoi FTP (seulement les fichiers modifiés)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.ACCOUNT }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          server-dir: htdocs/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .github/**
+            tests/**
+            docs/**
+            .superpowers/**
+            storage/logs/*.log
+            .env.example
+            phpunit.xml
