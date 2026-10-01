@@ -85,3 +85,11 @@ it('liste mes groupes avec le nombre de membres', function () {
 
     Livewire::test(CrewPage::class)->set('tab', 'groupes')->assertSee('Les Ombres')->assertSee('1 membre');
 });
+
+it('ne plante pas sur des paramètres d\'URL de mauvais type', function (array $query) {
+    $this->get('/crew?'.http_build_query($query))->assertOk()->assertSee('CLASSEMENT');
+})->with([
+    [['groupe' => 'abc']],
+    [['metric' => ['x']]],
+    [['tab' => ['a'], 'period' => ['b'], 'lift' => ['c']]],
+]);

@@ -94,3 +94,10 @@ it('ramène au lien d\'invitation après la connexion', function () {
     Livewire::test(Login::class)->set('firstName', 'Nina')->set('birthDate', '1995-04-12')->call('login')
         ->assertRedirect(route('crew.join', $this->crew->code));
 });
+
+it('ramène au lien d\'invitation après une inscription', function () {
+    $this->get(route('crew.join', $this->crew->code))->assertRedirect(route('login'));
+
+    Livewire::test(\App\Livewire\Auth\Register::class)->set('firstName', 'Nina')->set('birthDate', '1995-04-12')->call('register')
+        ->assertRedirect(route('crew.join', $this->crew->code));
+});

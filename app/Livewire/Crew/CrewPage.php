@@ -17,20 +17,21 @@ class CrewPage extends Component
 
     public const TOP = 50;
 
+    // Valeurs d'URL non typées : Livewire les assigne avant mount(), sanitize() les ramène à des valeurs sûres.
     #[Url]
-    public string $tab = 'classement';
+    public $tab = 'classement';
 
     #[Url]
-    public string $metric = 'xp';
+    public $metric = 'xp';
 
     #[Url]
-    public string $period = 'week';
+    public $period = 'week';
 
     #[Url]
-    public string $lift = 'bench';
+    public $lift = 'bench';
 
     #[Url(as: 'groupe')]
-    public ?int $group = null;
+    public $group = null;
 
     public string $search = '';
 
@@ -55,7 +56,8 @@ class CrewPage extends Component
         $this->tab = in_array($this->tab, self::TABS, true) ? $this->tab : 'classement';
         $this->metric = in_array($this->metric, Leaderboard::METRICS, true) ? $this->metric : 'xp';
         $this->period = in_array($this->period, Leaderboard::PERIODS, true) ? $this->period : 'week';
-        $this->lift = array_key_exists($this->lift, Leaderboard::LIFTS) ? $this->lift : 'bench';
+        $this->lift = is_string($this->lift) && array_key_exists($this->lift, Leaderboard::LIFTS) ? $this->lift : 'bench';
+        $this->group = filter_var($this->group, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
         if ($this->group !== null && ! auth()->user()->crews()->whereKey($this->group)->exists()) {
             $this->group = null;
         }

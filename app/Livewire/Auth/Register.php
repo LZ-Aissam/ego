@@ -44,7 +44,7 @@ class Register extends Component
         Auth::login($user, remember: true);
         session()->regenerate();
 
-        return $this->redirectRoute('home');
+        return $this->redirectIntended(route('home'));
     }
 
     private function duplicate(): void
