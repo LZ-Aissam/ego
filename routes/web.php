@@ -5,7 +5,11 @@ use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutSyncController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
+use App\Livewire\History;
 use App\Livewire\Home;
+use App\Livewire\Progress;
+use App\Livewire\Records;
+use App\Livewire\WorkoutShow;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -25,8 +29,10 @@ Route::middleware('auth')->group(function () {
     ])->name('community');
     // Provisoires, remplacées aux tâches 10 à 12
     Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
-    Route::view('/history', 'pages.soon', ['title' => 'Historique', 'message' => 'Bientôt.'])->name('history');
-    Route::view('/records', 'pages.soon', ['title' => 'Records', 'message' => 'Bientôt.'])->name('records');
+    Route::get('/history', History::class)->name('history');
+    Route::get('/history/{workout}', WorkoutShow::class)->name('history.show');
+    Route::get('/records', Records::class)->name('records');
+    Route::get('/progress/{exercise}', Progress::class)->name('progress');
     Route::view('/profile', 'pages.soon', ['title' => 'Profil', 'message' => 'Bientôt.'])->name('profile');
     Route::post('/workouts/sync', WorkoutSyncController::class)->name('workouts.sync');
     Route::post('/logout', LogoutController::class)->name('logout');
