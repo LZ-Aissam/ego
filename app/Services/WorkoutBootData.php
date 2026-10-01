@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Exercise;
+use App\Models\User;
+use App\Models\WorkoutSet;
+
+final class WorkoutBootData
+{
+    public const REST_SECONDS = 90;
+
+    public function __construct(private StartingLoad $startingLoad) {}
+
+    public function for(User $user): array
+    {
+        return [
+            'restSeconds' => self::REST_SECONDS,
+            'exercises' => Exercise::orderBy('name')->get()->map(fn (Exercise $e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+                'isBodyweight' => $e->is_bodyweight,
+                'suggestedKg' => $this->startingLoad->suggest($e, $user),
+            ])->values()->all(),
+            'lastTime' => $this->lastTime($user),
+        ];
+    }
+
+    /** @return array<int, list<array{weightKg: float, reps: int}>> */
+    private function lastTime(User $user): array
+    {
+        $sets = WorkoutSet::query()
+            ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+            ->where('workouts.user_id', $user->id)
+            ->orderByDesc('workouts.finished_at')
+            ->orderByDesc('workouts.id')
+            ->orderBy('workout_sets.position')
+            ->get(['workout_sets.exercise_id', 'workout_sets.workout_id', 'workout_sets.weight_kg', 'workout_sets.reps']);
+
+        $result = [];
+        $latestWorkout = [];
+
+        foreach ($sets as $set) {
+            $latestWorkout[$set->exercise_id] ??= $set->workout_id;
+
+            if ($latestWorkout[$set->exercise_id] === $set->workout_id) {
+                $result[$set->exercise_id][] = ['weightKg' => $set->weight_kg, 'reps' => $set->reps];
+            }
+        }
+
+        return $result;
+    }
+}

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\LogoutController;
+use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutSyncController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -23,7 +24,7 @@ Route::middleware('auth')->group(function () {
         'message' => 'Records des amis, classement, défis et groupes arrivent bientôt.',
     ])->name('community');
     // Provisoires, remplacées aux tâches 10 à 12
-    Route::view('/workout', 'pages.soon', ['title' => 'Séance', 'message' => 'Bientôt.'])->name('workout');
+    Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
     Route::view('/history', 'pages.soon', ['title' => 'Historique', 'message' => 'Bientôt.'])->name('history');
     Route::view('/records', 'pages.soon', ['title' => 'Records', 'message' => 'Bientôt.'])->name('records');
     Route::view('/profile', 'pages.soon', ['title' => 'Profil', 'message' => 'Bientôt.'])->name('profile');
