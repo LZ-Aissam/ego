@@ -4,6 +4,7 @@ namespace App\Game;
 
 use App\Models\User;
 use App\Models\Workout;
+use App\Services\RecordCalculator;
 use App\Support\SystemMessage;
 
 final class GameEvents
@@ -11,7 +12,7 @@ final class GameEvents
     public const RECORD_XP = 50;
     public const RECORDS_PER_WORKOUT = 3;
 
-    public function __construct(private XpLedger $ledger, private Titles $titles) {}
+    public function __construct(private XpLedger $ledger, private Titles $titles, private RecordCalculator $calc) {}
 
     /**
      * @param  list<\App\Models\PersonalRecord>  $newRecords  records battus par cette séance
@@ -54,5 +55,33 @@ final class GameEvents
         }
 
         return $xp;
+    }
+
+    /** Rejoue l'historique (séances déjà enregistrées) sans notification. Idempotent. */
+    public function backfill(User $user): void
+    {
+        $best = [];
+
+        $workouts = $user->workouts()->with('sets')->orderBy('finished_at')->orderBy('id')->get();
+
+        foreach ($workouts as $workout) {
+            $beaten = 0;
+            foreach ($workout->sets->groupBy('exercise_id') as $exerciseId => $sets) {
+                $top = $sets->sort(fn ($a, $b) => [$b->weight_kg, $b->reps] <=> [$a->weight_kg, $a->reps])->first();
+                $improves = ! isset($best[$exerciseId]) || $this->calc->beats($top->weight_kg, $top->reps, ...$best[$exerciseId]);
+
+                if ($improves && isset($best[$exerciseId])) {
+                    $beaten++;
+                }
+                if ($improves) {
+                    $best[$exerciseId] = [$top->weight_kg, $top->reps];
+                }
+            }
+
+            $this->awardWorkout($user, $workout, $beaten);
+        }
+
+        $this->ledger->recalculate($user);
+        $this->titles->check($user->fresh());
     }
 }
