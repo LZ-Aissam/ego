@@ -20,6 +20,10 @@ class Register extends Component
     {
         $this->validateIdentity();
 
+        if ($this->throttled()) {
+            return;
+        }
+
         $key = IdentityKey::make($this->firstName, $this->birthDate);
 
         if (User::where('identity_key', $key)->exists()) {

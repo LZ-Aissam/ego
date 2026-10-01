@@ -47,3 +47,19 @@ it('valide les champs', function (string $first, string $date, string $field) {
     'date future' => ['Élise', '2999-01-01', 'birthDate'],
     'date invalide' => ['Élise', 'pas-une-date', 'birthDate'],
 ]);
+
+it('limite les tentatives d\'inscription pour empêcher de deviner une date de naissance', function () {
+    User::factory()->create(['first_name' => 'Élise', 'birth_date' => '2001-04-12']);
+
+    foreach (range(1, 5) as $day) {
+        Livewire::test(Register::class)->set('firstName', 'Élise')->set('birthDate', "2001-04-0{$day}")->call('register');
+    }
+
+    Livewire::test(Register::class)
+        ->set('firstName', 'Élise')
+        ->set('birthDate', '2001-04-12')
+        ->call('register')
+        ->assertHasErrors(['firstName'])
+        ->assertSee('Trop de tentatives')
+        ->assertDontSee('déjà utilisés');
+});

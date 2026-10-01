@@ -56,3 +56,21 @@ it('déconnecte', function () {
 it('redirige un invité vers la connexion', function () {
     $this->get('/')->assertRedirect(route('login'));
 });
+
+it('ne remet pas le compteur à zéro après une connexion réussie', function () {
+    User::factory()->create(['first_name' => 'Élise', 'birth_date' => '2001-04-12']);
+    $fail = fn () => Livewire::test(Login::class)->set('firstName', 'Faux')->set('birthDate', '2000-01-01')->call('login');
+
+    foreach (range(1, 4) as $i) {
+        $fail();
+    }
+    Livewire::test(Login::class)->set('firstName', 'Élise')->set('birthDate', '2001-04-12')->call('login')->assertHasNoErrors();
+    auth()->logout();
+    $fail();
+
+    Livewire::test(Login::class)
+        ->set('firstName', 'Élise')
+        ->set('birthDate', '2001-04-12')
+        ->call('login')
+        ->assertSee('Trop de tentatives');
+});
