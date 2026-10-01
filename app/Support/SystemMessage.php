@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Challenge;
 use App\Game\Titles;
 use App\Models\PersonalRecord;
 use App\Models\Quest;
@@ -111,5 +112,24 @@ final class SystemMessage
             $record->exercise->name,
             Format::kg($record->max_weight_kg).' × '.$record->max_weight_reps,
         ], highlight: 'NEW PR');
+    }
+
+    public static function challengeStarted(Challenge $challenge): array
+    {
+        return self::make('challenge', 'DÉFI LANCÉ', [
+            $challenge->title().' · '.$challenge->crew->name,
+            'Fin '.$challenge->ends_at->copy()->subSecond()->translatedFormat('l j F'),
+        ], highlight: 'GO');
+    }
+
+    public static function challengeFinished(Challenge $challenge, ?int $rank, int $total, string $winners): array
+    {
+        $place = $rank === null ? 'Non classé' : 'Tu finis '.$rank.($rank === 1 ? 'ᵉʳ' : 'ᵉ').' / '.$total;
+
+        return self::make('challenge', 'DÉFI TERMINÉ', array_values(array_filter([
+            $challenge->title().' · '.$challenge->crew->name,
+            $place.' · Vainqueur : '.$winners,
+            $challenge->stake ? 'Enjeu : '.$challenge->stake : null,
+        ])), highlight: $rank === 1 ? 'VICTOIRE' : null);
     }
 }

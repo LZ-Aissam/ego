@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class SyncQuests
 {
-    public function __construct(private QuestScheduler $quests, private SystemNotifier $notifier) {}
+    public function __construct(private QuestScheduler $quests, private SystemNotifier $notifier, private \App\Crew\ChallengeClock $challenges) {}
 
     public function handle(Request $request, Closure $next)
     {
@@ -19,6 +19,7 @@ class SyncQuests
             foreach ($this->quests->sync($user, now()) as $notification) {
                 $this->notifier->push($user, $notification);
             }
+            $this->challenges->tick($user);
         }
 
         return $next($request);
