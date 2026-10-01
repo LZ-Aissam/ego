@@ -30,26 +30,33 @@
 .sys-body { background-color: var(--color-void); color: var(--color-frost); font-family: var(--font-sans); }
 .sys-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: radial-gradient(120% 60% at 50% 0%, var(--color-abyss) 0%, var(--color-void) 60%); }
 .sys-grid { position: absolute; inset: -44px 0 0 0; background-image: linear-gradient(rgba(90, 216, 255, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(90, 216, 255, 0.06) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(to bottom, #000 0%, transparent 70%); animation: sys-drift 8s linear infinite; }
-.sys-halo { position: absolute; width: 520px; height: 520px; top: -260px; left: -180px; background: radial-gradient(circle, var(--glow-ice), transparent 65%); opacity: 0.45; animation: sys-breathe 4s ease-in-out infinite; }
+.sys-halo { position: absolute; width: 520px; height: 520px; top: -300px; right: -260px; background: radial-gradient(circle, var(--glow-ice), transparent 65%); opacity: 0.45; animation: sys-breathe 4s ease-in-out infinite; }
 
 /* ---------- Fenêtres ---------- */
-.sys-window { position: relative; padding: 1rem; background: linear-gradient(180deg, rgba(20, 48, 80, 0.55), rgba(6, 14, 24, 0.78)); border: 1px solid rgba(90, 216, 255, 0.45); box-shadow: inset 0 0 22px rgba(90, 216, 255, 0.12); clip-path: var(--sys-cut); animation: sys-open 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 150ms); }
-.sys-window--alert { border-color: rgba(255, 77, 109, 0.6); background: linear-gradient(180deg, rgba(80, 16, 30, 0.55), rgba(24, 6, 10, 0.8)); box-shadow: inset 0 0 22px rgba(255, 77, 109, 0.15); }
+.sys-window { position: relative; isolation: isolate; padding: 1rem; animation: sys-open 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 150ms); }
+/* Liseré : calque plein coupé ; fond : calque coupé 1 px plus petit. Le liseré suit ainsi les coins en biseau. */
+.sys-window::before { content: ''; position: absolute; inset: 0; z-index: -2; background: rgba(90, 216, 255, 0.5); clip-path: var(--sys-cut); }
+.sys-window::after { content: ''; position: absolute; inset: 1px; z-index: -1; background: linear-gradient(180deg, #0d1d30, #060c15); box-shadow: inset 0 0 22px rgba(90, 216, 255, 0.12); clip-path: var(--sys-cut); }
+.sys-window--alert::before { background: rgba(255, 77, 109, 0.6); }
+.sys-window--alert::after { background: linear-gradient(180deg, #2e0a15, #14060a); box-shadow: inset 0 0 22px rgba(255, 77, 109, 0.15); }
 .sys-window-title { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding-bottom: 0.6rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(90, 216, 255, 0.3); font-family: var(--font-mono); font-weight: 800; font-size: 0.75rem; letter-spacing: 0.3em; color: #dff6ff; text-shadow: 0 0 10px var(--glow-ice); text-transform: uppercase; }
 .sys-window--alert .sys-window-title { border-bottom-color: rgba(255, 77, 109, 0.35); color: #ffd9df; text-shadow: 0 0 10px rgba(255, 77, 109, 0.6); }
 .sys-window-icon { display: grid; place-items: center; width: 1rem; height: 1rem; border: 1px solid currentColor; font-size: 0.6rem; letter-spacing: 0; color: var(--color-ice); }
 .sys-window--alert .sys-window-icon { color: var(--color-alert); }
 
 /* ---------- Boutons ---------- */
-.sys-btn { display: inline-flex; width: 100%; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.95rem 1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #03080b; background: linear-gradient(135deg, var(--color-ice), var(--color-ice-deep)); box-shadow: 0 0 22px var(--glow-ice); clip-path: var(--sys-cut); transition: transform 0.12s ease, filter 0.12s ease; }
+.sys-btn { position: relative; isolation: isolate; display: inline-flex; width: 100%; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.95rem 1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #03080b; filter: drop-shadow(0 0 10px var(--glow-ice)); transition: transform 0.12s ease; }
+.sys-btn::before { content: ''; position: absolute; inset: 0; z-index: -2; background: linear-gradient(135deg, var(--color-ice), var(--color-ice-deep)); clip-path: var(--sys-cut); }
 .sys-btn:active { transform: scale(0.96); }
 .sys-btn:disabled { opacity: 0.4; }
 .sys-btn--pulse { animation: sys-pulse 2s ease-in-out infinite; }
-.sys-btn--ghost { color: var(--color-frost); background: rgba(90, 216, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(90, 216, 255, 0.45); }
+.sys-btn--ghost { color: var(--color-frost); filter: none; }
+.sys-btn--ghost::before { background: rgba(90, 216, 255, 0.5); }
+.sys-btn--ghost::after { content: ''; position: absolute; inset: 1px; z-index: -1; background: #08131d; clip-path: var(--sys-cut); }
 
 /* ---------- Textes et saisie ---------- */
-.sys-label { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--color-steel); }
-.sys-label::before { content: '// '; color: var(--color-ice); }
+.sys-label { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--color-mist); }
+.sys-label::before { content: '// ' / ''; color: var(--color-ice); }
 .sys-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .sys-input { width: 100%; padding: 0.8rem 1rem; font-size: 1rem; color: var(--color-frost); background: rgba(4, 10, 16, 0.8); border: 1px solid rgba(90, 216, 255, 0.25); clip-path: var(--sys-cut); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
 .sys-input:focus { border-color: var(--color-ice); box-shadow: inset 0 0 12px rgba(90, 216, 255, 0.2); }
@@ -86,10 +93,15 @@
 .sys-burst i:nth-child(1) { --r: 0deg; } .sys-burst i:nth-child(2) { --r: 45deg; } .sys-burst i:nth-child(3) { --r: 90deg; } .sys-burst i:nth-child(4) { --r: 135deg; }
 .sys-burst i:nth-child(5) { --r: 180deg; } .sys-burst i:nth-child(6) { --r: 225deg; } .sys-burst i:nth-child(7) { --r: 270deg; } .sys-burst i:nth-child(8) { --r: 315deg; }
 
+/* ---------- Focus clavier ---------- */
+:where(a, button, input, label, [tabindex]):focus-visible { outline: 2px solid var(--color-frost); outline-offset: 2px; }
+.sys-step:focus-visible, .sys-banner:focus-visible, .sys-input:focus-visible { outline-offset: -4px; }
+.sys-chip:focus-within { outline: 2px solid var(--color-frost); outline-offset: 2px; }
+
 /* ---------- Animations ---------- */
 @keyframes sys-drift { to { transform: translateY(22px); } }
 @keyframes sys-breathe { 0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
-@keyframes sys-pulse { 0%, 100% { box-shadow: 0 0 16px var(--glow-ice); } 50% { box-shadow: 0 0 38px var(--glow-ice), 0 0 0 4px rgba(90, 216, 255, 0.15); } }
+@keyframes sys-pulse { 0%, 100% { filter: drop-shadow(0 0 8px var(--glow-ice)); } 50% { filter: drop-shadow(0 0 22px var(--glow-ice)) drop-shadow(0 0 3px rgba(90, 216, 255, 0.8)); } }
 @keyframes sys-open { 0% { opacity: 0; transform: scaleY(0.05); filter: brightness(3); } 55% { opacity: 1; transform: scaleY(1); filter: brightness(1.6); } 100% { opacity: 1; transform: none; filter: none; } }
 @keyframes sys-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sys-pop { 0% { opacity: 0; transform: scale(0.6); filter: brightness(2.5); } 70% { opacity: 1; transform: scale(1.04); } 100% { transform: none; filter: none; } }

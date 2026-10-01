@@ -22,7 +22,7 @@
                 <div class="mt-3 grid grid-cols-3 gap-2 text-center">
                     <div><x-sys.label>Durée</x-sys.label><p class="sys-num mt-1 text-lg font-bold">{{ \App\Support\Format::duration($lastWorkout->durationMinutes()) }}</p></div>
                     <div><x-sys.label>Séries</x-sys.label><p class="sys-num mt-1 text-lg font-bold">{{ $lastWorkout->sets->count() }}</p></div>
-                    <div><x-sys.label>Volume</x-sys.label><p class="sys-num mt-1 text-lg font-bold text-ice" data-count-up="{{ $lastWorkout->volume() }}" data-suffix=" kg">{{ \App\Support\Format::kg($lastWorkout->volume()) }}</p></div>
+                    <div><x-sys.label>Volume</x-sys.label><p class="sys-num mt-1 text-lg font-bold text-ice" data-count-up="{{ $lastWorkout->volume() }}" data-decimals="{{ fmod($lastWorkout->volume(), 1.0) === 0.0 ? 0 : 1 }}" data-suffix=" kg">{{ \App\Support\Format::kg($lastWorkout->volume()) }}</p></div>
                 </div>
             </x-sys.window>
         </a>

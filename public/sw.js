@@ -1,4 +1,4 @@
-const CACHE = 'ego-v1';
+const CACHE = 'ego-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -16,6 +16,15 @@ function putInCache(request, response) {
     caches.open(CACHE).then((cache) => cache.put(request, copy));
 }
 
+// Une page qui porte des notifications système (meta ego-no-cache) n'est pas mise en cache,
+// pour qu'une notification déjà vue ne réapparaisse pas hors ligne.
+async function cachePageUnlessFlagged(request, response) {
+    const html = await response.clone().text();
+    if (html.includes('name="ego-no-cache"')) return;
+    const cache = await caches.open(CACHE);
+    await cache.put(request, response);
+}
+
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
@@ -31,7 +40,7 @@ self.addEventListener('fetch', (event) => {
 
     if (request.mode === 'navigate') {
         event.respondWith(fetch(request).then((response) => {
-            if (response.ok) putInCache(request, response);
+            if (response.ok) cachePageUnlessFlagged(request, response.clone());
             return response;
         }).catch(() => caches.match(request).then((hit) => hit || caches.match('/workout'))));
     }

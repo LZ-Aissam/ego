@@ -30,3 +30,20 @@ it('échappe le contenu dynamique dans les données de notification', function (
 
     $this->get('/')->assertDontSee('</script><b>x</b>', false)->assertSee('\u003C\/script\u003E', false);
 });
+
+it('rend la notification accessible au clavier et aux lecteurs d\'écran', function () {
+    app(SystemNotifier::class)->push($this->user, SystemMessage::make('info', 'BIENVENUE'));
+
+    $this->get('/')
+        ->assertSee('@keydown.escape.window="dismiss()"', false)
+        ->assertSee('x-ref="ok"', false)
+        ->assertSee('aria-live="assertive"', false);
+});
+
+it('demande au service worker de ne pas mettre en cache une page qui porte des notifications', function () {
+    $this->get('/')->assertDontSee('name="ego-no-cache"', false);
+
+    app(SystemNotifier::class)->push($this->user, SystemMessage::make('info', 'BIENVENUE'));
+
+    $this->get('/')->assertSee('<meta name="ego-no-cache" content="1">', false);
+});

@@ -38,3 +38,13 @@ it('affiche la console du joueur en fenêtres système avec un volume animé', f
         ->assertSee('DERNIERS RECORDS')
         ->assertSee('data-count-up="480"', false);
 });
+
+it('garde la décimale du volume dans le compteur animé', function () {
+    $bench = Exercise::firstWhere('slug', 'bench-press');
+    app(WorkoutSync::class)->sync($this->user, [
+        'client_id' => (string) Str::uuid(), 'started_at' => '2026-09-27T10:00:00Z', 'finished_at' => '2026-09-27T10:40:00Z',
+        'sets' => [['exercise_id' => $bench->id, 'weight_kg' => 62.5, 'reps' => 3, 'done_at' => '2026-09-27T10:10:00Z']],
+    ]);
+
+    $this->get('/')->assertSee('data-count-up="187.5" data-decimals="1"', false)->assertSee('187,5 kg');
+});

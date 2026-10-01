@@ -45,7 +45,7 @@ function showResumeBanner() {
 // Les séances non envoyées restent rangées sous l'identifiant de leur propriétaire.
 document.addEventListener('submit', (event) => {
     if (event.target.matches('form[action$="/logout"]') && 'caches' in window) {
-        caches.delete('ego-v1');
+        caches.delete('ego-v2');
     }
 });
 

@@ -11,6 +11,10 @@
 <html lang="fr" class="h-full">
 <head>
     @include('partials.head', ['title' => $title])
+    @if (! empty($systemNotifications))
+        {{-- Le service worker ne met pas cette page en cache : sinon la notification réapparaîtrait hors ligne --}}
+        <meta name="ego-no-cache" content="1">
+    @endif
 </head>
 <body class="sys-body min-h-full antialiased" data-user-id="{{ auth()->id() }}">
     @include('partials.backdrop')
