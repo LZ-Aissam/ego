@@ -74,8 +74,7 @@ class Profile extends Component
     {
         $notifier = app(\App\Support\SystemNotifier::class);
         $user = auth()->user();
-        $user->forceFill(['paused_at' => null, 'paused_until' => null])->save();
-        $user->quests()->where('date', today()->toDateString())->whereIn('type', ['training', 'rest'])->where('status', 'cancelled')->delete();
+        app(\App\Game\QuestScheduler::class)->resume($user, today());
         $notifier->push($user, \App\Support\SystemMessage::pauseOff());
 
         return $this->redirectRoute('profile');

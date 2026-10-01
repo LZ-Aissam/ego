@@ -90,7 +90,8 @@ it('ne crée ni quête ni pénalité pendant une pause, et la lève automatiquem
     $notes = $this->scheduler->sync($this->user, day('2026-10-08'));
 
     expect(collect($notes)->pluck('title')->all())->toBe(['RETOUR DE TON EGO', 'QUÊTE ÉCHOUÉE'])
-        ->and(Quest::whereIn('date', ['2026-10-06', '2026-10-07'])->count())->toBe(0)
+        ->and(Quest::whereIn('date', ['2026-10-06', '2026-10-07'])->whereIn('type', ['training', 'rest'])->count())->toBe(0)
+        ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->value('status'))->toBe('cancelled')
         ->and(Quest::where('date', '2026-10-08')->value('type'))->toBe('rest')
         ->and($this->user->fresh()->paused_at)->toBeNull();
 });

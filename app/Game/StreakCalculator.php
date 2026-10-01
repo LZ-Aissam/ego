@@ -11,7 +11,8 @@ final class StreakCalculator
     public function compute(User $user, CarbonInterface $asOf): int
     {
         $asOf = Carbon::parse($asOf->toDateString());
-        $quests = $user->quests()->where('date', '<=', $asOf->toDateString())->get()
+        // On charge aussi le lendemain : sa pénalité peut sauver le dernier jour compté.
+        $quests = $user->quests()->where('date', '<=', $asOf->copy()->addDay()->toDateString())->get()
             ->groupBy(fn ($quest) => $quest->date->toDateString());
 
         if ($quests->isEmpty()) {
@@ -19,6 +20,9 @@ final class StreakCalculator
         }
 
         $first = Carbon::parse($quests->keys()->min());
+        if ($first->gt($asOf)) {
+            return 0;
+        }
         $streak = 0;
 
         for ($day = $asOf->copy(); $day->gte($first); $day = $day->copy()->subDay()) {
@@ -38,7 +42,8 @@ final class StreakCalculator
             }
 
             $penalty = $quests->get($day->copy()->addDay()->toDateString(), collect())->firstWhere('type', 'penalty');
-            if ($penalty && in_array($penalty->status, ['done', 'pending'], true)) {
+            // Pénalité réussie, en cours, ou annulée par une pause : le jour raté est neutre.
+            if ($penalty && in_array($penalty->status, ['done', 'pending', 'cancelled'], true)) {
                 continue;
             }
 
