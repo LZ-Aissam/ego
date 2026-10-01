@@ -6,6 +6,7 @@ use App\Http\Requests\SyncWorkoutRequest;
 use App\Models\PersonalRecord;
 use App\Services\WorkoutOwnedByAnotherUser;
 use App\Services\WorkoutSync;
+use App\Support\SystemMessage;
 use Illuminate\Http\JsonResponse;
 
 class WorkoutSyncController extends Controller
@@ -29,6 +30,9 @@ class WorkoutSyncController extends Controller
                 'weight_kg' => $r->max_weight_kg,
                 'reps' => $r->max_weight_reps,
             ], $records),
+            'notifications' => $created
+                ? [SystemMessage::workoutDone($workout), ...array_map(fn (PersonalRecord $r) => SystemMessage::record($r), $records)]
+                : [],
         ], $created ? 201 : 200);
     }
 }

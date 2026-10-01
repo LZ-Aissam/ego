@@ -1,6 +1,6 @@
 import {
     addExercise, addRest, adjustDraft, createStore, finishWorkout, goTo, hasSets,
-    logSet, newWorkout, removeLastSet, skipRest, uuid,
+    logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { flushPending, sendWorkout } from './sync';
 
@@ -46,6 +46,10 @@ export default function workout() {
         get restRemaining() {
             if (!this.state.restEndsAt) return 0;
             return Math.max(0, Math.ceil((this.state.restEndsAt - this.now) / 1000));
+        },
+
+        get restPercent() {
+            return Math.round(restProgress(this.state, this.now) * 100);
         },
 
         get elapsed() {
@@ -132,6 +136,9 @@ export default function workout() {
             this.summary = body
                 ? { pending: false, ...body }
                 : { pending: true, invalid: result.invalid.includes(payload.client_id) };
+            if (body?.notifications?.length) {
+                window.dispatchEvent(new CustomEvent('sys-notify', { detail: body.notifications }));
+            }
             this.finishing = false;
         },
 

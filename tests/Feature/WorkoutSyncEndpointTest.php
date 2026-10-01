@@ -83,6 +83,24 @@ it('répond 409 si la séance appartient à un autre utilisateur', function () {
     $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)->assertConflict();
 });
 
+it('renvoie les notifications système de fin de séance et de record', function () {
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body);
+    $this->body['client_id'] = (string) Str::uuid();
+    $this->body['sets'][0]['weight_kg'] = 62.5;
+
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)
+        ->assertJsonPath('notifications.0.title', 'SÉANCE TERMINÉE')
+        ->assertJsonPath('notifications.1.title', 'NOUVEAU RECORD')
+        ->assertJsonPath('notifications.1.highlight', 'NEW PR')
+        ->assertJsonPath('notifications.1.lines.0', 'Développé couché (barre)');
+});
+
+it('ne renvoie aucune notification pour un envoi déjà enregistré', function () {
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body);
+
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)->assertJsonPath('notifications', []);
+});
+
 it('refuse un invité', function () {
     $this->postJson('/workouts/sync', $this->body)->assertUnauthorized();
 });

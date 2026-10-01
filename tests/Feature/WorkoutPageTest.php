@@ -55,3 +55,10 @@ it('affiche l\'écran de séance avec les données de démarrage', function () {
         ->assertSee('x-data="workout"', false)
         ->assertSee('Développé couché (barre)');
 });
+
+it('affiche l\'écran de séance au style Système', function () {
+    $this->actingAs($this->user)->get('/workout')
+        ->assertSee('class="sys-ring"', false)
+        ->assertSee('VALIDER LA SÉRIE')
+        ->assertSee('id="sys-notifications-data"', false);
+});
