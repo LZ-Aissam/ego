@@ -93,3 +93,11 @@ it('ne teste que les mouvements présents dans le programme (programme sans jamb
 
     expect(app(CalibrationPlan::class)->movementsFor($user->fresh())->pluck('test_slot')->all())->toBe(['horizontal_push', 'horizontal_pull']);
 });
+
+it('teste un exercice chargé plutôt qu\'un exercice au poids du corps du même emplacement', function () {
+    $user = User::factory()->withMorphology(level: 'advanced')->create(['first_name' => 'Aïssam']);
+    $this->artisan('ego:programme-force-vitesse', ['prenom' => 'Aïssam'])->assertSuccessful();
+
+    expect(app(CalibrationPlan::class)->movementsFor($user->fresh())->pluck('slug')->all())
+        ->toBe(['bench-press', 'barbell-row', 'back-squat', 'deadlift']);
+});

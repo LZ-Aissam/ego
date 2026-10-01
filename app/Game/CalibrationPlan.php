@@ -36,7 +36,10 @@ final class CalibrationPlan
             }
 
             foreach ($slots as $slot) {
-                $exercise = $lines->firstWhere('slot', $slot)?->exercise ?? $this->generator->candidates($slot, $equipment, $library)->first();
+                // Un exercice chargé du programme d'abord (il fixe les charges), sinon un au poids du corps.
+                $inSlot = $lines->where('slot', $slot);
+                $exercise = ($inSlot->first(fn ($line) => ! $line->exercise->is_bodyweight) ?? $inSlot->first())?->exercise
+                    ?? $this->generator->candidates($slot, $equipment, $library)->first();
                 if ($exercise && ! $picked->contains('id', $exercise->id)) {
                     $exercise->setAttribute('test_slot', $slot);
                     $picked->push($exercise);
