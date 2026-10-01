@@ -56,6 +56,24 @@ it('est idempotent sur client_id', function () {
         ->and(Workout::count())->toBe(1);
 });
 
+it('renvoie la séance existante si un envoi concurrent l\'a créée entre-temps', function () {
+    $data = payload([[$this->bench->id, 60, 8]]);
+    // Simule l'envoi concurrent : la ligne existe déjà quand l'insertion est tentée.
+    $this->user->workouts()->create(['client_id' => $data['client_id'], 'started_at' => now(), 'finished_at' => now()]);
+
+    $result = $this->sync->sync($this->user, $data);
+
+    expect($result['created'])->toBeFalse()
+        ->and(Workout::count())->toBe(1);
+});
+
+it('refuse un client_id déjà utilisé par un autre utilisateur', function () {
+    $data = payload([[$this->bench->id, 60, 8]]);
+    $this->sync->sync(User::factory()->create(), $data);
+
+    $this->sync->sync($this->user, $data);
+})->throws(App\Services\WorkoutOwnedByAnotherUser::class);
+
 it('crée un record à la première séance sans le signaler', function () {
     $result = $this->sync->sync($this->user, payload([[$this->bench->id, 60, 8], [$this->bench->id, 62.5, 5]]));
 

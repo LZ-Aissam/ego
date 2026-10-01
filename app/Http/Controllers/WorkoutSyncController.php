@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SyncWorkoutRequest;
 use App\Models\PersonalRecord;
+use App\Services\WorkoutOwnedByAnotherUser;
 use App\Services\WorkoutSync;
 use Illuminate\Http\JsonResponse;
 
@@ -11,7 +12,11 @@ class WorkoutSyncController extends Controller
 {
     public function __invoke(SyncWorkoutRequest $request, WorkoutSync $sync): JsonResponse
     {
-        ['workout' => $workout, 'newRecords' => $records, 'created' => $created] = $sync->sync($request->user(), $request->validated());
+        try {
+            ['workout' => $workout, 'newRecords' => $records, 'created' => $created] = $sync->sync($request->user(), $request->validated());
+        } catch (WorkoutOwnedByAnotherUser) {
+            return response()->json(['message' => 'Cette séance appartient à un autre compte.'], 409);
+        }
 
         return response()->json([
             'workout_id' => $workout->id,

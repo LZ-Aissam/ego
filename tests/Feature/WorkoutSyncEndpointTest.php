@@ -77,6 +77,12 @@ it('refuse un contenu invalide', function (string $case, string $field) {
     ['fin avant début', 'finished_at'],
 ]);
 
+it('répond 409 si la séance appartient à un autre utilisateur', function () {
+    $this->actingAs(User::factory()->create())->postJson('/workouts/sync', $this->body)->assertCreated();
+
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)->assertConflict();
+});
+
 it('refuse un invité', function () {
     $this->postJson('/workouts/sync', $this->body)->assertUnauthorized();
 });

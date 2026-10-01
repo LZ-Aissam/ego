@@ -6,6 +6,7 @@ use App\Models\PersonalRecord;
 use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutSet;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -19,12 +20,23 @@ final class WorkoutSync
      */
     public function sync(User $user, array $data): array
     {
-        $existing = $user->workouts()->where('client_id', $data['client_id'])->first();
+        // Pas de vérification préalable : l'index unique sur client_id tranche, même entre deux envois simultanés.
+        try {
+            return $this->create($user, $data);
+        } catch (UniqueConstraintViolationException) {
+            $existing = Workout::where('client_id', $data['client_id'])->firstOrFail();
 
-        if ($existing) {
+            if ($existing->user_id !== $user->id) {
+                throw new WorkoutOwnedByAnotherUser;
+            }
+
             return ['workout' => $existing->load('sets.exercise'), 'newRecords' => [], 'created' => false];
         }
+    }
 
+    /** @return array{workout: Workout, newRecords: list<PersonalRecord>, created: bool} */
+    private function create(User $user, array $data): array
+    {
         return DB::transaction(function () use ($user, $data) {
             $workout = $user->workouts()->create([
                 'client_id' => $data['client_id'],

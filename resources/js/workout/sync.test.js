@@ -24,6 +24,11 @@ describe('sendWorkout', () => {
         expect(r.status).toBe('invalid');
     });
 
+    it('renvoie conflict sur 409 (séance d\'un autre utilisateur)', async () => {
+        const r = await sendWorkout({}, { token: 't', fetchImpl: fakeFetch(409) });
+        expect(r.status).toBe('conflict');
+    });
+
     it('renvoie retry sur session expirée (419/401), erreur serveur ou coupure réseau', async () => {
         for (const status of [419, 401, 500]) {
             expect((await sendWorkout({}, { token: 't', fetchImpl: fakeFetch(status) })).status).toBe('retry');
@@ -56,5 +61,15 @@ describe('flushPending', () => {
         expect(result.invalid).toEqual(['bad']);
         expect(result.remaining).toBe(2);
         expect(store.pending().map((p) => p.client_id)).toEqual(['bad', 'later']);
+    });
+
+    it('retire de la file une séance en conflit', async () => {
+        const store = createStore(memoryStorage());
+        store.queuePending({ client_id: 'other' });
+
+        const result = await flushPending(store, async () => ({ status: 'conflict' }));
+
+        expect(result.remaining).toBe(0);
+        expect(store.pending()).toEqual([]);
     });
 });

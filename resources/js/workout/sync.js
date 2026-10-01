@@ -13,6 +13,7 @@ export async function sendWorkout(payload, { token, fetchImpl = (...args) => glo
         });
         if (response.ok) return { status: 'ok', body: await response.json() };
         if (response.status === 422) return { status: 'invalid', body: await response.json() };
+        if (response.status === 409) return { status: 'conflict' };
         return { status: 'retry' };
     } catch {
         return { status: 'retry' };
@@ -26,6 +27,8 @@ export async function flushPending(store, send) {
         if (response.status === 'ok') {
             store.removePending(payload.client_id);
             result.sent[payload.client_id] = response.body;
+        } else if (response.status === 'conflict') {
+            store.removePending(payload.client_id);
         } else if (response.status === 'invalid') {
             result.invalid.push(payload.client_id);
         }
