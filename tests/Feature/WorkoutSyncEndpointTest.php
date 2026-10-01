@@ -101,6 +101,23 @@ it('ne renvoie aucune notification pour un envoi déjà enregistré', function (
     $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)->assertJsonPath('notifications', []);
 });
 
+it('renvoie l\'XP gagnée, la progression et les notifications de jeu', function () {
+    $this->body['sets'] = array_fill(0, 4, $this->body['sets'][0]);
+
+    $response = $this->actingAs($this->user)->postJson('/workouts/sync', $this->body);
+
+    $response->assertJsonPath('xp_gained', 70)
+        ->assertJsonPath('player.level', 1)
+        ->assertJsonPath('notifications.0.lines.2', '+70 XP')
+        ->assertJsonPath('notifications.1.title', 'TITRE DÉBLOQUÉ');
+
+    $this->actingAs($this->user)->postJson('/workouts/sync', $this->body)
+        ->assertJsonPath('xp_gained', 0)
+        ->assertJsonPath('notifications', []);
+
+    expect($this->user->fresh()->xp_total)->toBe(70);
+});
+
 it('refuse un invité', function () {
     $this->postJson('/workouts/sync', $this->body)->assertUnauthorized();
 });

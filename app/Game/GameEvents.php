@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Game;
+
+use App\Models\User;
+use App\Models\Workout;
+use App\Support\SystemMessage;
+
+final class GameEvents
+{
+    public const RECORD_XP = 50;
+    public const RECORDS_PER_WORKOUT = 3;
+
+    public function __construct(private XpLedger $ledger, private Titles $titles) {}
+
+    /**
+     * @param  list<\App\Models\PersonalRecord>  $newRecords  records battus par cette séance
+     * @return array{xp: int, notifications: list<array>, player: array}
+     */
+    public function afterWorkout(User $user, Workout $workout, array $newRecords): array
+    {
+        $before = Leveling::progress((int) $user->xp_total);
+        $xp = $this->awardWorkout($user, $workout, count($newRecords));
+        $after = Leveling::progress((int) $user->xp_total);
+
+        $notifications = [];
+        if ($after['level'] > $before['level']) {
+            $notifications[] = SystemMessage::levelUp($after);
+        }
+        if ($after['rank'] !== $before['rank']) {
+            $notifications[] = SystemMessage::rankUp($after['rank']);
+        }
+        foreach ($this->titles->check($user) as $key) {
+            $notifications[] = SystemMessage::title($key);
+        }
+
+        return ['xp' => $xp, 'notifications' => $notifications, 'player' => $after];
+    }
+
+    /** XP de la séance et de ses records ; renvoie l'XP réellement gagnée. */
+    public function awardWorkout(User $user, Workout $workout, int $recordsBeaten): int
+    {
+        $xp = 0;
+        $amount = $this->ledger->workoutXp($workout->sets->count());
+
+        if ($amount > 0 && $this->ledger->isEligible($user, $workout)
+            && $this->ledger->award($user, 'workout', $workout->id, $amount, at: $workout->finished_at)) {
+            $xp += $amount;
+        }
+
+        $records = min($recordsBeaten, self::RECORDS_PER_WORKOUT);
+        if ($records > 0 && $this->ledger->award($user, 'record', $workout->id, $records * self::RECORD_XP, $records, $workout->finished_at)) {
+            $xp += $records * self::RECORD_XP;
+        }
+
+        return $xp;
+    }
+}
