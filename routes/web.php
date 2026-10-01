@@ -5,6 +5,7 @@ use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutSyncController;
 use App\Http\Middleware\SyncQuests;
 use App\Livewire\Auth\Login;
+use App\Livewire\CalibrationPage;
 use App\Livewire\Auth\Register;
 use App\Livewire\History;
 use App\Livewire\Home;
@@ -23,6 +24,8 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/', Home::class)->name('home');
     Route::get('/program', ProgramPage::class)->name('program');
+    Route::get('/calibration', CalibrationPage::class)->name('calibration');
+    Route::get('/calibration/quest/{quest}', CalibrationPage::class)->name('calibration.quest');
     Route::view('/community', 'pages.soon', [
         'title' => 'Crew',
         'message' => 'Le Crew débarque bientôt : records des amis, classement, défis et groupes.',
