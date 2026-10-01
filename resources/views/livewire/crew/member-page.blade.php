@@ -61,6 +61,38 @@
                     </div>
                 @endforeach
             @endforeach
+            @if ($member->id !== auth()->id())
+                @if ($copying)
+                    @php
+                        $needed = $program->params['equipment'] ?? null;
+                        $mine = auth()->user()->equipment;
+                        $ranks = \App\Services\ProgramBuilder::EQUIPMENT_RANK;
+                        $labels = \App\Services\ProgramBuilder::EQUIPMENT;
+                        $dayNames = [1 => 'Lun', 2 => 'Mar', 3 => 'Mer', 4 => 'Jeu', 5 => 'Ven', 6 => 'Sam', 7 => 'Dim'];
+                    @endphp
+                    <div class="mt-4 border border-ice/30 p-3">
+                        <p class="text-sm">Choisis tes {{ $program->days->count() }} jours d'entraînement :</p>
+                        <div class="mt-2 grid grid-cols-7 gap-1">
+                            @foreach ($dayNames as $value => $label)
+                                <label @class(['sys-chip cursor-pointer px-0 py-2 text-center text-xs', 'sys-chip--active' => in_array($value, array_map('intval', $weekdays), true)])>
+                                    <input type="checkbox" wire:model.live="weekdays" value="{{ $value }}" class="sr-only">{{ $label }}
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('weekdays') <p class="sys-error">{{ $message }}</p> @enderror
+                        @if ($needed && $mine && ($ranks[$needed] ?? 0) > ($ranks[$mine] ?? 0))
+                            <p class="mt-2 text-sm text-amber">Ce programme demande : {{ $labels[$needed] }}. Tu as indiqué : {{ $labels[$mine] }}.</p>
+                        @endif
+                        <p class="mt-2 text-xs text-mist">Tes charges seront calculées d'après ton propre profil de force.</p>
+                        <div class="mt-3 grid grid-cols-2 gap-2">
+                            <x-sys.button variant="ghost" wire:click="$set('copying', false)">Annuler</x-sys.button>
+                            <x-sys.button wire:click="copyProgram">Copier et activer</x-sys.button>
+                        </div>
+                    </div>
+                @else
+                    <x-sys.button variant="ghost" class="mt-4" wire:click="startCopy">Copier ce programme</x-sys.button>
+                @endif
+            @endif
         @else
             <p class="text-sm text-mist">Pas de programme actif.</p>
         @endif
