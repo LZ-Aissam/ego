@@ -6,9 +6,20 @@
             </span>
             <div>
                 <h1 class="text-2xl font-bold">{{ $user->first_name }}</h1>
-                <p class="sys-num text-sm text-steel">{{ $user->birth_date->age }} ans</p>
+                <p class="sys-num text-sm text-mist">Niveau {{ $player['level'] }} · Rang {{ $player['rank'] }} · {{ $user->birth_date->age }} ans</p>
+                @if ($user->equippedTitleName()) <p class="text-sm text-ice">« {{ $user->equippedTitleName() }} »</p> @endif
             </div>
         </div>
+        <x-sys.xp-bar :progress="$player" class="mt-4" />
+        <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-3">
+            <x-sys.stat label="FORCE" :value="$stats['force']" />
+            <x-sys.stat label="ENDURANCE" :value="$stats['endurance']" />
+            <x-sys.stat label="PROGRESSION" :value="$stats['progression']" />
+            <x-sys.stat label="RÉGULARITÉ" :value="$stats['regularite']" />
+        </div>
+        @if ($stats['force'] === null)
+            <p class="mt-2 text-xs text-mist">Renseigne ton poids ci-dessous pour mesurer ta FORCE.</p>
+        @endif
     </x-sys.window>
 
     <div class="grid grid-cols-2 gap-3">
@@ -39,6 +50,22 @@
             <x-sys.button type="submit">Enregistrer</x-sys.button>
             @if ($saved) <p class="text-center text-sm text-ice">Profil enregistré ✓</p> @endif
         </form>
+    </x-sys.window>
+
+    <x-sys.window title="TITRES" :index="2">
+        @foreach (\App\Game\Titles::CATALOG as $key => $title)
+            @if (in_array($key, $unlocked, true))
+                <button type="button" wire:click="equipTitle('{{ $key }}')" class="sys-row w-full text-left">
+                    <span class="font-semibold">{{ $title['name'] }}</span>
+                    <span @class(['sys-label', '!text-ice' => $user->equipped_title === $key])>{{ $user->equipped_title === $key ? 'Équipé' : 'Équiper' }}</span>
+                </button>
+            @else
+                <div class="sys-row opacity-60">
+                    <span>🔒 {{ $title['name'] }}</span>
+                    <span class="text-right text-xs text-mist">{{ $title['condition'] }}</span>
+                </div>
+            @endif
+        @endforeach
     </x-sys.window>
 
     <form method="POST" action="{{ route('logout') }}">

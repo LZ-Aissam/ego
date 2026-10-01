@@ -51,8 +51,26 @@ class Profile extends Component
         $this->saved = true;
     }
 
-    public function render()
+    public function equipTitle(string $key): void
     {
-        return view('livewire.profile', ['user' => auth()->user()->fresh()]);
+        $user = auth()->user();
+
+        if (! $user->titles()->where('title_key', $key)->exists()) {
+            return;
+        }
+
+        $user->forceFill(['equipped_title' => $key])->save();
+    }
+
+    public function render(\App\Game\PlayerStats $stats)
+    {
+        $user = auth()->user()->fresh();
+
+        return view('livewire.profile', [
+            'user' => $user,
+            'player' => \App\Game\Leveling::progress((int) $user->xp_total),
+            'stats' => $stats->for($user),
+            'unlocked' => $user->titles()->pluck('title_key')->all(),
+        ]);
     }
 }

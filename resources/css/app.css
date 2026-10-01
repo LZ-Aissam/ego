@@ -93,6 +93,10 @@
 .sys-burst i:nth-child(1) { --r: 0deg; } .sys-burst i:nth-child(2) { --r: 45deg; } .sys-burst i:nth-child(3) { --r: 90deg; } .sys-burst i:nth-child(4) { --r: 135deg; }
 .sys-burst i:nth-child(5) { --r: 180deg; } .sys-burst i:nth-child(6) { --r: 225deg; } .sys-burst i:nth-child(7) { --r: 270deg; } .sys-burst i:nth-child(8) { --r: 315deg; }
 
+/* ---------- Progression ---------- */
+.sys-track { height: 0.5rem; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(90, 216, 255, 0.25); }
+.sys-xp-fill { height: 100%; background: linear-gradient(90deg, var(--color-ice-deep), var(--color-ice)); box-shadow: 0 0 10px var(--color-ice); transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
 /* ---------- Focus clavier ---------- */
 :where(a, button, input, label, [tabindex]):focus-visible { outline: 2px solid var(--color-frost); outline-offset: 2px; }
 .sys-step:focus-visible, .sys-banner:focus-visible, .sys-input:focus-visible { outline-offset: -4px; }

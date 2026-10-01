@@ -5,6 +5,25 @@
         <h1 class="mt-2 text-3xl font-bold leading-tight"><span class="text-ice [text-shadow:0_0_16px_var(--glow-ice)]">Salut {{ $user->first_name }}</span>.<br>Prêt à forger ?</h1>
     </header>
 
+    <x-sys.window title="STATUT" :index="0">
+        <div class="flex items-end gap-4">
+            <div>
+                <x-sys.label>Niveau</x-sys.label>
+                <p class="sys-num text-5xl font-extrabold leading-none text-frost [text-shadow:0_0_18px_var(--glow-ice)]" data-count-up="{{ $player['level'] }}">{{ $player['level'] }}</p>
+            </div>
+            <div class="pb-1">
+                <p class="text-sm text-mist">Rang {{ $player['rank'] }}@if ($user->equippedTitleName()) · « {{ $user->equippedTitleName() }} »@endif</p>
+            </div>
+        </div>
+        <x-sys.xp-bar :progress="$player" class="mt-3" />
+        <div class="mt-4 grid grid-cols-2 gap-x-5 gap-y-3">
+            <x-sys.stat label="FORCE" :value="$stats['force']" />
+            <x-sys.stat label="ENDURANCE" :value="$stats['endurance']" />
+            <x-sys.stat label="PROGRESSION" :value="$stats['progression']" />
+            <x-sys.stat label="RÉGULARITÉ" :value="$stats['regularite']" />
+        </div>
+    </x-sys.window>
+
     <x-sys.button :href="route('workout')" :pulse="true" class="py-5 text-lg">Séance libre <span aria-hidden="true">→</span></x-sys.button>
 
     @if (! $user->sex || ! $user->weight_kg)

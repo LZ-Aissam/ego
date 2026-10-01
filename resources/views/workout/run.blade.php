@@ -22,6 +22,7 @@
                             <div><p class="sys-label">Séries</p><p class="sys-num mt-1 text-lg font-bold" x-text="summary.sets_count"></p></div>
                             <div><p class="sys-label">Volume</p><p class="sys-num mt-1 text-lg font-bold text-ice" x-text="formatKg(summary.volume_kg)"></p></div>
                         </div>
+                        <p class="sys-num mt-3 text-center text-lg font-extrabold text-ice [text-shadow:0_0_14px_var(--glow-ice)]" x-show="summary.xp_gained > 0" x-text="'+' + summary.xp_gained + ' XP'"></p>
                     </div>
                 </template>
                 <template x-if="summary.pending">
