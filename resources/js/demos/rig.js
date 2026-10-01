@@ -110,7 +110,13 @@ const FAMILIES = {
             return scene(
                 { leg: leg(hip, ankle, -1), foot: [ankle, toe], torso: [hip, shoulder], arm: fixedArm(shoulder, -70, -20) },
                 add(shoulder, L.head, 140), [],
-                [line(add(hip, 7, 230), add(shoulder, 7, 230)), line(add(ankle, 12, -55), add(toe, 12, 125))],
+                [
+                    line(add(hip, 7, 230), add(shoulder, 7, 230)),
+                    line(add(ankle, 12, -55), add(toe, 12, 125)),
+                    line(add(add(hip, 16, -55), 10, 35), add(add(hip, 16, -55), 100, 35)),
+                    line(add(hip, 9, -90), [hip[0], 0]),
+                    line(add(add(hip, 16, -55), 95, 35), [add(add(hip, 16, -55), 95, 35)[0], 0]),
+                ],
             );
         },
     },
@@ -321,7 +327,7 @@ const FAMILIES = {
             return scene(
                 { leg: [b.ankle, b.knee, b.hip], foot: b.foot, torso: [b.hip, b.shoulder], arm: arm(b.shoulder, hand, 1) },
                 headOf(b.hip, b.shoulder), [prop], fixtures,
-                standingPress ? [guide([10, -184], [10, -120], 'barre au-dessus du milieu du pied')] : [],
+                standingPress ? [guide([10, -184], [10, -120], 'axe de la barre')] : [],
             );
         },
     },
@@ -329,13 +335,16 @@ const FAMILIES = {
     row: {
         segments: [['Tirage', 1000], ['Coudes en arrière', 400], ['Retour contrôlé', 2000], ['Bras tendus', 400]],
         pose(t, v) {
-            const lean = { bar: 70, one: 80, chest: 50 }[v];
-            const b = standing(12, 30, lean);
+            const lean = { bar: 70, one: 80, chest: 48 }[v];
+            const b = v === 'chest' ? standing(4, 6, lean) : standing(12, 30, lean);
             const hand = lerpP(shift(b.shoulder, 0, 49), shift(add(b.hip, 22, 90 - lean), 0, 6), t);
             const props = [v === 'bar' ? plate(hand, 12) : dumbbell(hand)];
             const fixtures = v === 'one'
                 ? [rect(48, -44, 50, 6), line([90, -38], [90, 0])]
-                : v === 'chest' ? [line(add(b.hip, 9, -lean), add(b.shoulder, 9, -lean)), line(add(b.hip, 9, -lean), [add(b.hip, 9, -lean)[0], 0])] : [];
+                : v === 'chest' ? (() => {
+                    const low = add(b.hip, 10, -lean), high = add(add(b.shoulder, 10, -lean), 8, 90 - lean);
+                    return [line(low, high), line(low, [low[0] + 6, 0]), line([low[0] - 6, 0], [low[0] + 22, 0])];
+                })() : [];
             const chains = { foot: b.foot, leg: [b.ankle, b.knee, b.hip], torso: [b.hip, b.shoulder], arm: arm(b.shoulder, hand, 1) };
             if (v === 'one') chains.support = arm(b.shoulder, [b.shoulder[0] + 24, -44], -1);
             return scene(chains, headOf(b.hip, b.shoulder), props, fixtures);
@@ -372,17 +381,24 @@ const FAMILIES = {
         },
     },
 
+    // Vue de face : la largeur des mains distingue pronation (large) et supination (largeur d'épaules).
     pullup: {
         segments: [['Tirage', 1200], ['Menton au-dessus de la barre', 300], ['Descente contrôlée', 2000], ['Bras tendus', 400]],
-        pose(t) {
-            const bar = [10, -182];
-            const shoulder = lerpP([6, -134], [4, -164], t);
-            const hip = add(shoulder, L.torso, -92);
-            const knee = add(hip, L.thigh, -70);
-            const ankle = add(knee, L.shin, -150);
+        pose(t, v) {
+            const wide = v === 'wide';
+            const y = lerp(-133, -164, t);
+            const shR = [18, y], shL = [-18, y];
+            const handX = wide ? 38 : 19;
+            const hipR = [9, y + 50], hipL = [-9, y + 50];
+            const legs = (side) => {
+                const hip = side > 0 ? hipR : hipL;
+                const knee = [hip[0] + side * 1, hip[1] + 40];
+                return [hip, knee, [knee[0] + side * 1, knee[1] + 39]];
+            };
             return scene(
-                { torso: [hip, shoulder], leg: [hip, knee, ankle], arm: arm(shoulder, bar, 1) },
-                headOf(hip, shoulder), [handle(bar)], [line([-30, -182], [50, -182])],
+                { legR: legs(1), legL: legs(-1), torso: [hipL, hipR, shR, shL, hipL],
+                  armR: ik(shR, [handX, -182], L.upper, L.fore, -1), armL: ik(shL, [-handX, -182], L.upper, L.fore, 1) },
+                [0, y - 20], [], [line([-60, -182], [60, -182])], [], 'Vue de face',
             );
         },
     },
@@ -445,7 +461,7 @@ const FAMILIES = {
         segments: [['Extension', 1000], ['Bras tendus', 400], ['Retour contrôlé', 2000], ['Départ', 400]],
         pose(t) {
             const b = standing(2, 0, 6);
-            const elbow = add(b.shoulder, L.upper, -94);
+            const elbow = add(b.shoulder, L.upper, -76);           // coude un peu devant le buste, pour qu'on le voie
             const hand = add(elbow, L.fore, lerp(64, -84, t));
             return scene(
                 { foot: b.foot, leg: [b.ankle, b.knee, b.hip], torso: [b.hip, b.shoulder], arm: [b.shoulder, elbow, hand] },
@@ -560,16 +576,16 @@ const FAMILIES = {
         segments: [['Montée', 1000], ['Bras à l\'horizontale', 300], ['Descente contrôlée', 2000], ['Bas', 400]],
         pose(t, v) {
             const bent = v === 'rear';
-            const shoulderY = bent ? -98 : -128;
+            const shoulderY = bent ? -86 : -128;
             const shR = [18, shoulderY], shL = [-18, shoulderY];
-            const hipR = [9, bent ? -84 : -80], hipL = [-9, bent ? -84 : -80];
+            const hipR = [10, bent ? -96 : -80], hipL = [-10, bent ? -96 : -80];
             const angle = lerp(-84, -4, t);
             const right = fixedArm(shR, angle, angle + 4);
             const left = v === 'cable' ? fixedArm(shL, -96, -92) : fixedArm(shL, 180 - angle, 176 - angle);
             const props = v === 'cable' ? [handle(right[2])] : [dumbbell(right[2]), dumbbell(left[2])];
             return scene(
-                { legR: [[11, 0], [10, -40], hipR], legL: [[-11, 0], [-10, -40], hipL], torso: [hipL, hipR, shR, shL, hipL], armR: right, armL: left },
-                [0, shoulderY - (bent ? 14 : 20)], props, v === 'cable' ? [line([-60, -4], right[2])] : [], [], bent ? 'Vue de face · buste penché' : 'Vue de face',
+                { legR: [[11, 0], [bent ? 15 : 10, bent ? -48 : -40], hipR], legL: [[-11, 0], [bent ? -15 : -10, bent ? -48 : -40], hipL], torso: [hipL, hipR, shR, shL, hipL], armR: right, armL: left },
+                [0, bent ? shoulderY + 10 : shoulderY - 20], props, v === 'cable' ? [line([-60, -4], right[2])] : [], [], bent ? 'Vue de face · buste penché' : 'Vue de face',
             );
         },
     },
@@ -629,8 +645,8 @@ export const DEMOS = {
     'chest-supported-row': ['row', 'chest'],
     'seated-cable-row': ['cableRow'],
     'inverted-row': ['invertedRow'],
-    'pull-up': ['pullup'],
-    'chin-up': ['pullup'],
+    'pull-up': ['pullup', 'wide'],
+    'chin-up': ['pullup', 'narrow'],
     'lat-pulldown': ['pulldown'],
     'dumbbell-pullover': ['pullover'],
     'back-squat': ['squat', 'back'],
@@ -675,9 +691,43 @@ export const DEMOS = {
 
 const family = (slug) => FAMILIES[DEMOS[slug][0]];
 
+/** Encart « Prise » : ce que la vue ne montre pas, l'orientation et l'écartement des mains. */
+const GRIPS = {
+    'pull-up': 'pronation', 'chin-up': 'supination', 'lat-pulldown': 'pronation', 'barbell-row': 'pronation',
+    'push-up': 'wide', 'diamond-push-up': 'diamond',
+    'barbell-curl': 'curl', 'dumbbell-curl': 'curl', 'cable-curl': 'curl', 'hammer-curl': 'neutral',
+    'dumbbell-shoulder-press': 'pronation', 'arnold-press': 'arnold',
+};
+
+export const GRIP_LABELS = {
+    pronation: 'Paumes vers l’avant',
+    supination: 'Paumes vers toi',
+    curl: 'Paumes vers le haut',
+    neutral: 'Paumes face à face',
+    diamond: 'Mains en losange',
+    wide: 'Mains un peu plus larges que les épaules',
+    arnold: 'Paumes vers toi → vers l’avant',
+};
+
+/** Positions retournées (allongé dos à la barre, à plat ventre) : le regard part de l'autre côté de l'axe. */
+const FACE_DOWN = new Set(['invertedRow', 'legCurl']);
+
 export function sceneAt(slug, t) {
     const [name, variant = ''] = DEMOS[slug];
-    return FAMILIES[name].pose(Math.min(1, Math.max(0, t)), variant);
+    const time = Math.min(1, Math.max(0, t));
+    const s = FAMILIES[name].pose(time, variant);
+    const kind = GRIPS[slug];
+    s.grip = kind ? { kind, label: GRIP_LABELS[kind], turn: kind === 'arnold' ? Math.round(lerp(0, 180, time)) : 0 } : null;
+    // Regard (de profil seulement) : perpendiculaire à l'axe épaule → tête, du côté du visage.
+    const spine = s.chains.torso ?? s.chains.body;
+    if (s.note || !spine) {
+        s.gaze = null;
+    } else {
+        const ends = [spine[0], spine[spine.length - 1]];
+        const neck = Math.hypot(ends[0][0] - s.head[0], ends[0][1] - s.head[1]) < Math.hypot(ends[1][0] - s.head[0], ends[1][1] - s.head[1]) ? ends[0] : ends[1];
+        s.gaze = angleOf(neck, s.head) + (FACE_DOWN.has(name) ? 90 : -90);
+    }
+    return s;
 }
 
 export function segmentsOf(slug) {

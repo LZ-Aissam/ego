@@ -181,12 +181,14 @@
                     <section class="sys-window w-full max-w-md" x-data="exerciseDemo(demo.slug)">
                         <header class="sys-window-title"><span class="sys-window-icon" aria-hidden="true">!</span><span x-text="demo?.name?.toUpperCase()"></span></header>
                         <p class="text-sm text-mist" x-text="demo?.guide?.muscles"></p>
-                        <div class="relative mt-3 aspect-[240/215] border border-ice/15 [background:repeating-linear-gradient(0deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px),repeating-linear-gradient(90deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px)]">
-                            <span class="sys-num absolute left-2 top-1.5 text-[11px] uppercase tracking-widest text-ice" x-text="phase"></span>
-                            <span class="sys-num absolute right-2 top-1.5 text-[11px] text-mist" x-text="demo?.guide?.tempo"></span>
-                            <svg x-ref="svg" class="h-full w-full" role="img" :aria-label="'Démonstration animée : ' + (demo?.name ?? '')"></svg>
-                            <span class="sys-num absolute bottom-1 left-2 text-[10px] text-mist" x-text="note"></span>
+                        <div class="mt-3 flex items-baseline justify-between gap-3">
+                            <span class="sys-num text-[11px] uppercase tracking-widest text-ice" x-text="phase"></span>
+                            <span class="sys-num text-[11px] text-mist" x-text="demo?.guide?.tempo"></span>
                         </div>
+                        <div class="relative mt-1 aspect-[240/215] border border-ice/15 [background:repeating-linear-gradient(0deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px),repeating-linear-gradient(90deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px)]">
+                            <svg x-ref="svg" class="h-full w-full" role="img" :aria-label="'Démonstration animée : ' + (demo?.name ?? '')"></svg>
+                        </div>
+                        <p class="sys-num mt-1 text-right text-[10px] text-mist" x-show="note" x-text="note"></p>
                         <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Vitesse de l'animation">
                             <button type="button" class="sys-chip" :class="{ 'sys-chip--active': !paused && speed === 1 }" @click="setSpeed(1)">Vitesse réelle</button>
                             <button type="button" class="sys-chip" :class="{ 'sys-chip--active': !paused && speed !== 1 }" @click="setSpeed(0.4)">Ralenti</button>
