@@ -20,7 +20,7 @@ it('relie programme, jours et exercices, et produit les objectifs d\'un jour', f
     expect($user->fresh()->activeProgram->id)->toBe($program->id)
         ->and($program->fresh()->days->first()->objectives())->toBe([[
             'exercise_id' => $bench->id, 'name' => 'Développé couché (barre)', 'slot' => 'horizontal_push',
-            'sets' => 3, 'reps_min' => 6, 'reps_max' => 10, 'rest_seconds' => 120,
+            'sets' => 3, 'reps_min' => 6, 'reps_max' => 10, 'rest_seconds' => 120, 'intent' => null,
         ]]);
 });
 
