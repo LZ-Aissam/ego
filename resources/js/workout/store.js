@@ -23,7 +23,7 @@ export function newWorkout(clientId, startedAtIso) {
     return { clientId, startedAt: startedAtIso, currentIndex: 0, restEndsAt: null, restTotalMs: null, exercises: [] };
 }
 
-export function addExercise(state, exercise, { lastTime = null, suggestedKg = null, restSeconds }) {
+export function addExercise(state, exercise, { lastTime = null, suggestedKg = null, restSeconds, target = null }) {
     const first = lastTime?.[0];
     state.exercises.push({
         exerciseId: exercise.id,
@@ -31,7 +31,8 @@ export function addExercise(state, exercise, { lastTime = null, suggestedKg = nu
         isBodyweight: exercise.isBodyweight,
         restSeconds,
         lastTime,
-        draft: { weightKg: first?.weightKg ?? suggestedKg ?? 0, reps: first?.reps ?? 10 },
+        target,
+        draft: { weightKg: first?.weightKg ?? suggestedKg ?? 0, reps: first?.reps ?? target?.repsMin ?? 10 },
         sets: [],
     });
     state.currentIndex = state.exercises.length - 1;

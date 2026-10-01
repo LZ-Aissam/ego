@@ -27,7 +27,20 @@ export default function workout() {
         init() {
             this.boot = JSON.parse(document.getElementById('workout-boot').textContent);
             this.store = createStore(window.localStorage, document.body.dataset.userId);
-            this.state = this.store.loadActive() ?? newWorkout(uuid(), new Date().toISOString());
+            const stored = this.store.loadActive();
+            this.state = stored ?? newWorkout(uuid(), new Date().toISOString());
+            // Séance de quête : exercices, séries et repos du programme, sauf si une séance est déjà en cours.
+            if (!stored && this.boot.plan?.length) {
+                for (const p of this.boot.plan) {
+                    addExercise(this.state, p, {
+                        lastTime: this.boot.lastTime[p.id] ?? null,
+                        suggestedKg: p.suggestedKg,
+                        restSeconds: p.restSeconds,
+                        target: { sets: p.sets, repsMin: p.repsMin, repsMax: p.repsMax },
+                    });
+                }
+                goTo(this.state, 0);
+            }
             this.picking = this.state.exercises.length === 0;
             this.persist();
             this.$watch('state', () => this.persist());

@@ -28,6 +28,7 @@ Route::middleware(['auth', SyncQuests::class])->group(function () {
         'message' => 'Le Crew débarque bientôt : records des amis, classement, défis et groupes.',
     ])->name('community');
     Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
+    Route::get('/workout/quest/{quest}', [WorkoutController::class, 'quest'])->name('workout.quest');
     Route::get('/history', History::class)->name('history');
     Route::get('/history/{workout}', WorkoutShow::class)->name('history.show');
     Route::get('/records', Records::class)->name('records');

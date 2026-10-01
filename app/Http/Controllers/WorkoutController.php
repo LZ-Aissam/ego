@@ -11,4 +11,15 @@ class WorkoutController extends Controller
     {
         return view('workout.run', ['boot' => $bootData->for($request->user())]);
     }
+
+    public function quest(Request $request, \App\Models\Quest $quest, WorkoutBootData $bootData)
+    {
+        abort_unless($quest->user_id === $request->user()->id, 403);
+
+        if ($quest->status !== 'pending' || ! $quest->date->isToday()) {
+            return redirect()->route('home');
+        }
+
+        return view('workout.run', ['boot' => $bootData->forQuest($request->user(), $quest)]);
+    }
 }

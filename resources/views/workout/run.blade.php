@@ -54,6 +54,8 @@
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-steel" x-show="lastTimeText(current)">
                                 Dernière fois · <span x-text="lastTimeText(current)"></span>
                             </p>
+                            <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.target"
+                               x-text="current.target ? 'Objectif · ' + current.target.sets + ' × ' + current.target.repsMin + '–' + current.target.repsMax + ' · série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets : ''"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>
                         </div>
 

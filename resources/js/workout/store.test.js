@@ -49,6 +49,18 @@ describe('séance', () => {
         expect(s.currentIndex).toBe(2);
     });
 
+    it('garde l\'objectif de la quête et commence au bas de la plage de répétitions', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 120, target: { sets: 3, repsMin: 6, repsMax: 10 } });
+        expect(s.exercises[0].target).toEqual({ sets: 3, repsMin: 6, repsMax: 10 });
+        expect(s.exercises[0].draft.reps).toBe(6);
+
+        s = addExercise(s, bench, { lastTime: [{ weightKg: 60, reps: 8 }], restSeconds: 120, target: { sets: 3, repsMin: 6, repsMax: 10 } });
+        expect(s.exercises[1].draft.reps).toBe(8);
+
+        s = addExercise(s, pullUp, { restSeconds: 90 });
+        expect(s.exercises[2].target).toBeNull();
+    });
+
     it('ajuste le brouillon par pas de 2,5 kg et 1 rep sans passer sous les minimums', () => {
         let s = addExercise(newWorkout('id', 't'), bench, { suggestedKg: 2.5, restSeconds: 90 });
         s = adjustDraft(s, 'weightKg', -2.5);

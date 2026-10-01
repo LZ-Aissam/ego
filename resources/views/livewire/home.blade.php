@@ -12,7 +12,7 @@
                 <p class="sys-num text-5xl font-extrabold leading-none text-frost [text-shadow:0_0_18px_var(--glow-ice)]" data-count-up="{{ $player['level'] }}">{{ $player['level'] }}</p>
             </div>
             <div class="pb-1">
-                <p class="text-sm text-mist">Rang {{ $player['rank'] }}@if ($user->equippedTitleName()) · « {{ $user->equippedTitleName() }} »@endif</p>
+                <p class="text-sm text-mist">Rang {{ $player['rank'] }} · Série {{ $user->streak_days }} j @if ($user->equippedTitleName()) · « {{ $user->equippedTitleName() }} »@endif</p>
             </div>
         </div>
         <x-sys.xp-bar :progress="$player" class="mt-3" />
@@ -23,6 +23,56 @@
             <x-sys.stat label="RÉGULARITÉ" :value="$stats['regularite']" />
         </div>
     </x-sys.window>
+
+    @if ($penalty && $penalty->status !== 'cancelled')
+        <x-sys.window title="PÉNALITÉ" variant="alert" :index="1">
+            <p class="mb-2 text-sm text-mist">Quête d'hier non accomplie. Termine ce circuit avant minuit pour sauver ta série.</p>
+            @foreach ($penalty->objectives as $i => $objective)
+                <div class="sys-row text-sm">
+                    <span>{{ $objective['name'] }} · {{ $objective['sets'] }} × {{ $objective['reps_min'] }}</span>
+                    <span class="sys-num text-mist">{{ min($penaltyProgress[$i] ?? 0, $objective['sets']) }} / {{ $objective['sets'] }}</span>
+                </div>
+            @endforeach
+            @if ($penalty->status === 'pending')
+                <x-sys.button class="mt-3" :href="route('workout.quest', $penalty)">Accepter la pénalité</x-sys.button>
+            @else
+                <p class="mt-3 text-center text-sm text-ice">PÉNALITÉ ACCOMPLIE ✓</p>
+            @endif
+        </x-sys.window>
+    @endif
+
+    @if ($user->isPaused())
+        <x-sys.window title="QUÊTES SUSPENDUES" :index="2">
+            <p class="text-sm text-mist">TON EGO attend ton retour. Ta série ({{ $user->streak_days }} j) est gelée.</p>
+            <a href="{{ route('profile') }}" class="sys-label mt-2 block text-right">Reprendre</a>
+        </x-sys.window>
+    @elseif ($quest && $quest->type === 'training')
+        <x-sys.window title="QUÊTE DU JOUR" :index="2">
+            <p class="mb-2 text-center text-sm text-mist">TON EGO t'assigne : <span class="font-bold text-frost">{{ $quest->title }}</span></p>
+            @foreach ($quest->objectives as $i => $objective)
+                @php $done = min($questProgress[$i] ?? 0, $objective['sets']); @endphp
+                <div @class(['sys-row text-sm', 'line-through opacity-60' => $done >= $objective['sets']])>
+                    <span>{{ $objective['name'] }} · {{ $objective['sets'] }} × {{ $objective['reps_min'] }}–{{ $objective['reps_max'] }}</span>
+                    <span class="sys-num text-ice">{{ $done }} / {{ $objective['sets'] }}</span>
+                </div>
+            @endforeach
+            <p class="sys-num mt-2 text-center text-xs text-mist">Récompense : +{{ $quest->status === 'done' ? $quest->xp_awarded : $reward }} XP · avant minuit</p>
+            @if ($quest->status === 'pending')
+                <x-sys.button class="mt-3" :pulse="true" :href="route('workout.quest', $quest)">Accepter la quête</x-sys.button>
+            @elseif ($quest->status === 'done')
+                <p class="mt-3 text-center font-bold text-ice">QUÊTE ACCOMPLIE ✓</p>
+            @endif
+        </x-sys.window>
+    @elseif ($quest && $quest->type === 'rest')
+        <x-sys.window title="QUÊTE DU JOUR" :index="2">
+            <p class="text-center text-sm text-mist"><span class="font-bold text-frost">Repos</span> — récupère. TON EGO compte ce jour dans ta série.</p>
+        </x-sys.window>
+    @elseif (! $user->active_program_id)
+        <x-sys.window title="AUCUN PROGRAMME" :index="2">
+            <p class="text-sm text-mist">Laisse TON EGO forger ton programme : il t'assignera ensuite une quête chaque jour.</p>
+            <x-sys.button class="mt-3" :href="route('program')">Forger mon programme</x-sys.button>
+        </x-sys.window>
+    @endif
 
     <x-sys.button :href="route('workout')" :pulse="true" class="py-5 text-lg">Séance libre <span aria-hidden="true">→</span></x-sys.button>
 

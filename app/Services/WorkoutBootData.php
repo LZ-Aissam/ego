@@ -26,6 +26,26 @@ final class WorkoutBootData
         ];
     }
 
+    public function forQuest(User $user, \App\Models\Quest $quest): array
+    {
+        $boot = $this->for($user);
+        $library = collect($boot['exercises'])->keyBy('id');
+
+        $boot['questTitle'] = $quest->title;
+        $boot['plan'] = array_map(fn (array $o) => [
+            'id' => $o['exercise_id'],
+            'name' => $o['name'],
+            'isBodyweight' => $library[$o['exercise_id']]['isBodyweight'] ?? false,
+            'suggestedKg' => $library[$o['exercise_id']]['suggestedKg'] ?? null,
+            'sets' => $o['sets'],
+            'repsMin' => $o['reps_min'],
+            'repsMax' => $o['reps_max'],
+            'restSeconds' => $o['rest_seconds'],
+        ], $quest->objectives);
+
+        return $boot;
+    }
+
     /** @return array<int, list<array{weightKg: float, reps: int}>> */
     private function lastTime(User $user): array
     {
