@@ -24,6 +24,7 @@ final class WorkoutBootData
                 'isBodyweight' => $e->is_bodyweight,
                 'suggestedKg' => $this->startingLoad->suggest($e, $user),
                 'prescribedKg' => isset($loads[$e->id]) ? (float) $loads[$e->id] : null,
+                'perDumbbell' => $e->isPerDumbbell(),
             ])->values()->all(),
             'lastTime' => $this->lastTime($user),
         ];
@@ -41,6 +42,7 @@ final class WorkoutBootData
             'isBodyweight' => $library[$o['exercise_id']]['isBodyweight'] ?? false,
             'suggestedKg' => $library[$o['exercise_id']]['suggestedKg'] ?? null,
             'prescribedKg' => $library[$o['exercise_id']]['prescribedKg'] ?? null,
+            'perDumbbell' => $library[$o['exercise_id']]['perDumbbell'] ?? false,
             'sets' => $o['sets'],
             'repsMin' => $o['reps_min'],
             'repsMax' => $o['reps_max'],

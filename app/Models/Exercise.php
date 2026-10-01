@@ -25,4 +25,10 @@ class Exercise extends Model
             'start_ratio' => 'array',
         ];
     }
+
+    /** Exercice aux haltères : la charge s'entend par haltère. */
+    public function isPerDumbbell(): bool
+    {
+        return ! $this->is_bodyweight && in_array('dumbbells', $this->equipment ?? [], true);
+    }
 }

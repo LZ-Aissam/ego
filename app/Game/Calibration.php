@@ -24,7 +24,7 @@ final class Calibration
      * @param  list<array{exercise_id: int, warmups: list<array{0: float, 1: int}>, test: array{0: float, 1: int}}>  $results
      * @return array{workout: \App\Models\Workout, notifications: list<array>}
      */
-    public function complete(User $user, array $results, string $startedAtIso): array
+    public function complete(User $user, array $results, string $startedAtIso, ?string $clientId = null): array
     {
         $now = now();
         $sets = [];
@@ -35,8 +35,13 @@ final class Calibration
         }
 
         $synced = $this->sync->sync($user, [
-            'client_id' => (string) Str::uuid(), 'started_at' => $startedAtIso, 'finished_at' => $now->toIso8601String(), 'sets' => $sets,
+            'client_id' => $clientId ?? (string) Str::uuid(), 'started_at' => $startedAtIso, 'finished_at' => $now->toIso8601String(), 'sets' => $sets,
         ]);
+
+        // Même calibrage renvoyé (double appui, retour arrière) : déjà enregistré, rien à refaire.
+        if (! $synced['created']) {
+            return ['workout' => $synced['workout'], 'notifications' => []];
+        }
 
         $estimates = collect($this->plan->plan($user))->keyBy('exercise_id');
         $exercises = Exercise::whereIn('id', array_column($results, 'exercise_id'))->get()->keyBy('id');
@@ -61,7 +66,7 @@ final class Calibration
 
         $factor = $ratios === [] ? 1.0 : min(2.0, max(0.5, array_sum($ratios) / count($ratios)));
         $user->forceFill(['calibrated_at' => $now, 'power_factor' => round($factor, 2)])->save();
-        $this->prescriber->prescribeProgram($user, overwrite: true);
+        $this->prescriber->prescribeProgram($user, overwrite: array_column($results, 'exercise_id'));
 
         $play = $this->game->afterWorkout($user->fresh(), $synced['workout'], $synced['newRecords'], progressLoads: false);
 

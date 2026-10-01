@@ -8,6 +8,20 @@ use Livewire\Component;
 #[Title('Accueil')]
 class Home extends Component
 {
+    /** « Plus tard » : la quête de calibrage du jour devient la séance du programme ; TON EGO redemande dans une semaine. */
+    public function postponeCalibration(): void
+    {
+        $user = auth()->user();
+        $quest = $user->quests()->where('date', today()->toDateString())->where('type', 'calibration')->where('status', 'pending')->first();
+        $programDay = $quest ? \App\Models\ProgramDay::find($quest->program_day_id) : null;
+        if (! $programDay) {
+            return;
+        }
+
+        $quest->update(['type' => 'training', 'title' => $programDay->name, 'objectives' => $programDay->objectives()]);
+        $user->forceFill(['calibration_snoozed_until' => today()->addDays(6)])->save();
+    }
+
     public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler)
     {
         $user = auth()->user();
@@ -28,6 +42,7 @@ class Home extends Component
             'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
             'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),
+            'perDumbbell' => \App\Models\Exercise::all()->filter->isPerDumbbell()->modelKeys(),
             'lastWorkout' => $user->workouts()->with('sets.exercise')->latest('finished_at')->first(),
             'recentRecords' => $user->personalRecords()->with('exercise')->latest('achieved_at')->limit(3)->get(),
         ]);

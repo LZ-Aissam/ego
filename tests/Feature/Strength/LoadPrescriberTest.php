@@ -51,7 +51,7 @@ it('prescrit tout le programme : 1RM mesuré si connu, sinon déduit, rien au po
         ->and($loads->count())->toBe($program->days->flatMap->exercises->filter(fn ($l) => ! $l->exercise->is_bodyweight)->unique('exercise_id')->count());
 });
 
-it('ne touche pas aux charges existantes sauf en mode écrasement', function () {
+it('ne touche pas aux charges existantes sauf celles à recalculer', function () {
     $user = User::factory()->withMorphology()->create();
     $program = app(ProgramBuilder::class)->build($user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3], 'equipment' => 'gym']);
     $line = $program->days->first()->exercises->first();
@@ -61,7 +61,7 @@ it('ne touche pas aux charges existantes sauf en mode écrasement', function () 
     expect($user->workingLoads()->where('exercise_id', $line->exercise_id)->value('target_kg'))->toBe(99.0);
 
     $user->exerciseMaxes()->create(['exercise_id' => $line->exercise_id, 'e1rm_kg' => 100, 'source' => 'calibration', 'measured_at' => now()]);
-    $this->prescriber->prescribeProgram($user, overwrite: true);
+    $this->prescriber->prescribeProgram($user, overwrite: [$line->exercise_id]);
     $load = $user->workingLoads()->where('exercise_id', $line->exercise_id)->first();
     expect($load->target_kg)->toBe(70.0)->and($load->fail_streak)->toBe(0);
 });

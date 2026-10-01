@@ -86,7 +86,7 @@
                     <div class="sys-row">
                         <div class="min-w-0">
                             <p class="font-semibold">{{ $line->exercise->name }}</p>
-                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@if (isset($loads[$line->exercise_id])) · <span class="text-ice">{{ \App\Support\Format::kg($loads[$line->exercise_id]) }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
+                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@if (isset($loads[$line->exercise_id])) · <span class="text-ice">{{ \App\Support\Format::kg($loads[$line->exercise_id]) }}{{ $line->exercise->isPerDumbbell() ? ' par haltère' : '' }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
                         </div>
                         <button type="button" class="sys-label shrink-0" wire:click="$set('replacing', {{ $replacing === $line->id ? 'null' : $line->id }})">Remplacer</button>
                     </div>

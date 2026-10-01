@@ -38,6 +38,7 @@ class User extends Authenticatable
             'paused_at' => 'date',
             'paused_until' => 'date',
             'calibrated_at' => 'datetime',
+            'calibration_snoozed_until' => 'date',
             'power_factor' => 'float',
         ];
     }

@@ -22,7 +22,7 @@
                 @endif
             </p>
             <div class="grid grid-cols-2 gap-3">
-                <x-sys.field name="testKg" label="Charge (kg)" inputmode="decimal" wire:model="testKg" />
+                <x-sys.field name="testKg" label="{{ ($current['perDumbbell'] ?? false) ? 'Charge par haltère (kg)' : 'Charge (kg)' }}" inputmode="decimal" wire:model="testKg" />
                 <x-sys.field name="testReps" label="Répétitions" inputmode="numeric" wire:model="testReps" />
             </div>
             <x-sys.button class="mt-4" :pulse="true" wire:click="saveTest" wire:loading.attr="disabled">

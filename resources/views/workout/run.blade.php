@@ -57,7 +57,7 @@
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.target"
                                x-text="current.target ? 'Objectif · ' + current.target.sets + ' × ' + current.target.repsMin + '–' + current.target.repsMax + ' · série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets : ''"></p>
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.prescribedKg"
-                               x-text="current.prescribedKg ? 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) : ''"></p>
+                               x-text="current.prescribedKg ? 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '') : ''"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>
                         </div>
 
@@ -72,7 +72,7 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="sys-label mb-1 block text-center" for="draft-weight">Charge kg</label>
+                                <label class="sys-label mb-1 block text-center" for="draft-weight" x-text="current.perDumbbell ? 'Kg par haltère' : 'Charge kg'">Charge kg</label>
                                 <div class="flex items-center gap-1">
                                     <button type="button" class="sys-step" @click="adjust('weightKg', -2.5)" aria-label="Moins 2,5 kg">−</button>
                                     <input id="draft-weight" type="text" inputmode="decimal" class="sys-input sys-num min-w-0 px-1 text-center text-xl font-extrabold" x-model="current.draft.weightKg">

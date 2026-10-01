@@ -6,26 +6,41 @@ use App\Game\Calibration;
 use App\Game\CalibrationPlan;
 use App\Models\Quest;
 use App\Support\SystemNotifier;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Title('Calibrage')]
 class CalibrationPage extends Component
 {
+    // L'état du parcours n'est modifiable que par le serveur : seuls testKg et testReps viennent du navigateur.
+    #[Locked]
     public array $movements = [];
 
+    #[Locked]
     public int $index = 0;
 
+    #[Locked]
     public array $warmupsDone = [];
 
     public $testKg = null;
 
     public $testReps = null;
 
+    #[Locked]
     public array $results = [];
 
+    #[Locked]
     public string $startedAt = '';
+
+    /** Identifiant de la séance de calibrage : un second envoi est reconnu et ignoré. */
+    #[Locked]
+    public string $clientId = '';
+
+    #[Locked]
+    public bool $finished = false;
 
     public function mount(?Quest $quest = null)
     {
@@ -44,6 +59,7 @@ class CalibrationPage extends Component
 
         $this->movements = app(CalibrationPlan::class)->plan($user);
         $this->startedAt = now()->toIso8601String();
+        $this->clientId = (string) Str::uuid();
         $this->prepare();
     }
 
@@ -62,6 +78,10 @@ class CalibrationPage extends Component
 
     public function saveTest()
     {
+        if ($this->finished) {
+            return $this->redirectRoute('home');
+        }
+
         $current = $this->movements[$this->index];
 
         if (in_array(false, $this->warmupsDone, true)) {
@@ -86,7 +106,8 @@ class CalibrationPage extends Component
         }
 
         $user = auth()->user();
-        $out = app(Calibration::class)->complete($user, $this->results, $this->startedAt);
+        $this->finished = true;
+        $out = app(Calibration::class)->complete($user, $this->results, $this->startedAt, $this->clientId);
         foreach ($out['notifications'] as $notification) {
             app(SystemNotifier::class)->push($user, $notification);
         }

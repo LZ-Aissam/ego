@@ -71,6 +71,13 @@ describe('séance', () => {
         expect(s.exercises[1].prescribedKg).toBeNull();
     });
 
+    it('retient que la charge s\'entend par haltère', () => {
+        let s = addExercise(newWorkout('id', 't'), { id: 9, name: 'Curl haltères', isBodyweight: false, perDumbbell: true }, { restSeconds: 90 });
+        s = addExercise(s, bench, { restSeconds: 90 });
+        expect(s.exercises[0].perDumbbell).toBe(true);
+        expect(s.exercises[1].perDumbbell).toBe(false);
+    });
+
     it('ajuste le brouillon par pas de 2,5 kg et 1 rep sans passer sous les minimums', () => {
         let s = addExercise(newWorkout('id', 't'), bench, { suggestedKg: 2.5, restSeconds: 90 });
         s = adjustDraft(s, 'weightKg', -2.5);

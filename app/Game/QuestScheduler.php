@@ -158,7 +158,8 @@ final class QuestScheduler
 
         if (in_array($day->isoWeekday(), $user->training_weekdays ?? [], true)) {
             $programDay = $this->nextProgramDay($user, $program);
-            $calibrating = $user->calibrated_at === null;
+            $calibrating = $user->calibrated_at === null
+                && ($user->calibration_snoozed_until === null || $day->gt($user->calibration_snoozed_until));
             $quest = $user->quests()->create([
                 'date' => $day->toDateString(),
                 'type' => $calibrating ? 'calibration' : 'training',

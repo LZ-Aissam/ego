@@ -57,6 +57,7 @@ final class CalibrationPlan
                 'exercise_id' => $exercise->id,
                 'name' => $exercise->name,
                 'isBodyweight' => false,
+                'perDumbbell' => $exercise->isPerDumbbell(),
                 'estimate' => (float) $estimate,
                 'warmups' => [[round($estimate * 0.5 / 2.5) * 2.5, 8], [round($estimate * 0.7 / 2.5) * 2.5, 4]],
             ];

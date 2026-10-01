@@ -29,6 +29,7 @@ export function addExercise(state, exercise, { lastTime = null, suggestedKg = nu
         exerciseId: exercise.id,
         name: exercise.name,
         isBodyweight: exercise.isBodyweight,
+        perDumbbell: exercise.perDumbbell ?? false,
         restSeconds,
         lastTime,
         target,

@@ -21,16 +21,56 @@ final class LoadPrescriber
         return max(2.5, floor($e1rm / (1 + ($repsMax + 2) / 30) / 2.5) * 2.5);
     }
 
-    public function derivedLoad(Exercise $exercise, User $user): ?float
+    /** @param  list<array{slots: list<string>, ratio: float}>|null  $measured  facteurs mesurés (calculés si absents) */
+    public function derivedLoad(Exercise $exercise, User $user, ?array $measured = null): ?float
     {
         $suggestion = $this->startingLoad->suggest($exercise, $user);
         if ($suggestion === null) {
             return null;
         }
 
-        $factor = min(2.0, max(0.5, $user->power_factor ?? 1.0));
+        $factor = $this->factorFor($exercise, $measured ?? $this->measuredFactors($user)) ?? $user->power_factor ?? 1.0;
+        $factor = min(2.0, max(0.5, $factor));
 
         return max(2.5, round($suggestion * $factor / 2.5) * 2.5);
+    }
+
+    /**
+     * Rapport charge mesurée / suggestion de chaque exercice testé.
+     *
+     * @return list<array{slots: list<string>, ratio: float}>
+     */
+    public function measuredFactors(User $user): array
+    {
+        $repsMax = $this->planLines($user)->map(fn (ProgramExercise $line) => $line->reps_max);
+
+        return $user->exerciseMaxes()->with('exercise')->get()->map(function ($max) use ($user, $repsMax) {
+            $suggestion = $this->startingLoad->suggest($max->exercise, $user);
+
+            return $suggestion === null ? null : [
+                'slots' => $max->exercise->slots ?? [],
+                'ratio' => $this->startingLoad((float) $max->e1rm_kg, $repsMax[$max->exercise_id] ?? 10) / $suggestion,
+            ];
+        })->filter()->values()->all();
+    }
+
+    /** Facteur des exercices testés du même emplacement, sinon de la même région (haut / bas du corps). */
+    private function factorFor(Exercise $exercise, array $measured): ?float
+    {
+        $slots = $exercise->slots ?? [];
+        $same = array_filter($measured, fn (array $m) => array_intersect($m['slots'], $slots) !== []);
+
+        if ($same === []) {
+            $lower = $this->isLowerBody($slots);
+            $same = array_filter($measured, fn (array $m) => $this->isLowerBody($m['slots']) === $lower);
+        }
+
+        return $same === [] ? null : array_sum(array_column($same, 'ratio')) / count($same);
+    }
+
+    private function isLowerBody(array $slots): bool
+    {
+        return array_intersect($slots, self::LOWER_BODY_SLOTS) !== [];
     }
 
     /** Première occurrence de chaque exercice du programme actif, avec le reps_max le plus bas de ses occurrences. */
@@ -51,20 +91,22 @@ final class LoadPrescriber
         });
     }
 
-    public function prescribeProgram(User $user, bool $overwrite = false): void
+    /** @param  list<int>  $overwrite  exercices dont la charge est recalculée même si elle existe déjà */
+    public function prescribeProgram(User $user, array $overwrite = []): void
     {
         $maxes = $user->exerciseMaxes()->pluck('e1rm_kg', 'exercise_id');
         $existing = $user->workingLoads()->pluck('target_kg', 'exercise_id');
+        $measured = $this->measuredFactors($user);
 
         foreach ($this->planLines($user) as $exerciseId => $line) {
             /** @var ProgramExercise $line */
-            if ($line->exercise->is_bodyweight || ($existing->has($exerciseId) && ! $overwrite)) {
+            if ($line->exercise->is_bodyweight || ($existing->has($exerciseId) && ! in_array($exerciseId, $overwrite, true))) {
                 continue;
             }
 
             $target = $maxes->has($exerciseId)
                 ? $this->startingLoad((float) $maxes[$exerciseId], $line->reps_max)
-                : $this->derivedLoad($line->exercise, $user);
+                : $this->derivedLoad($line->exercise, $user, $measured);
 
             if ($target === null) {
                 continue;
