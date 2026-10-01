@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -95,6 +96,17 @@ class User extends Authenticatable
     public function titles(): HasMany
     {
         return $this->hasMany(UserTitle::class);
+    }
+
+    public function crews(): BelongsToMany
+    {
+        return $this->belongsToMany(Crew::class)->withPivot('joined_at');
+    }
+
+    /** @return array{level: int, rank: string, into: int, needed: int} */
+    public function player(): array
+    {
+        return \App\Game\Leveling::progress((int) $this->xp_total);
     }
 
     public function equippedTitleName(): ?string
