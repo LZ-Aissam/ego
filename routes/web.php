@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CrewJoinController;
+use App\Livewire\Crew\ChallengePage;
 use App\Livewire\Crew\CrewPage;
 use App\Livewire\Crew\GroupPage;
 use App\Livewire\Crew\MemberPage;
@@ -34,6 +35,7 @@ Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/crew', CrewPage::class)->name('community');
     Route::get('/crew/membres/{member}', MemberPage::class)->name('crew.member');
     Route::get('/crew/groupes/{crew}', GroupPage::class)->name('crew.group');
+    Route::get('/crew/defis/{challenge}', ChallengePage::class)->name('crew.challenge');
     Route::get('/crew/rejoindre/{code}', CrewJoinController::class)->name('crew.join');
     Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
     Route::get('/workout/quest/{quest}', [WorkoutController::class, 'quest'])->name('workout.quest');
