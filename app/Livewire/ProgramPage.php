@@ -100,6 +100,7 @@ class ProgramPage extends Component
         $allowed = $generator->alternativesFor($line->slot, $user->equipment ?? 'gym', Exercise::all(), $line->exercise_id)->pluck('id');
         if ($allowed->contains($exerciseId)) {
             $line->update(['exercise_id' => $exerciseId]);
+            app(\App\Game\LoadPrescriber::class)->prescribeProgram($user);
         }
 
         $this->replacing = null;
@@ -159,6 +160,7 @@ class ProgramPage extends Component
             'program' => $program,
             'showQuestionnaire' => ! $program || $this->editing,
             'alternatives' => $alternatives,
+            'loads' => auth()->user()->workingLoads()->pluck('target_kg', 'exercise_id'),
             'days' => ['1' => 'Lun', '2' => 'Mar', '3' => 'Mer', '4' => 'Jeu', '5' => 'Ven', '6' => 'Sam', '7' => 'Dim'],
         ]);
     }

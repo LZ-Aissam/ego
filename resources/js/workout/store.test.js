@@ -61,6 +61,16 @@ describe('séance', () => {
         expect(s.exercises[2].target).toBeNull();
     });
 
+    it('pré-remplit la charge prescrite avant la dernière fois et la suggestion', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { lastTime: [{ weightKg: 60, reps: 8 }], suggestedKg: 40, prescribedKg: 62.5, restSeconds: 120 });
+        expect(s.exercises[0].draft.weightKg).toBe(62.5);
+        expect(s.exercises[0].prescribedKg).toBe(62.5);
+
+        s = addExercise(s, bench, { lastTime: [{ weightKg: 60, reps: 8 }], restSeconds: 120 });
+        expect(s.exercises[1].draft.weightKg).toBe(60);
+        expect(s.exercises[1].prescribedKg).toBeNull();
+    });
+
     it('ajuste le brouillon par pas de 2,5 kg et 1 rep sans passer sous les minimums', () => {
         let s = addExercise(newWorkout('id', 't'), bench, { suggestedKg: 2.5, restSeconds: 90 });
         s = adjustDraft(s, 'weightKg', -2.5);

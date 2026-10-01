@@ -100,6 +100,7 @@ class Profile extends Component
             'player' => \App\Game\Leveling::progress((int) $user->xp_total),
             'stats' => $stats->for($user),
             'unlocked' => $user->titles()->pluck('title_key')->all(),
+            'maxes' => $user->exerciseMaxes()->with('exercise')->orderByDesc('e1rm_kg')->get(),
         ]);
     }
 }

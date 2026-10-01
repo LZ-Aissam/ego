@@ -13,7 +13,7 @@ final class ProgramBuilder
     public const LEVELS = ['beginner' => 'Débutant', 'intermediate' => 'Intermédiaire', 'advanced' => 'Avancé'];
     public const EQUIPMENT = ['gym' => 'Salle complète', 'dumbbells' => 'Haltères seuls', 'bodyweight' => 'Poids du corps'];
 
-    public function __construct(private ProgramGenerator $generator) {}
+    public function __construct(private ProgramGenerator $generator, private \App\Game\LoadPrescriber $prescriber) {}
 
     /** @param array{level: string, goal: string, weekdays: array<int|string>, equipment: string} $params */
     public function build(User $user, array $params): Program
@@ -45,6 +45,10 @@ final class ProgramBuilder
                 'training_weekdays' => $weekdays,
                 'active_program_id' => $program->id,
             ])->save();
+
+            if ($user->calibrated_at) {
+                $this->prescriber->prescribeProgram($user);
+            }
 
             return $program->load('days.exercises.exercise');
         });

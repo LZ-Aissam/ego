@@ -14,6 +14,8 @@ final class WorkoutBootData
 
     public function for(User $user): array
     {
+        $loads = $user->workingLoads()->pluck('target_kg', 'exercise_id');
+
         return [
             'restSeconds' => self::REST_SECONDS,
             'exercises' => Exercise::orderBy('name')->get()->map(fn (Exercise $e) => [
@@ -21,6 +23,7 @@ final class WorkoutBootData
                 'name' => $e->name,
                 'isBodyweight' => $e->is_bodyweight,
                 'suggestedKg' => $this->startingLoad->suggest($e, $user),
+                'prescribedKg' => isset($loads[$e->id]) ? (float) $loads[$e->id] : null,
             ])->values()->all(),
             'lastTime' => $this->lastTime($user),
         ];
@@ -37,6 +40,7 @@ final class WorkoutBootData
             'name' => $o['name'],
             'isBodyweight' => $library[$o['exercise_id']]['isBodyweight'] ?? false,
             'suggestedKg' => $library[$o['exercise_id']]['suggestedKg'] ?? null,
+            'prescribedKg' => $library[$o['exercise_id']]['prescribedKg'] ?? null,
             'sets' => $o['sets'],
             'repsMin' => $o['reps_min'],
             'repsMax' => $o['reps_max'],

@@ -86,7 +86,7 @@
                     <div class="sys-row">
                         <div class="min-w-0">
                             <p class="font-semibold">{{ $line->exercise->name }}</p>
-                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }} · repos {{ $line->rest_seconds }} s</p>
+                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@if (isset($loads[$line->exercise_id])) · <span class="text-ice">{{ \App\Support\Format::kg($loads[$line->exercise_id]) }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
                         </div>
                         <button type="button" class="sys-label shrink-0" wire:click="$set('replacing', {{ $replacing === $line->id ? 'null' : $line->id }})">Remplacer</button>
                     </div>
@@ -103,6 +103,9 @@
             </x-sys.window>
         @endforeach
 
-        <x-sys.button variant="ghost" wire:click="regenerate">Régénérer le programme</x-sys.button>
+        <div class="grid grid-cols-2 gap-3">
+            <x-sys.button variant="ghost" :href="route('calibration')">Recalibrer</x-sys.button>
+            <x-sys.button variant="ghost" wire:click="regenerate">Régénérer le programme</x-sys.button>
+        </div>
     @endif
 </div>

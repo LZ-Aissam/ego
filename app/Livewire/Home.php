@@ -27,6 +27,7 @@ class Home extends Component
             'questProgress' => $questProgress($todayQuests['training'] ?? $todayQuests['calibration'] ?? null),
             'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
+            'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),
             'lastWorkout' => $user->workouts()->with('sets.exercise')->latest('finished_at')->first(),
             'recentRecords' => $user->personalRecords()->with('exercise')->latest('achieved_at')->limit(3)->get(),
         ]);

@@ -52,6 +52,18 @@
         </form>
     </x-sys.window>
 
+    <x-sys.window title="PROFIL DE FORCE" :index="3">
+        @forelse ($maxes as $max)
+            <div class="sys-row text-sm">
+                <span>{{ $max->exercise->name }}</span>
+                <span class="sys-num"><span class="font-bold text-ice">{{ \App\Support\Format::kg($max->e1rm_kg) }}</span> <span class="text-mist">· {{ $max->measured_at->translatedFormat('j M') }}</span></span>
+            </div>
+        @empty
+            <p class="text-sm text-mist">Pas encore calibré : TON EGO ne connaît pas ta puissance.</p>
+        @endforelse
+        <a href="{{ route('calibration') }}" class="sys-label mt-3 block text-right">{{ $maxes->isEmpty() ? 'Lancer le calibrage' : 'Recalibrer' }}</a>
+    </x-sys.window>
+
     <x-sys.window title="MODE PAUSE" :index="3">
         @if ($user->isPaused())
             <p class="text-sm text-mist">

@@ -35,6 +35,7 @@ export default function workout() {
                     addExercise(this.state, p, {
                         lastTime: this.boot.lastTime[p.id] ?? null,
                         suggestedKg: p.suggestedKg,
+                        prescribedKg: p.prescribedKg ?? null,
                         restSeconds: p.restSeconds,
                         target: { sets: p.sets, repsMin: p.repsMin, repsMax: p.repsMax },
                     });
@@ -121,6 +122,7 @@ export default function workout() {
             addExercise(this.state, exercise, {
                 lastTime: this.boot.lastTime[exercise.id] ?? null,
                 suggestedKg: exercise.suggestedKg,
+                prescribedKg: exercise.prescribedKg ?? null,
                 restSeconds: this.boot.restSeconds,
             });
             this.picking = false;

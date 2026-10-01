@@ -52,7 +52,7 @@
             @foreach ($quest->objectives as $i => $objective)
                 @php $done = min($questProgress[$i] ?? 0, $objective['sets']); @endphp
                 <div @class(['sys-row text-sm', 'line-through opacity-60' => $done >= $objective['sets']])>
-                    <span>{{ $objective['name'] }} · {{ $objective['sets'] }} × {{ $objective['reps_min'] }}–{{ $objective['reps_max'] }}</span>
+                    <span>{{ $objective['name'] }} · {{ $objective['sets'] }} × {{ $objective['reps_min'] }}–{{ $objective['reps_max'] }}@if (isset($loads[$objective['exercise_id']]) && $quest->type === 'training') · {{ \App\Support\Format::kg($loads[$objective['exercise_id']]) }}@endif</span>
                     <span class="sys-num text-ice">{{ $done }} / {{ $objective['sets'] }}</span>
                 </div>
             @endforeach
