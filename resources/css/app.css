@@ -72,6 +72,8 @@
 .sys-step:active { transform: scale(0.92); background: rgba(90, 216, 255, 0.18); }
 .sys-ring { --p: 0%; display: grid; place-items: center; width: 4.5rem; height: 4.5rem; flex-shrink: 0; border-radius: 50%; background: conic-gradient(var(--color-ice) 0 var(--p), rgba(255, 255, 255, 0.08) var(--p) 100%); filter: drop-shadow(0 0 8px var(--glow-ice)); }
 .sys-ring > span { display: grid; place-items: center; width: 3.8rem; height: 3.8rem; border-radius: 50%; background: #060a0e; font-family: var(--font-mono); font-weight: 800; color: var(--color-ice); }
+.sys-ring--xl { width: min(70vw, 16rem); height: min(70vw, 16rem); filter: drop-shadow(0 0 22px var(--glow-ice)); }
+.sys-ring--xl > span { width: calc(100% - 1.1rem); height: calc(100% - 1.1rem); font-size: clamp(3rem, 16vw, 4.75rem); }
 
 /* ---------- Bandeaux et navigation ---------- */
 .sys-banner { display: block; padding: 0.7rem 1rem; text-align: center; font-weight: 700; font-size: 0.9rem; clip-path: var(--sys-cut); }

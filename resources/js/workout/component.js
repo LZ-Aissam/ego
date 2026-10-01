@@ -3,6 +3,7 @@ import {
     isResting, logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
+import { countdownCue, loadSettings, saveSettings, subtractRest } from './signals';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -23,9 +24,14 @@ export default function workout() {
         done: false,
         summary: null,
         audio: null,
+        signals: { sound: true, vibration: true, countdown: true },
+        showSettings: false,
+        restExpanded: true,
+        lastRemainingMs: Infinity,
 
         init() {
             this.boot = JSON.parse(document.getElementById('workout-boot').textContent);
+            this.signals = loadSettings(window.localStorage);
             this.store = createStore(window.localStorage, document.body.dataset.userId);
             const stored = this.store.loadActive();
             this.state = stored ?? newWorkout(uuid(), new Date().toISOString());
@@ -119,25 +125,46 @@ export default function workout() {
 
         tick() {
             this.now = Date.now();
-            if (this.state.restEndsAt && this.now >= this.state.restEndsAt) {
+            if (!this.state.restEndsAt) {
+                this.lastRemainingMs = Infinity;
+                return;
+            }
+            // Temps calculé sur l'heure : juste même après un écran éteint ou une appli rouverte.
+            const remaining = this.state.restEndsAt - this.now;
+            const cue = countdownCue(this.lastRemainingMs, remaining);
+            this.lastRemainingMs = remaining;
+            if (cue === 'tick' && this.signals.countdown) this.beep([0], 660, 0.12);
+            if (cue === 'end') {
                 skipRest(this.state);
+                this.lastRemainingMs = Infinity;
                 this.alarm();
             }
         },
 
         alarm() {
-            navigator.vibrate?.([300, 100, 300]);
-            if (!this.audio) return;
-            [0, 0.35].forEach((offset) => {
+            if (this.signals.vibration) navigator.vibrate?.([300, 100, 300]);
+            this.beep([0, 0.35], 880, 0.2);
+        },
+
+        beep(offsets, frequency, duration) {
+            if (!this.signals.sound || !this.audio) return;
+            offsets.forEach((offset) => {
                 const osc = this.audio.createOscillator();
                 const gain = this.audio.createGain();
-                osc.frequency.value = 880;
+                osc.frequency.value = frequency;
                 osc.connect(gain).connect(this.audio.destination);
                 gain.gain.setValueAtTime(0.25, this.audio.currentTime + offset);
                 osc.start(this.audio.currentTime + offset);
-                osc.stop(this.audio.currentTime + offset + 0.2);
+                osc.stop(this.audio.currentTime + offset + duration);
             });
         },
+
+        toggleSignal(key) {
+            this.signals[key] = !this.signals[key];
+            saveSettings(window.localStorage, this.signals);
+        },
+
+        lessRest() { subtractRest(this.state, 15, Date.now()); },
 
         add(exercise) {
             addExercise(this.state, exercise, {
@@ -162,6 +189,7 @@ export default function workout() {
             this.now = Date.now();
             if (this.resting) return;
             logSet(this.state, this.now);
+            this.restExpanded = true;
         },
 
         async finish() {

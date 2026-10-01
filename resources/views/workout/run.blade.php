@@ -5,11 +5,25 @@
     <div x-data="workout" x-cloak class="mx-auto flex min-h-screen max-w-xl flex-col px-4 pb-36 pt-[max(1rem,env(safe-area-inset-top))]">
         <header class="flex items-center justify-between gap-3 py-2">
             <a href="{{ route('home') }}" class="sys-label">Base</a>
-            <span class="sys-num text-sm text-ice [text-shadow:0_0_10px_var(--glow-ice)]">● <span x-text="elapsed"></span></span>
+            <span class="flex items-center gap-3">
+                <span class="sys-num text-sm text-ice [text-shadow:0_0_10px_var(--glow-ice)]">● <span x-text="elapsed"></span></span>
+                <button type="button" class="sys-label text-base" @click="showSettings = !showSettings" :aria-expanded="showSettings" aria-label="Réglages des signaux">⚙</button>
+            </span>
             <button type="button" class="sys-btn !w-auto !px-4 !py-2 text-xs" x-show="!summary" :disabled="!canFinish || finishing" @click="finish()">
                 <span x-text="finishing ? 'Envoi…' : 'Terminer'"></span>
             </button>
         </header>
+
+        {{-- Réglages des signaux du chrono, retenus sur ce téléphone --}}
+        <div class="sys-window mb-3 space-y-1 !p-3" x-show="showSettings" x-transition x-cloak>
+            <p class="sys-label mb-1">Signaux du chrono</p>
+            <template x-for="[key, label] in [['sound', 'Son (bips)'], ['vibration', 'Vibration'], ['countdown', 'Compte à rebours 3-2-1']]" :key="key">
+                <button type="button" class="sys-row w-full text-left text-sm" @click="toggleSignal(key)" role="switch" :aria-checked="signals[key]">
+                    <span x-text="label"></span>
+                    <span class="sys-label" :class="{ '!text-ice': signals[key] }" x-text="signals[key] ? 'Activé' : 'Coupé'"></span>
+                </button>
+            </template>
+        </div>
 
         {{-- Fin de séance --}}
         <template x-if="summary">
@@ -130,15 +144,29 @@
             </section>
         </template>
 
-        {{-- Minuteur de repos --}}
-        <div x-show="!summary && restRemaining > 0" x-transition.opacity
+        {{-- Minuteur de repos : grand chrono plein écran, réductible --}}
+        <div x-show="!summary && restRemaining > 0 && restExpanded" x-transition.opacity x-cloak
+             class="fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-void/95 px-6 pb-[env(safe-area-inset-bottom)] text-center" role="timer" aria-live="off">
+            <p class="sys-label">Repos</p>
+            <div class="sys-ring sys-ring--xl" :style="`--p: ${restPercent}%`"><span x-text="clock(restRemaining)"></span></div>
+            <p class="max-w-xs text-mist" x-show="current"
+               x-text="!current ? '' : state.justAdvanced ? 'Exercice suivant : ' + current.name : (current.target ? 'Série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets + ' · ' : '') + current.name + ' · ' + formatKg(Number(String(current.draft.weightKg).replace(',', '.')) || 0) + ' × ' + current.draft.reps"></p>
+            <div class="grid w-full max-w-xs grid-cols-3 gap-2">
+                <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="lessRest()">−15 s</button>
+                <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="moreRest()">+30 s</button>
+                <button type="button" class="sys-btn !px-2 !py-3" @click="skipRest()">Passer</button>
+            </div>
+            <button type="button" class="sys-label" @click="restExpanded = false">Réduire</button>
+        </div>
+        <div x-show="!summary && restRemaining > 0 && !restExpanded" x-transition.opacity
              class="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl">
             <div class="sys-window flex items-center gap-4 !p-3">
-                <div class="sys-ring" :style="`--p: ${restPercent}%`"><span x-text="clock(restRemaining)"></span></div>
+                <button type="button" class="sys-ring" :style="`--p: ${restPercent}%`" @click="restExpanded = true" aria-label="Agrandir le chrono"><span x-text="clock(restRemaining)"></span></button>
                 <div class="flex-1">
                     <p class="sys-label">Repos</p>
                     <p class="mt-0.5 text-sm text-mist" x-text="state.justAdvanced && current ? 'Exercice suivant : ' + current.name : 'Prochaine série en préparation'">Prochaine série en préparation</p>
                     <div class="mt-2 flex gap-2">
+                        <button type="button" class="sys-btn sys-btn--ghost !w-auto !px-3 !py-2 text-xs" @click="lessRest()">−15 s</button>
                         <button type="button" class="sys-btn sys-btn--ghost !w-auto !px-3 !py-2 text-xs" @click="moreRest()">+30 s</button>
                         <button type="button" class="sys-btn !w-auto !px-3 !py-2 text-xs" @click="skipRest()">Passer</button>
                     </div>
