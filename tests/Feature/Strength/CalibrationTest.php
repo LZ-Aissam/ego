@@ -85,3 +85,11 @@ it('recalibre : charges des exercices testés recalculées et compteur d\'échec
     $load = $user->workingLoads()->where('exercise_id', $bench->id)->first();
     expect($load->target_kg)->toBe(47.5)->and($load->fail_streak)->toBe(0);
 });
+
+it('ne teste que les mouvements présents dans le programme (programme sans jambes)', function () {
+    $user = User::factory()->withMorphology(level: 'advanced')->create();
+    $program = calibratedProgram($user, 'advanced');
+    $program->days->flatMap->exercises->whereIn('slot', ['squat', 'lunge', 'hinge', 'quads_iso', 'hamstrings_iso', 'calves'])->each->delete();
+
+    expect(app(CalibrationPlan::class)->movementsFor($user->fresh())->pluck('test_slot')->all())->toBe(['horizontal_push', 'horizontal_pull']);
+});

@@ -30,6 +30,10 @@ final class CalibrationPlan
             if ($slots === ['hinge'] && ! $withHinge) {
                 continue;
             }
+            // Un programme sans ce type de mouvement (ex. haut du corps seulement) : on ne le teste pas.
+            if ($program && ! $lines->contains(fn ($line) => in_array($line->slot, $slots, true))) {
+                continue;
+            }
 
             foreach ($slots as $slot) {
                 $exercise = $lines->firstWhere('slot', $slot)?->exercise ?? $this->generator->candidates($slot, $equipment, $library)->first();
