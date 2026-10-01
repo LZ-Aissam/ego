@@ -41,3 +41,9 @@ it('indique qu\'il n\'y a pas encore de données', function () {
     $squat = Exercise::firstWhere('slug', 'back-squat');
     $this->get("/progress/{$squat->id}")->assertOk()->assertSee('Pas encore de données');
 });
+
+it('présente le carnet en fenêtres système avec un graphique néon', function () {
+    $this->get('/history')->assertSee('JOURNAL DES SÉANCES');
+    $this->get('/records')->assertSee('TABLEAU DES RECORDS');
+    $this->get("/progress/{$this->bench->id}")->assertSee('filter="url(#neon)"', false)->assertSee('<circle', false);
+});
