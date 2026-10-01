@@ -37,6 +37,8 @@ class User extends Authenticatable
             'best_streak' => 'integer',
             'paused_at' => 'date',
             'paused_until' => 'date',
+            'calibrated_at' => 'datetime',
+            'power_factor' => 'float',
         ];
     }
 
@@ -48,6 +50,16 @@ class User extends Authenticatable
     public function activeProgram(): BelongsTo
     {
         return $this->belongsTo(Program::class, 'active_program_id');
+    }
+
+    public function exerciseMaxes(): HasMany
+    {
+        return $this->hasMany(ExerciseMax::class);
+    }
+
+    public function workingLoads(): HasMany
+    {
+        return $this->hasMany(WorkingLoad::class);
     }
 
     public function quests(): HasMany
