@@ -9,7 +9,7 @@ import workout from './workout/component';
 import sysNotifications from './ui/notifications';
 import { initCountUps } from './ui/count-up';
 import { createStore } from './workout/store';
-import { flushPending, sendWorkout } from './workout/sync';
+import { collectNotifications, flushPending, sendWorkout } from './workout/sync';
 
 window.Alpine = Alpine;
 Alpine.data('workout', workout);
@@ -33,7 +33,11 @@ function updateOfflineBanner() {
 function syncPending() {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!token || !userId() || !navigator.onLine) return;
-    flushPending(userStore(), (p) => sendWorkout(p, { token }));
+    flushPending(userStore(), (p) => sendWorkout(p, { token })).then((result) => {
+        // Séance faite hors ligne puis envoyée en arrière-plan : on affiche quand même ses récompenses.
+        const notifications = collectNotifications(result);
+        if (notifications.length) window.dispatchEvent(new CustomEvent('sys-notify', { detail: notifications }));
+    });
 }
 
 function showResumeBanner() {

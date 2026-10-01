@@ -35,7 +35,8 @@ final class Titles
         $new = array_values(array_diff($earned, $owned));
 
         foreach ($new as $key) {
-            $user->titles()->create(['title_key' => $key, 'unlocked_at' => now()]);
+            // insertOrIgnore : un envoi concurrent a pu débloquer le même titre entre-temps.
+            DB::table('user_titles')->insertOrIgnore(['user_id' => $user->id, 'title_key' => $key, 'unlocked_at' => now()]);
         }
 
         if ($user->equipped_title === null && $earned !== []) {

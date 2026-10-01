@@ -73,3 +73,13 @@ describe('flushPending', () => {
         expect(store.pending()).toEqual([]);
     });
 });
+
+describe('collectNotifications', () => {
+    it('rassemble les notifications de toutes les séances envoyées', async () => {
+        const { collectNotifications } = await import('./sync');
+        const result = { sent: { a: { notifications: [{ title: 'SÉANCE TERMINÉE' }] }, b: { notifications: [{ title: 'NIVEAU 10' }, { title: 'RANG D' }] }, c: {} }, invalid: [], remaining: 0 };
+
+        expect(collectNotifications(result).map((n) => n.title)).toEqual(['SÉANCE TERMINÉE', 'NIVEAU 10', 'RANG D']);
+        expect(collectNotifications({ sent: {} })).toEqual([]);
+    });
+});

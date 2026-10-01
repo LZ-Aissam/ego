@@ -2,7 +2,7 @@ import {
     addExercise, addRest, adjustDraft, createStore, finishWorkout, goTo, hasSets,
     logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
-import { flushPending, sendWorkout } from './sync';
+import { collectNotifications, flushPending, sendWorkout } from './sync';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -136,8 +136,10 @@ export default function workout() {
             this.summary = body
                 ? { pending: false, ...body }
                 : { pending: true, invalid: result.invalid.includes(payload.client_id) };
-            if (body?.notifications?.length) {
-                window.dispatchEvent(new CustomEvent('sys-notify', { detail: body.notifications }));
+            // Toutes les séances envoyées (y compris d'anciennes en attente) : aucune récompense perdue.
+            const notifications = collectNotifications(result);
+            if (notifications.length) {
+                window.dispatchEvent(new CustomEvent('sys-notify', { detail: notifications }));
             }
             this.finishing = false;
         },

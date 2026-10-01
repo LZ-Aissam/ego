@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workout;
 use App\Services\RecordCalculator;
 use App\Support\SystemMessage;
+use Illuminate\Support\Facades\DB;
 
 final class GameEvents
 {
@@ -19,6 +20,17 @@ final class GameEvents
      * @return array{xp: int, notifications: list<array>, player: array}
      */
     public function afterWorkout(User $user, Workout $workout, array $newRecords): array
+    {
+        // Verrou par joueur : deux envois simultanés passent l'un après l'autre (plafond du jour,
+        // titres et montée de niveau calculés sur l'XP réellement en base).
+        return DB::transaction(function () use ($user, $workout, $newRecords) {
+            $user->xp_total = (int) User::whereKey($user->id)->lockForUpdate()->value('xp_total');
+
+            return $this->play($user, $workout, $newRecords);
+        });
+    }
+
+    private function play(User $user, Workout $workout, array $newRecords): array
     {
         $before = Leveling::progress((int) $user->xp_total);
         $xp = $this->awardWorkout($user, $workout, count($newRecords));

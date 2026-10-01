@@ -60,3 +60,14 @@ it('ne rapporte rien en dehors des 2 premières séances du jour', function () {
 
     expect($third['xp'])->toBe(0)->and($this->user->fresh()->xp_total)->toBe(130);
 });
+
+it('relit l\'XP en base pour ne pas rater une montée de niveau quand un autre envoi vient d\'en ajouter', function () {
+    // Un envoi concurrent a déjà ajouté 90 XP en base ; l'objet en mémoire ne le sait pas.
+    $this->user->xpEvents()->create(['source' => 'workout', 'source_id' => 999999, 'amount' => 90]);
+    User::whereKey($this->user->id)->update(['xp_total' => 90]);
+
+    $result = playSession($this->user, $this->bench->id, 40, 4); // +70 → 160 XP : niveau 2
+
+    expect(collect($result['notifications'])->pluck('type')->all())->toContain('level_up')
+        ->and($result['player']['level'])->toBe(2);
+});

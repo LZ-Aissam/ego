@@ -20,6 +20,10 @@ export async function sendWorkout(payload, { token, fetchImpl = (...args) => glo
     }
 }
 
+export function collectNotifications(result) {
+    return Object.values(result?.sent ?? {}).flatMap((body) => body?.notifications ?? []);
+}
+
 export async function flushPending(store, send) {
     const result = { sent: {}, invalid: [], remaining: 0 };
     for (const payload of store.pending()) {
