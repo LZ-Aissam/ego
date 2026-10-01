@@ -31,6 +31,7 @@ class ProgramDay extends Model
             'reps_min' => $e->reps_min,
             'reps_max' => $e->reps_max,
             'rest_seconds' => $e->rest_seconds,
+            'intent' => $e->intent,
         ])->all();
     }
 }
