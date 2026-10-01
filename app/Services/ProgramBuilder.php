@@ -78,7 +78,7 @@ final class ProgramBuilder
             foreach ($source->days as $day) {
                 $copy = $program->days()->create(['position' => $day->position, 'name' => $day->name, 'type' => $day->type]);
                 foreach ($day->exercises as $line) {
-                    $copy->exercises()->create($line->only(['exercise_id', 'slot', 'sets', 'reps_min', 'reps_max', 'rest_seconds', 'position']));
+                    $copy->exercises()->create($line->only(['exercise_id', 'slot', 'sets', 'reps_min', 'reps_max', 'rest_seconds', 'position', 'intent']));
                 }
             }
 

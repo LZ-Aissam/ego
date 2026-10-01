@@ -97,16 +97,18 @@ final class LoadPrescriber
     /** Meilleur 1RM estimé : calibrage ou record ; sinon charge déduite rapportée à un 1RM (Epley sur repsMax). */
     public function bestE1rm(User $user, Exercise $exercise, int $repsMax): ?float
     {
-        $calibrated = $user->exerciseMaxes()->where('exercise_id', $exercise->id)->value('e1rm_kg');
-        $record = $user->personalRecords()->where('exercise_id', $exercise->id)->value('best_e1rm_kg');
-        $best = max((float) $calibrated, (float) $record);
-        if ($best > 0) {
-            return round($best, 1);
+        $calibrated = (float) $user->exerciseMaxes()->where('exercise_id', $exercise->id)->value('e1rm_kg');
+        $record = (float) $user->personalRecords()->where('exercise_id', $exercise->id)->value('best_e1rm_kg');
+        if ($calibrated > 0) {
+            return round(max($calibrated, $record), 1);
         }
 
+        // Sans calibrage : une séance légère ne doit pas faire chuter l'estimation déduite.
         $derived = $this->derivedLoad($exercise, $user);
+        $estimate = $derived === null ? 0.0 : $derived * (1 + $repsMax / 30);
+        $best = max($record, $estimate);
 
-        return $derived === null ? null : round($derived * (1 + $repsMax / 30), 1);
+        return $best > 0 ? round($best, 1) : null;
     }
 
     /** Charge prescrite pour une ligne de programme selon son intention (null : rien à prescrire). */
@@ -117,11 +119,20 @@ final class LoadPrescriber
         }
 
         $pct = \App\Game\Intent::META[$intent]['pct'] ?? null;
-        if ($pct === null) {
+        if ($pct === null || $intent === 'max') {
             $stored = $user->workingLoads()->where('exercise_id', $exercise->id)->value('target_kg');
-
-            return $stored === null ? null : (float) $stored;
+            if ($stored !== null || $intent !== 'max') {
+                return $stored === null ? null : (float) $stored;
+            }
         }
+
+        return $this->percentLoad($user, $exercise, $intent, $repsMax);
+    }
+
+    /** Charge d'une intention à pourcentage du meilleur 1RM (force max arrondie vers le bas). */
+    private function percentLoad(User $user, Exercise $exercise, string $intent, int $repsMax): ?float
+    {
+        $pct = \App\Game\Intent::META[$intent]['pct'];
 
         $best = $this->bestE1rm($user, $exercise, $repsMax);
         if ($best === null) {
@@ -134,7 +145,7 @@ final class LoadPrescriber
         return max(2.5, $rounded);
     }
 
-    /** Lignes dont la charge est stockée et progresse par les répétitions : intention « masse » ou aucune. */
+    /** Lignes dont la charge est stockée et progresse par les répétitions : force max, masse ou aucune intention. */
     public function loadLines(User $user): Collection
     {
         $program = $user->activeProgram()->with('days.exercises.exercise')->first();
@@ -143,7 +154,7 @@ final class LoadPrescriber
         }
 
         return $program->days->flatMap->exercises
-            ->filter(fn (ProgramExercise $l) => $l->intent === null || $l->intent === 'mass')
+            ->filter(fn (ProgramExercise $l) => in_array($l->intent, [null, 'mass', 'max'], true))
             ->groupBy('exercise_id')->map(function (Collection $occurrences) {
                 $first = clone $occurrences->first();
                 $first->reps_max = $occurrences->min('reps_max');
@@ -165,9 +176,11 @@ final class LoadPrescriber
                 continue;
             }
 
-            $target = $maxes->has($exerciseId)
-                ? $this->startingLoad((float) $maxes[$exerciseId], $line->reps_max)
-                : $this->derivedLoad($line->exercise, $user, $measured);
+            $target = match (true) {
+                $line->intent === 'max' => $this->percentLoad($user, $line->exercise, 'max', $line->reps_max),
+                $maxes->has($exerciseId) => $this->startingLoad((float) $maxes[$exerciseId], $line->reps_max),
+                default => $this->derivedLoad($line->exercise, $user, $measured),
+            };
 
             if ($target === null) {
                 continue;
@@ -187,6 +200,8 @@ final class LoadPrescriber
 
         $loads = $user->workingLoads()->get()->keyBy('exercise_id');
         $notes = [];
+        $fastIds = $user->activeProgram()->with('days.exercises')->first()?->days->flatMap->exercises
+            ->whereIn('intent', ['speed', 'explosive'])->pluck('exercise_id')->unique()->all() ?? [];
 
         foreach ($workout->sets->groupBy('exercise_id') as $exerciseId => $sets) {
             $line = $plan[$exerciseId] ?? null;
@@ -203,6 +218,11 @@ final class LoadPrescriber
 
             $load = $loads[$exerciseId] ?? null;
             if (! $load) {
+                continue;
+            }
+
+            // Séance de vitesse (charges légères) d'un exercice aussi travaillé lourd : elle ne juge pas la charge lourde.
+            if (in_array((int) $exerciseId, $fastIds, true) && $sets->max('weight_kg') < $load->target_kg * 0.75) {
                 continue;
             }
 

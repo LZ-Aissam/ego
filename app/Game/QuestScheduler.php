@@ -163,7 +163,7 @@ final class QuestScheduler
         }
 
         if (in_array($day->isoWeekday(), $user->training_weekdays ?? [], true)) {
-            $programDay = $this->nextProgramDay($user, $program);
+            $programDay = $this->nextProgramDay($user, $program, $day);
             $calibrating = $user->calibrated_at === null;
             $quest = $user->quests()->create([
                 'date' => $day->toDateString(),
@@ -239,7 +239,7 @@ final class QuestScheduler
                 continue;
             }
 
-            $programDay = $this->nextProgramDay($user, $program);
+            $programDay = $this->nextProgramDay($user, $program, Carbon::parse($quest->date->toDateString()));
             $quest->update(['program_day_id' => $programDay->id, 'title' => $programDay->name, 'objectives' => $programDay->objectives()]);
         }
     }
@@ -253,9 +253,19 @@ final class QuestScheduler
             ->get(['workout_sets.*']);
     }
 
-    private function nextProgramDay(User $user, Program $program): ProgramDay
+    private function nextProgramDay(User $user, Program $program, Carbon $date): ProgramDay
     {
         $days = $program->days;
+
+        // Programme personnalisé, une journée par jour d'entraînement : chaque journée garde son jour de la semaine.
+        $weekdays = collect($user->training_weekdays ?? [])->sort()->values();
+        if (($program->params['custom'] ?? false) && $weekdays->count() === $days->count()) {
+            $index = $weekdays->search($date->isoWeekday());
+            if ($index !== false) {
+                return $days[$index];
+            }
+        }
+
         $lastDone = $user->quests()->where('type', 'training')->where('status', 'done')
             ->whereIn('program_day_id', $days->pluck('id'))->orderByDesc('date')->first();
 

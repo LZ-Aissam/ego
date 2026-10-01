@@ -594,18 +594,24 @@ const FAMILIES = {
         },
     },
 
-    // Sauts : flexion avec élan des bras, envol, réception.
+    // Sauts : joués dans un seul sens (élan, envol, réception, stabilisation), puis on recommence au départ.
     jump: {
-        segments: [['Flexion et élan', 600], ['Envol', 300], ['Réception souple', 900], ['Stabilisation', 600]],
+        oneWay: true,
+        segments: [['Flexion et élan', 600], ['Envol', 500], ['Réception souple', 700], ['Stabilisation', 600]],
         pose(t, v) {
-            const crouch = t < 0.35 ? Math.sin((t / 0.35) * Math.PI / 2) : Math.max(0, 1 - (t - 0.35) / 0.25);
-            const air = t < 0.35 ? 0 : 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, (t - 0.35) / 0.65));
+            const smooth = (x) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
+            const takeoff = 0.25, landing = 0.46;
+            const air = smooth((t - takeoff) / (landing - takeoff));                       // avancée 0 → 1 pendant l'envol
+            const flying = t > takeoff && t < landing ? Math.sin(Math.PI * (t - takeoff) / (landing - takeoff)) : 0;
+            const crouch = t < takeoff ? Math.sin((t / takeoff) * Math.PI / 2)              // flexion avant l'impulsion
+                : t < landing ? 0
+                : 0.6 * Math.sin(Math.PI * Math.min(1, (t - landing) / 0.3));            // amorti à la réception
             const x = { box: 62 * air, broad: -45 + 95 * air, squat: 0 }[v];
-            const lift = { box: 30 * air, broad: 26 * Math.sin(Math.PI * air), squat: 30 * Math.sin(Math.PI * air) }[v];
+            const lift = { box: 30 * air + 8 * flying, broad: 26 * flying, squat: 30 * flying }[v];
             const b = standing(4 + 30 * crouch, 50 * crouch, 6 + 30 * crouch, x);
             const up = (p) => [p[0], p[1] - lift];
             // Bras : élan en arrière, lancés vers le haut à l'envol, ramenés devant soi à la réception.
-            const swing = (air < 0.6 ? lerp(-120, 60, air / 0.6) : lerp(60, 0, (air - 0.6) / 0.4)) - 40 * crouch;
+            const swing = t < takeoff ? lerp(-60, -120, t / takeoff) : t < landing ? lerp(-120, 40, (t - takeoff) / (landing - takeoff)) : lerp(40, 0, Math.min(1, (t - landing) / 0.3));
             const shoulder = up(b.shoulder);
             return scene(
                 { foot: b.foot.map(up), leg: [b.ankle, b.knee, b.hip].map(up), torso: [up(b.hip), shoulder], arm: fixedArm(shoulder, swing, swing) },
@@ -789,6 +795,11 @@ export function phaseAt(slug, ms) {
     const segments = segmentsOf(slug);
     const total = segments.reduce((sum, [, d]) => sum + d, 0);
     let m = ((ms % total) + total) % total;
+    if (family(slug).oneWay) {
+        // Mouvement à sens unique : t suit le temps d'un bout à l'autre du cycle.
+        const label = segments.find(([, d], i) => m < segments.slice(0, i + 1).reduce((sum, [, x]) => sum + x, 0))?.[0] ?? segments[0][0];
+        return [m / total, label];
+    }
     for (let i = 0; i < segments.length; i++) {
         const [label, d] = segments[i];
         if (m < d) {

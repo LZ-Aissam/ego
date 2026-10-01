@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DEMOS, sceneAt } from './rig';
+import { DEMOS, phaseAt, sceneAt } from './rig';
 import { sceneMarkup } from './markup';
 
 const catalog = fs.readFileSync(path.resolve(__dirname, '../../../database/data/exercises.php'), 'utf8');
@@ -78,5 +78,14 @@ describe('coudes des tractions', () => {
         }
         const [shoulder, elbow] = sceneAt('chin-up', 1).chains.arm;
         expect(elbow[1]).toBeGreaterThan(shoulder[1] - 8);
+    });
+});
+
+describe('sauts', () => {
+    it.each(['box-jump', 'broad-jump'])('%s : la silhouette avance et ne repart jamais en arrière pendant le cycle', (slug) => {
+        const xs = [];
+        for (let ms = 0; ms < 2400; ms += 60) xs.push(sceneAt(slug, phaseAt(slug, ms)[0]).chains.foot[0][0]);
+        xs.forEach((x, i) => { if (i > 0) expect(x, `ms=${i * 60}`).toBeGreaterThanOrEqual(xs[i - 1] - 0.01); });
+        expect(xs.at(-1)).toBeGreaterThan(xs[0] + 40);
     });
 });
