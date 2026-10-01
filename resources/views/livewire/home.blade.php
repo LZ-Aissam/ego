@@ -74,7 +74,7 @@
             @foreach ($quest->objectives as $i => $objective)
                 @php $done = min($questProgress[$i] ?? 0, $objective['sets']); @endphp
                 <div @class(['sys-row text-sm', 'line-through opacity-60' => $done >= $objective['sets']])>
-                    <span>{{ $objective['name'] }} · @if ($quest->type === 'calibration')2 échauffements + 1 série max @else{{ $objective['sets'] }} × {{ $objective['reps_min'] }}–{{ $objective['reps_max'] }}@endif@if (isset($loads[$objective['exercise_id']]) && $quest->type === 'training') · {{ \App\Support\Format::kg($loads[$objective['exercise_id']]) }}{{ in_array($objective['exercise_id'], $perDumbbell, true) ? ' par haltère' : '' }}@endif</span>
+                    <span>{{ isset($objective['intent']) ? \App\Game\Intent::META[$objective['intent']]['icon'].' ' : '' }}{{ $objective['name'] }} · @if ($quest->type === 'calibration')2 échauffements + 1 série max @else{{ $objective['sets'] }} × {{ $objective['reps_min'] }}–{{ $objective['reps_max'] }}@endif@if (($objectiveLoads[$i] ?? null) && $quest->type === 'training') · {{ \App\Support\Format::kg((float) $objectiveLoads[$i]) }}{{ in_array($objective['exercise_id'], $perDumbbell, true) ? ' par haltère' : '' }}@endif</span>
                     <span class="sys-num text-ice">{{ $done }} / {{ $objective['sets'] }}</span>
                 </div>
             @endforeach

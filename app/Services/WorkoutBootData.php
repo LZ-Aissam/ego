@@ -43,7 +43,12 @@ final class WorkoutBootData
             'name' => $o['name'],
             'isBodyweight' => $library[$o['exercise_id']]['isBodyweight'] ?? false,
             'suggestedKg' => $library[$o['exercise_id']]['suggestedKg'] ?? null,
-            'prescribedKg' => $library[$o['exercise_id']]['prescribedKg'] ?? null,
+            'intent' => $o['intent'] ?? null,
+            'intentBadge' => \App\Game\Intent::badge($o['intent'] ?? null),
+            'intentCue' => \App\Game\Intent::cue($o['intent'] ?? null),
+            'prescribedKg' => ($o['intent'] ?? null) === null
+                ? ($library[$o['exercise_id']]['prescribedKg'] ?? null)
+                : app(\App\Game\LoadPrescriber::class)->prescriptionFor($user, \App\Models\Exercise::find($o['exercise_id']), $o['intent'], $o['reps_max']),
             'perDumbbell' => $library[$o['exercise_id']]['perDumbbell'] ?? false,
             'sets' => $o['sets'],
             'repsMin' => $o['reps_min'],

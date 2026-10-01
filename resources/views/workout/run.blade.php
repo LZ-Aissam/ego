@@ -71,6 +71,8 @@
                             </p>
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.target"
                                x-text="current.target ? 'Objectif · ' + current.target.sets + ' × ' + current.target.repsMin + '–' + current.target.repsMax + ' · série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets : ''"></p>
+                            <p class="sys-num mt-1 text-xs font-bold uppercase tracking-wider text-amber" x-show="current.intentBadge" x-text="current.intentBadge"></p>
+                            <p class="mt-0.5 text-sm text-mist" x-show="current.intentCue" x-text="current.intentCue"></p>
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.prescribedKg"
                                x-text="current.prescribedKg ? 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '') : ''"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>

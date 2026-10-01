@@ -78,6 +78,13 @@ describe('séance', () => {
         expect(s.exercises[1].perDumbbell).toBe(false);
     });
 
+    it("garde l'intention et sa consigne pour l'écran de séance", () => {
+        const s = addExercise(newWorkout('id', 't'), { ...bench, intent: 'speed', intentBadge: '⚡ VITESSE', intentCue: 'Vite !' }, { restSeconds: 60 });
+        expect(s.exercises[0].intent).toBe('speed');
+        expect(s.exercises[0].intentBadge).toBe('⚡ VITESSE');
+        expect(s.exercises[0].intentCue).toBe('Vite !');
+    });
+
     it('ajuste le brouillon par pas de 2,5 kg et 1 rep sans passer sous les minimums', () => {
         let s = addExercise(newWorkout('id', 't'), bench, { suggestedKg: 2.5, restSeconds: 90 });
         s = adjustDraft(s, 'weightKg', -2.5);

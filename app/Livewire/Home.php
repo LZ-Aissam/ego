@@ -33,6 +33,9 @@ class Home extends Component
             'weekRank' => $board->rank('xp', 'week')->first(fn ($r) => $r['user']->id === $user->id && $r['value'] > 0)['rank'] ?? null,
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
             'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),
+            'objectiveLoads' => collect(($todayQuests['training'] ?? null)?->objectives ?? [])->mapWithKeys(fn ($o, $i) => [$i => ($o['intent'] ?? null) === null
+                ? (isset($o['exercise_id']) ? $user->workingLoads()->where('exercise_id', $o['exercise_id'])->value('target_kg') : null)
+                : app(\App\Game\LoadPrescriber::class)->prescriptionFor($user, \App\Models\Exercise::find($o['exercise_id']), $o['intent'], $o['reps_max'])]),
             'perDumbbell' => \App\Models\Exercise::all()->filter->isPerDumbbell()->modelKeys(),
             'lastWorkout' => $user->workouts()->with('sets.exercise')->latest('finished_at')->first(),
             'recentRecords' => $user->personalRecords()->with('exercise')->latest('achieved_at')->limit(3)->get(),
