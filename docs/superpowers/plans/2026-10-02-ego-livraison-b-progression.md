@@ -63,6 +63,7 @@
   - `rank_up` ;
   - un `title` par nouveau titre.
 - **Rattrapage** : aucune notification, idempotent.
+- **Le Système s'appelle « TON EGO »** dans tous les textes visibles.
 - **Interface** en français, composants `x-sys.*`, chiffres en `sys-num`. MariaDB (Wamp, port 3307) lancé pour les tests.
 - **Commits** terminés par `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -95,6 +96,50 @@ resources/css/app.css            + .sys-xp-fill
 database/migrations/2026_10_03_000100_add_progression_tables.php
 database/migrations/2026_10_03_000200_backfill_player_xp.php
 tests/Unit/LevelingTest.php, tests/Feature/Game/*.php
+```
+
+---
+
+### Task 0 : le Système s'appelle « TON EGO »
+
+**Files :**
+- Modify : `resources/views/components/layouts/guest.blade.php`, `resources/views/livewire/auth/login.blade.php`, `resources/views/livewire/auth/register.blade.php`, `resources/views/livewire/home.blade.php`
+- Test : `tests/Feature/HomeTest.php`, `tests/Feature/Auth/RegisterTest.php`
+
+**Interfaces :**
+- Produces : partout où l'interface nomme le Système, le nom affiché est **TON EGO**. Les messages des tâches suivantes l'utilisent aussi (`SystemMessage::rankUp`).
+
+- [ ] **Step 1 : tests (échec attendu)**
+
+Dans `tests/Feature/HomeTest.php`, remplacer `->assertSee('SYSTÈME EGO · EN LIGNE')` par `->assertSee('TON EGO · EN LIGNE')`.
+Ajouter à `tests/Feature/Auth/RegisterTest.php` :
+```php
+it('présente le Système sous son nom, TON EGO', function () {
+    $this->get('/register')->assertSee('TON EGO a besoin de ton identité')->assertDontSee('Le Système');
+});
+```
+Run : `./vendor/bin/pest tests/Feature/HomeTest.php tests/Feature/Auth/RegisterTest.php`
+Attendu : 2 FAIL.
+
+- [ ] **Step 2 : textes**
+
+| Fichier | Avant | Après |
+|---|---|---|
+| `guest.blade.php` | `Système d'entraînement` | `TON EGO · système d'entraînement` |
+| `login.blade.php` | `Déclare-toi au Système.` | `Déclare-toi à TON EGO.` |
+| `register.blade.php` | `Le Système a besoin de ton identité pour t'assigner tes quêtes.` | `TON EGO a besoin de ton identité pour t'assigner tes quêtes.` |
+| `home.blade.php` | `SYSTÈME EGO · EN LIGNE` | `TON EGO · EN LIGNE` |
+| `home.blade.php` | `pour que le Système te suggère` | `pour que TON EGO te suggère` |
+
+- [ ] **Step 3 : vérifier** : `npm run build && ./vendor/bin/pest` → tout PASS.
+
+- [ ] **Step 4 : commit**
+
+```bash
+git add -A
+git commit -m "copy: le Système s'appelle TON EGO
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -1089,7 +1134,7 @@ Dans `app/Support/SystemMessage.php` :
 
     public static function rankUp(string $rank): array
     {
-        return self::make('rank_up', 'RANG '.$rank, ['Le Système te reconnaît comme chasseur de rang '.$rank.'.'], highlight: 'RANG '.$rank);
+        return self::make('rank_up', 'RANG '.$rank, ['TON EGO te reconnaît comme chasseur de rang '.$rank.'.'], highlight: 'RANG '.$rank);
     }
 
     public static function title(string $key): array

@@ -8,6 +8,8 @@
 
 Donner à EGO une identité visuelle futuriste et premium (« comme si on avait mis 100 k€ dans le design »), inspirée de l'interface « Système » des webtoons de type *leveling*. Le pratiquant est un **joueur** : une interface holographique lui dit quoi faire pour passer au niveau suivant, lui assigne des quêtes, le récompense et le sanctionne.
 
+**Le Système s'appelle « TON EGO ».** C'est lui qui parle au joueur dans toute l'interface : « TON EGO t'assigne : Push A », « TON EGO te reconnaît comme chasseur de rang D », bandeau `// TON EGO · EN LIGNE`. Le nom de l'app reste « EGO ».
+
 On reprend le **style** (fenêtres système, quêtes, niveaux, rangs), mais **aucun nom, logo, personnage ou texte** d'une œuvre existante. EGO garde sa propre identité.
 
 ### Critères de réussite
