@@ -74,3 +74,7 @@ it('ne remet pas le compteur à zéro après une connexion réussie', function (
         ->call('login')
         ->assertSee('Trop de tentatives');
 });
+
+it('présente la connexion comme une fenêtre système IDENTIFICATION', function () {
+    $this->get('/login')->assertSee('IDENTIFICATION')->assertSee('class="sys-window"', false);
+});

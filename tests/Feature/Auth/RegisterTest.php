@@ -63,3 +63,7 @@ it('limite les tentatives d\'inscription pour empêcher de deviner une date de n
         ->assertSee('Trop de tentatives')
         ->assertDontSee('déjà utilisés');
 });
+
+it('présente l\'inscription comme une fenêtre système ÉVEIL', function () {
+    $this->get('/register')->assertSee('ÉVEIL')->assertSee('class="sys-window"', false)->assertSee('class="sys-input"', false);
+});
