@@ -25,8 +25,8 @@ Route::middleware('auth')->group(function () {
         'message' => 'Le générateur de programmes arrive à la prochaine étape.',
     ])->name('program');
     Route::view('/community', 'pages.soon', [
-        'title' => 'Communauté',
-        'message' => 'Records des amis, classement, défis et groupes arrivent bientôt.',
+        'title' => 'Crew',
+        'message' => 'Le Crew débarque bientôt : records des amis, classement, défis et groupes.',
     ])->name('community');
     Route::get('/workout', [WorkoutController::class, 'create'])->name('workout');
     Route::get('/history', History::class)->name('history');

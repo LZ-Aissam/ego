@@ -1,53 +1,48 @@
-<div class="space-y-6">
-    <div class="flex items-center gap-4">
-        <span class="flex h-14 w-14 items-center justify-center rounded-full text-2xl font-black text-zinc-950" style="background: {{ $user->avatar_color }}">
-            {{ mb_strtoupper(mb_substr($user->first_name, 0, 1)) }}
-        </span>
-        <div>
-            <h1 class="text-2xl font-bold">{{ $user->first_name }}</h1>
-            <p class="text-sm text-zinc-400">{{ $user->birth_date->age }} ans</p>
+<div class="space-y-5">
+    <x-sys.window title="FICHE DU JOUEUR">
+        <div class="flex items-center gap-4">
+            <span class="grid h-16 w-16 place-items-center text-3xl font-black text-void [clip-path:var(--sys-cut)]" style="background: {{ $user->avatar_color }}; box-shadow: 0 0 24px {{ $user->avatar_color }}">
+                {{ mb_strtoupper(mb_substr($user->first_name, 0, 1)) }}
+            </span>
+            <div>
+                <h1 class="text-2xl font-bold">{{ $user->first_name }}</h1>
+                <p class="sys-num text-sm text-steel">{{ $user->birth_date->age }} ans</p>
+            </div>
         </div>
-    </div>
+    </x-sys.window>
 
     <div class="grid grid-cols-2 gap-3">
-        <a href="{{ route('history') }}" class="card text-center font-semibold active:bg-zinc-800">Historique</a>
-        <a href="{{ route('records') }}" class="card text-center font-semibold active:bg-zinc-800">Records</a>
+        <x-sys.button :href="route('history')" variant="ghost">Historique</x-sys.button>
+        <x-sys.button :href="route('records')" variant="ghost">Records</x-sys.button>
     </div>
 
-    <form wire:submit="save" class="card space-y-4" novalidate>
-        <h2 class="text-lg font-bold">Morphologie</h2>
-        <div>
-            <span class="mb-1 block text-sm text-zinc-400">Sexe</span>
-            <div class="grid grid-cols-2 gap-2">
-                @foreach (['male' => 'Homme', 'female' => 'Femme'] as $value => $label)
-                    <label class="cursor-pointer rounded-xl border px-4 py-3 text-center {{ $sex === $value ? 'border-lime-400 text-lime-300' : 'border-zinc-800 text-zinc-300' }}">
-                        <input type="radio" wire:model.live="sex" value="{{ $value }}" class="sr-only">{{ $label }}
-                    </label>
-                @endforeach
-            </div>
-            @error('sex') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+    <x-sys.window title="MORPHOLOGIE" :index="1">
+        <form wire:submit="save" class="space-y-4" novalidate>
             <div>
-                <label for="heightCm" class="mb-1 block text-sm text-zinc-400">Taille (cm)</label>
-                <input id="heightCm" type="text" inputmode="numeric" wire:model="heightCm" class="input">
-                @error('heightCm') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+                <p class="sys-label mb-1">Sexe</p>
+                <div class="grid grid-cols-2 gap-2">
+                    @foreach (['male' => 'Homme', 'female' => 'Femme'] as $value => $label)
+                        <label @class(['sys-chip cursor-pointer py-3 text-center text-sm', 'sys-chip--active' => $sex === $value])>
+                            <input type="radio" wire:model.live="sex" value="{{ $value }}" class="sr-only">{{ $label }}
+                        </label>
+                    @endforeach
+                </div>
+                @error('sex') <p class="sys-error">{{ $message }}</p> @enderror
             </div>
-            <div>
-                <label for="weightKg" class="mb-1 block text-sm text-zinc-400">Poids (kg)</label>
-                <input id="weightKg" type="text" inputmode="decimal" wire:model="weightKg" class="input">
-                @error('weightKg') <p class="mt-1 text-sm text-red-400">{{ $message }}</p> @enderror
+            <div class="grid grid-cols-2 gap-3">
+                <x-sys.field name="heightCm" label="Taille (cm)" inputmode="numeric" wire:model="heightCm" />
+                <x-sys.field name="weightKg" label="Poids (kg)" inputmode="decimal" wire:model="weightKg" />
             </div>
-        </div>
-        @if ($user->bmi())
-            <p class="text-sm text-zinc-400">IMC indicatif : {{ number_format($user->bmi(), 1, ',', ' ') }}</p>
-        @endif
-        <button type="submit" class="btn-primary">Enregistrer</button>
-        @if ($saved) <p class="text-center text-sm text-lime-400">Profil enregistré ✓</p> @endif
-    </form>
+            @if ($user->bmi())
+                <p class="sys-num text-sm text-mist">IMC indicatif : {{ number_format($user->bmi(), 1, ',', ' ') }}</p>
+            @endif
+            <x-sys.button type="submit">Enregistrer</x-sys.button>
+            @if ($saved) <p class="text-center text-sm text-ice">Profil enregistré ✓</p> @endif
+        </form>
+    </x-sys.window>
 
     <form method="POST" action="{{ route('logout') }}">
         @csrf
-        <button type="submit" class="btn-secondary">Se déconnecter</button>
+        <x-sys.button type="submit" variant="ghost">Se déconnecter</x-sys.button>
     </form>
 </div>

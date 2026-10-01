@@ -43,3 +43,7 @@ it('refuse des valeurs hors limites', function (string $field, string $value) {
     ['weightKg', '350'],
     ['sex', 'autre'],
 ]);
+
+it('présente le profil comme une fiche du joueur', function () {
+    $this->get('/profile')->assertSee('FICHE DU JOUEUR')->assertSee('MORPHOLOGIE')->assertSee('class="sys-input"', false);
+});

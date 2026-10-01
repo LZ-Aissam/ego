@@ -1,4 +1,6 @@
 <x-layouts.app :title="$title">
-    <h1 class="mb-4 text-2xl font-bold">{{ $title }}</h1>
-    <div class="card text-zinc-300">{{ $message }}</div>
+    <x-sys.label>{{ $title }}</x-sys.label>
+    <x-sys.window title="ACCÈS VERROUILLÉ" class="mt-3">
+        <p class="text-mist">{{ $message }}</p>
+    </x-sys.window>
 </x-layouts.app>
