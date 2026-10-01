@@ -8,11 +8,13 @@
                 <p class="sys-num text-2xl font-extrabold tracking-[0.3em] text-frost">{{ $crew->code }}</p>
             </div>
         </div>
-        <div x-data="{ copied: false }" class="mt-3">
-            <p class="sys-num break-all text-xs text-mist">{{ $inviteUrl }}</p>
-            <x-sys.button variant="ghost" class="mt-2" x-on:click="navigator.clipboard?.writeText(@js($inviteUrl)); copied = true; setTimeout(() => copied = false, 2000)">
-                <span x-text="copied ? 'Lien copié ✓' : 'Copier le lien d\'invitation'">Copier le lien d'invitation</span>
+        <div x-data="{ copy: '', url: {{ \Illuminate\Support\Js::from($inviteUrl) }} }" class="mt-3">
+            <p class="sys-num select-all break-all text-xs text-mist">{{ $inviteUrl }}</p>
+            <x-sys.button variant="ghost" class="mt-2"
+                x-on:click="(navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => copy = 'ok', () => copy = 'fail').finally(() => setTimeout(() => copy = '', 3000))">
+                <span x-text="copy === 'ok' ? 'Lien copié ✓' : 'Copier le lien d\'invitation'">Copier le lien d'invitation</span>
             </x-sys.button>
+            <p class="sys-error" x-show="copy === 'fail'" x-cloak>Copie impossible : appuie longuement sur le lien pour le copier.</p>
         </div>
         <a href="{{ route('community', ['groupe' => $crew->id]) }}" class="sys-label mt-3 block text-right">Classement du groupe</a>
     </x-sys.window>
@@ -27,12 +29,28 @@
                 <span class="flex items-center gap-3">
                     <span class="sys-num text-sm text-mist">Niv. {{ $member->player()['level'] }}</span>
                     @if ($isOwner && $member->id !== $crew->owner_id)
-                        <button type="button" class="sys-label !text-alert" wire:click="kick({{ $member->id }})">Retirer</button>
+                        @if ($confirmingKick === $member->id)
+                            <span class="flex items-center gap-2 text-sm">Retirer {{ $member->first_name }} du groupe ?
+                                <button type="button" class="sys-label !text-alert" wire:click="kick({{ $member->id }})">Oui</button>
+                                <button type="button" class="sys-label" wire:click="cancel">Non</button></span>
+                        @else
+                            <button type="button" class="sys-label !text-alert" wire:click="askKick({{ $member->id }})">Retirer</button>
+                        @endif
                     @endif
                 </span>
             </div>
         @endforeach
-        <x-sys.button variant="ghost" class="mt-4" wire:click="leave">Quitter le groupe</x-sys.button>
+        @if ($confirmingLeave)
+            <div class="mt-4 border border-alert/50 p-3">
+                <p class="text-sm text-alert">{{ $members->count() === 1 ? 'Tu es le dernier membre : le groupe sera supprimé.' : ($isOwner ? 'Le rôle de créateur passera au membre le plus ancien.' : 'Tu pourras revenir avec le code.') }}</p>
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <x-sys.button variant="ghost" wire:click="cancel">Annuler</x-sys.button>
+                    <x-sys.button wire:click="leave">Quitter définitivement</x-sys.button>
+                </div>
+            </div>
+        @else
+            <x-sys.button variant="ghost" class="mt-4" wire:click="askLeave">Quitter le groupe</x-sys.button>
+        @endif
     </x-sys.window>
 
     @if ($isOwner)

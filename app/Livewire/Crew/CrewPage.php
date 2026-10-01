@@ -91,9 +91,9 @@ class CrewPage extends Component
         }
 
         if ($this->tab === 'membres') {
-            $needle = mb_strtolower(trim($this->search));
-            $data['members'] = User::orderBy('first_name')->get()
-                ->filter(fn (User $u) => $needle === '' || str_contains(mb_strtolower($u->first_name), $needle))->values();
+            $needle = mb_strtolower(\Illuminate\Support\Str::ascii(trim((string) $this->search)));
+            $data['members'] = User::all()->sortBy(fn (User $u) => Leaderboard::sortKey($u))
+                ->filter(fn (User $u) => $needle === '' || str_contains(Leaderboard::sortKey($u), $needle))->values();
         }
 
         return view('livewire.crew.crew-page', $data);

@@ -95,7 +95,7 @@ it('garde un joueur en pause dans le classement', function () {
 });
 
 it('formate les valeurs', function () {
-    expect(Leaderboard::format('xp', 1240))->toBe('1 240 XP')
+    expect(Leaderboard::format('xp', 1240))->toBe("1\u{202F}240 XP")
         ->and(Leaderboard::format('streak', 12))->toBe('12 j')
         ->and(Leaderboard::format('force', 1.35))->toBe('×1,35');
 });

@@ -21,6 +21,11 @@ class GroupPage extends Component
 
     public bool $confirmingDelete = false;
 
+    public bool $confirmingLeave = false;
+
+    #[Locked]
+    public ?int $confirmingKick = null;
+
     public function mount(Crew $crew): void
     {
         abort_unless($crew->hasMember(auth()->user()), 404);
@@ -47,6 +52,22 @@ class GroupPage extends Component
         $crews->regenerateCode(auth()->user(), $this->crew());
     }
 
+    public function askLeave(): void
+    {
+        $this->confirmingLeave = true;
+    }
+
+    public function askKick(int $userId): void
+    {
+        abort_unless($this->crew()->isOwnedBy(auth()->user()), 403);
+        $this->confirmingKick = $userId;
+    }
+
+    public function cancel(): void
+    {
+        [$this->confirmingLeave, $this->confirmingKick, $this->confirmingDelete] = [false, null, false];
+    }
+
     public function kick(int $userId, CrewService $crews): void
     {
         $crew = $this->crew();
@@ -54,6 +75,7 @@ class GroupPage extends Component
         $member = User::find($userId);
         abort_unless($member !== null, 404);
         $crews->kick(auth()->user(), $crew, $member);
+        $this->confirmingKick = null;
     }
 
     public function askDelete(): void

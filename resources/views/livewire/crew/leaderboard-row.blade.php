@@ -1,6 +1,6 @@
 <a href="{{ route('crew.member', $row['user']) }}" @class(['sys-row', 'bg-ice/10 px-2' => $row['user']->id === $me->id])>
     <span class="flex items-center gap-3">
-        <span @class(['sys-num w-10 text-right font-extrabold', 'text-ice [text-shadow:0_0_12px_var(--glow-ice)]' => $row['rank'] <= 3, 'text-mist' => $row['rank'] > 3])>{{ $row['rank'] }}{{ $row['rank'] === 1 ? 'ᵉʳ' : 'ᵉ' }}</span>
+        <span @class(['sys-num w-10 text-right font-extrabold', 'text-ice [text-shadow:0_0_12px_var(--glow-ice)]' => $row['rank'] <= 3, 'text-mist' => $row['rank'] > 3])>#{{ $row['rank'] }}</span>
         <span>
             <span class="font-semibold">{{ $row['user']->first_name }}</span>
             @if ($row['user']->isPaused()) <span class="sys-label">en pause</span> @endif

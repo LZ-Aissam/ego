@@ -56,7 +56,7 @@ it('filtre le classement sur un de mes groupes', function () {
 it('épingle ma ligne quand je suis hors du top 50', function () {
     User::factory()->count(50)->create()->each(fn ($u) => $u->forceFill(['streak_days' => 10])->save());
 
-    Livewire::test(CrewPage::class)->set('metric', 'streak')->assertSee('51ᵉ');
+    Livewire::test(CrewPage::class)->set('metric', 'streak')->assertSee('#51');
 });
 
 it('liste les membres avec recherche par prénom', function () {

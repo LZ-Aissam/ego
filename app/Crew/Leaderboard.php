@@ -31,7 +31,7 @@ final class Leaderboard
 
         $rows = $users->filter(fn (User $u) => $values->has($u->id))
             ->map(fn (User $u) => ['user' => $u, 'value' => $values[$u->id]])
-            ->sort(fn ($a, $b) => [$b['value'], $a['user']->first_name, $a['user']->id] <=> [$a['value'], $b['user']->first_name, $b['user']->id])
+            ->sort(fn ($a, $b) => [$b['value'], self::sortKey($a['user']), $a['user']->id] <=> [$a['value'], self::sortKey($b['user']), $b['user']->id])
             ->values();
 
         $previous = null;
@@ -47,12 +47,18 @@ final class Leaderboard
         });
     }
 
+    /** Prénom sans accents ni majuscules, pour départager les ex aequo comme on lit. */
+    public static function sortKey(User $user): string
+    {
+        return mb_strtolower(\Illuminate\Support\Str::ascii($user->first_name));
+    }
+
     public static function format(string $metric, int|float $value): string
     {
         return match ($metric) {
-            'xp' => number_format($value, 0, ',', ' ').' XP',
+            'xp' => number_format($value, 0, ',', "\u{202F}").' XP',
             'streak' => $value.' j',
-            'force' => '×'.number_format($value, 2, ',', ' '),
+            'force' => '×'.number_format($value, 2, ',', "\u{202F}"),
         };
     }
 

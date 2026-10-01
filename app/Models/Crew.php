@@ -55,6 +55,6 @@ class Crew extends Model
 
     public static function normalizeCode(string $code): string
     {
-        return strtoupper(preg_replace('/[\s\-]+/', '', $code));
+        return preg_replace('/[^A-Z0-9]/', '', strtoupper(\Illuminate\Support\Str::ascii($code)));
     }
 }
