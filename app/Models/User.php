@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -30,7 +32,36 @@ class User extends Authenticatable
             'days_per_week' => 'integer',
             'is_admin' => 'boolean',
             'xp_total' => 'integer',
+            'training_weekdays' => 'array',
+            'streak_days' => 'integer',
+            'best_streak' => 'integer',
+            'paused_at' => 'date',
+            'paused_until' => 'date',
         ];
+    }
+
+    public function programs(): HasMany
+    {
+        return $this->hasMany(Program::class);
+    }
+
+    public function activeProgram(): BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'active_program_id');
+    }
+
+    public function quests(): HasMany
+    {
+        return $this->hasMany(Quest::class);
+    }
+
+    public function isPaused(?CarbonInterface $day = null): bool
+    {
+        $day = ($day ?? now())->copy()->startOfDay();
+
+        return $this->paused_at !== null
+            && $day->gte($this->paused_at)
+            && ($this->paused_until === null || $day->lte($this->paused_until));
     }
 
     public function workouts(): HasMany
