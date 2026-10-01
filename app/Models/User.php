@@ -53,6 +53,11 @@ class User extends Authenticatable
         return $this->hasMany(UserTitle::class);
     }
 
+    public function equippedTitleName(): ?string
+    {
+        return $this->equipped_title ? \App\Game\Titles::name($this->equipped_title) : null;
+    }
+
     public function bmi(): ?float
     {
         if (! $this->height_cm || ! $this->weight_kg) {
