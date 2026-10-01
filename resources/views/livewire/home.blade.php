@@ -39,6 +39,12 @@
         @endif
         <span class="sys-label">Crew →</span>
     </a>
+    @foreach ($myChallenges as ['challenge' => $c, 'rank' => $rank])
+        <a href="{{ route('crew.challenge', $c) }}" class="sys-row sys-num text-sm">
+            <span>{{ $c->title() }} · {{ $rank ? 'tu es '.$rank.($rank === 1 ? 'ᵉʳ' : 'ᵉ') : 'pas encore classé' }} · {{ \App\Crew\ChallengeBoard::remaining($c->ends_at) }}</span>
+            <span class="sys-label">Défi →</span>
+        </a>
+    @endforeach
 
     @if ($penalty && $penalty->status !== 'cancelled')
         <x-sys.window title="PÉNALITÉ" variant="alert" :index="1">

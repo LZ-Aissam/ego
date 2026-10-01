@@ -8,7 +8,7 @@ use Livewire\Component;
 #[Title('Accueil')]
 class Home extends Component
 {
-    public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board)
+    public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board, \App\Crew\ChallengeBoard $challengeBoard)
     {
         $user = auth()->user();
         $todayQuests = $user->quests()->where('date', today()->toDateString())->get()->keyBy('type');
@@ -28,6 +28,8 @@ class Home extends Component
             'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
             'needsCalibration' => $user->calibrated_at === null && $user->active_program_id !== null
                 && ($todayQuests['calibration'] ?? null)?->status !== 'pending',
+            'myChallenges' => $user->challenges()->with('crew')->where('status', 'active')->get()
+                ->map(fn ($c) => ['challenge' => $c, 'rank' => $challengeBoard->compute($c)->firstWhere('user_id', $user->id)['rank'] ?? null]),
             'weekRank' => $board->rank('xp', 'week')->first(fn ($r) => $r['user']->id === $user->id && $r['value'] > 0)['rank'] ?? null,
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
             'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),
