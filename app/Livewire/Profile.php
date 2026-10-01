@@ -18,6 +18,10 @@ class Profile extends Component
 
     public ?string $pauseUntil = null;
 
+    public bool $confirmingReset = false;
+
+    public string $resetConfirm = '';
+
     public function mount(): void
     {
         $user = auth()->user();
@@ -78,6 +82,27 @@ class Profile extends Component
         $notifier->push($user, \App\Support\SystemMessage::pauseOff());
 
         return $this->redirectRoute('profile');
+    }
+
+    public function askReset(): void
+    {
+        $this->confirmingReset = true;
+        $this->resetConfirm = '';
+    }
+
+    /** Remise à zéro définitive : il faut taper « EFFACER ». */
+    public function resetEverything(\App\Services\AccountReset $reset)
+    {
+        if (mb_strtoupper(trim($this->resetConfirm)) !== 'EFFACER') {
+            $this->addError('resetConfirm', 'Tape EFFACER pour confirmer.');
+
+            return null;
+        }
+
+        $reset->reset(auth()->user());
+        session()->put('clear_local_workouts', true);
+
+        return $this->redirectRoute('program');
     }
 
     public function equipTitle(string $key): void

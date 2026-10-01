@@ -125,6 +125,20 @@
         @endforeach
     </x-sys.window>
 
+    <x-sys.window title="ZONE DANGEREUSE" variant="alert" :index="3">
+        @if ($confirmingReset)
+            <p class="text-sm">Tout sera effacé : séances, records, profil de force, XP, niveau, titres, série, quêtes, charges et programme. Ton compte, ta morphologie et tes groupes sont gardés. <span class="font-bold text-alert">C'est définitif.</span></p>
+            <x-sys.field name="resetConfirm" label="Tape EFFACER pour confirmer" wire:model="resetConfirm" autocomplete="off" autocapitalize="characters" />
+            <div class="mt-3 grid grid-cols-2 gap-2">
+                <x-sys.button variant="ghost" wire:click="$set('confirmingReset', false)">Annuler</x-sys.button>
+                <x-sys.button class="!bg-alert !text-void" wire:click="resetEverything" wire:loading.attr="disabled">Tout effacer</x-sys.button>
+            </div>
+        @else
+            <p class="text-sm text-mist">Repartir de zéro : efface toute ta progression.</p>
+            <x-sys.button variant="ghost" class="mt-3 !text-alert" wire:click="askReset">Réinitialiser mes stats</x-sys.button>
+        @endif
+    </x-sys.window>
+
     <form method="POST" action="{{ route('logout') }}">
         @csrf
         <x-sys.button type="submit" variant="ghost">Se déconnecter</x-sys.button>

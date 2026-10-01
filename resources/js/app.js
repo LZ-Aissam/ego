@@ -27,6 +27,17 @@ if ('serviceWorker' in navigator) {
 const userId = () => document.body.dataset.userId;
 const userStore = () => createStore(window.localStorage, userId());
 
+// Après une réinitialisation : oublier la séance en cours et les séances en attente de ce joueur sur ce téléphone.
+if (document.body.dataset.clearLocal && userId()) {
+    try {
+        const store = userStore();
+        store.clearActive();
+        for (const p of store.pending()) store.removePending(p.client_id);
+    } catch {
+        // Stockage indisponible : rien à oublier.
+    }
+}
+
 function updateOfflineBanner() {
     const banner = document.getElementById('offline-banner');
     if (banner) banner.hidden = navigator.onLine;

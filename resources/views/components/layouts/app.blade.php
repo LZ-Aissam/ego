@@ -16,7 +16,7 @@
         <meta name="ego-no-cache" content="1">
     @endif
 </head>
-<body class="sys-body min-h-full antialiased" data-user-id="{{ auth()->id() }}">
+<body class="sys-body min-h-full antialiased" data-user-id="{{ auth()->id() }}" @if (session()->pull('clear_local_workouts')) data-clear-local="1" @endif>
     @include('partials.backdrop')
 
     <div id="offline-banner" hidden class="sys-banner sys-banner--amber">Hors ligne — ta séance sera synchronisée</div>
