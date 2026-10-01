@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     addExercise, addRest, adjustDraft, createStore, finishWorkout, goTo, hasSets,
-    logSet, newWorkout, removeLastSet, skipRest, toNumber, toPayload, uuid,
+    logSet, newWorkout, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
 } from './store';
 
 function memoryStorage() {
@@ -135,5 +135,20 @@ describe('stockage', () => {
         expect(store.loadActive()).toBeNull();
         store.removePending('abc');
         expect(store.pending()).toEqual([]);
+    });
+});
+
+describe('restProgress', () => {
+    it('donne la fraction de repos restante, bornée entre 0 et 1, même après +30 s', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 90 });
+        expect(restProgress(s, 0)).toBe(0);
+        s = logSet(s, 0);
+        expect(restProgress(s, 0)).toBe(1);
+        expect(restProgress(s, 45_000)).toBe(0.5);
+        s = addRest(s, 30, 45_000);
+        expect(restProgress(s, 45_000)).toBeCloseTo(75 / 120);
+        expect(restProgress(s, 999_999)).toBe(0);
+        s = skipRest(s);
+        expect(restProgress(s, 0)).toBe(0);
     });
 });

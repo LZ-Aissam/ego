@@ -20,7 +20,7 @@ export function toNumber(value) {
 const round2 = (n) => Math.round(n * 100) / 100;
 
 export function newWorkout(clientId, startedAtIso) {
-    return { clientId, startedAt: startedAtIso, currentIndex: 0, restEndsAt: null, exercises: [] };
+    return { clientId, startedAt: startedAtIso, currentIndex: 0, restEndsAt: null, restTotalMs: null, exercises: [] };
 }
 
 export function addExercise(state, exercise, { lastTime = null, suggestedKg = null, restSeconds }) {
@@ -62,6 +62,7 @@ export function logSet(state, nowMs) {
         doneAt: new Date(nowMs).toISOString(),
     });
     state.restEndsAt = nowMs + ex.restSeconds * 1000;
+    state.restTotalMs = ex.restSeconds * 1000;
     return state;
 }
 
@@ -72,12 +73,19 @@ export function removeLastSet(state) {
 
 export function skipRest(state) {
     state.restEndsAt = null;
+    state.restTotalMs = null;
     return state;
 }
 
 export function addRest(state, seconds, nowMs) {
     state.restEndsAt = Math.max(state.restEndsAt ?? nowMs, nowMs) + seconds * 1000;
+    state.restTotalMs = (state.restTotalMs ?? 0) + seconds * 1000;
     return state;
+}
+
+export function restProgress(state, nowMs) {
+    if (!state.restEndsAt || !state.restTotalMs) return 0;
+    return Math.min(1, Math.max(0, (state.restEndsAt - nowMs) / state.restTotalMs));
 }
 
 export function goTo(state, index) {
