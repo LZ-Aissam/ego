@@ -103,6 +103,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Crew::class)->withPivot('joined_at');
     }
 
+    public function challenges(): BelongsToMany
+    {
+        return $this->belongsToMany(Challenge::class)->withPivot('joined_at');
+    }
+
     /** @return array{level: int, rank: string, into: int, needed: int} */
     public function player(): array
     {

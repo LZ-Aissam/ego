@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Crew extends Model
 {
@@ -24,6 +25,11 @@ class Crew extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withPivot('joined_at');
+    }
+
+    public function challenges(): HasMany
+    {
+        return $this->hasMany(Challenge::class);
     }
 
     public function isOwnedBy(User $user): bool
