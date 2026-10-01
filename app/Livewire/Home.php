@@ -22,7 +22,7 @@ class Home extends Component
         $user->forceFill(['calibration_snoozed_until' => today()->addDays(6)])->save();
     }
 
-    public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler)
+    public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board)
     {
         $user = auth()->user();
         $todayQuests = $user->quests()->where('date', today()->toDateString())->get()->keyBy('type');
@@ -40,6 +40,7 @@ class Home extends Component
             'penalty' => $todayQuests['penalty'] ?? null,
             'questProgress' => $questProgress($todayQuests['training'] ?? $todayQuests['calibration'] ?? null),
             'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
+            'weekRank' => $board->rank('xp', 'week')->first(fn ($r) => $r['user']->id === $user->id && $r['value'] > 0)['rank'] ?? null,
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
             'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),
             'perDumbbell' => \App\Models\Exercise::all()->filter->isPerDumbbell()->modelKeys(),

@@ -24,6 +24,15 @@
         </div>
     </x-sys.window>
 
+    <a href="{{ route('community') }}" class="sys-row sys-num text-sm">
+        @if ($weekRank)
+            <span>Classement de la semaine : tu es {{ $weekRank }}{{ $weekRank === 1 ? 'ᵉʳ' : 'ᵉ' }}</span>
+        @else
+            <span class="text-mist">Gagne de l'XP pour entrer au classement</span>
+        @endif
+        <span class="sys-label">Crew →</span>
+    </a>
+
     @if ($penalty && $penalty->status !== 'cancelled')
         <x-sys.window title="PÉNALITÉ" variant="alert" :index="1">
             <p class="mb-2 text-sm text-mist">Quête d'hier non accomplie. Termine ce circuit avant minuit pour sauver ta série.</p>
