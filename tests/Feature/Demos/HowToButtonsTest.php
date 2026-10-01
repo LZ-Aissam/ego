@@ -36,3 +36,13 @@ it('fournit la fiche de chaque exercice à l\'écran de séance', function () {
     expect($bench['guide'])->toBe(ExerciseGuide::for('bench-press'));
     $this->get(route('workout'))->assertOk()->assertSee('Comment faire ?')->assertSee('openDemo(', false);
 });
+
+it("place la fenêtre « Comment faire ? » de la séance dans le composant de séance, qui sait quel exercice montrer", function () {
+    $html = $this->get(route('workout'))->assertOk()->getContent();
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="utf-8">'.$html);
+    $workout = (new DOMXPath($dom))->query('//div[@x-data="workout"]')->item(0);
+
+    expect($workout)->not->toBeNull()
+        ->and((new DOMXPath($dom))->query('.//template[@x-teleport="body"]', $workout)->length)->toBe(1);
+});
