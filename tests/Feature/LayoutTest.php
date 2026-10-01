@@ -22,6 +22,5 @@ it('expose l\'identifiant de l\'utilisateur connecté pour ranger ses séances l
 it('affiche les pages à venir', function (string $url, string $text) {
     $this->get($url)->assertOk()->assertSee($text);
 })->with([
-    ['/program', 'générateur de programmes'],
     ['/community', 'Crew'],
 ]);

@@ -42,6 +42,11 @@ final class SystemMessage
         return self::make('rank_up', 'RANG '.$rank, ['TON EGO te reconnaît comme chasseur de rang '.$rank.'.'], highlight: 'RANG '.$rank);
     }
 
+    public static function programForged(string $name): array
+    {
+        return self::make('program', 'PROGRAMME FORGÉ', [$name, 'TON EGO t\'assignera ta première quête dès aujourd\'hui.']);
+    }
+
     public static function title(string $key): array
     {
         return self::make('title', 'TITRE DÉBLOQUÉ', [Titles::name($key) ?? $key, Titles::CATALOG[$key]['condition'] ?? '']);

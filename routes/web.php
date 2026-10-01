@@ -8,6 +8,7 @@ use App\Livewire\Auth\Register;
 use App\Livewire\History;
 use App\Livewire\Home;
 use App\Livewire\Profile;
+use App\Livewire\ProgramPage;
 use App\Livewire\Progress;
 use App\Livewire\Records;
 use App\Livewire\WorkoutShow;
@@ -20,10 +21,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/', Home::class)->name('home');
-    Route::view('/program', 'pages.soon', [
-        'title' => 'Programme',
-        'message' => 'Le générateur de programmes arrive à la prochaine étape.',
-    ])->name('program');
+    Route::get('/program', ProgramPage::class)->name('program');
     Route::view('/community', 'pages.soon', [
         'title' => 'Crew',
         'message' => 'Le Crew débarque bientôt : records des amis, classement, défis et groupes.',
