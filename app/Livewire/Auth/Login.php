@@ -34,7 +34,7 @@ class Login extends Component
         Auth::login($user, remember: true);
         session()->regenerate();
 
-        return $this->redirectRoute('home');
+        return $this->redirectIntended(route('home'));
     }
 
     public function render()
