@@ -11,6 +11,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
+// Présent uniquement sur les pages d'un utilisateur connecté (layout app).
+const userId = () => document.body.dataset.userId;
+const userStore = () => createStore(window.localStorage, userId());
+
 function updateOfflineBanner() {
     const banner = document.getElementById('offline-banner');
     if (banner) banner.hidden = navigator.onLine;
@@ -18,14 +22,22 @@ function updateOfflineBanner() {
 
 function syncPending() {
     const token = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (!token || !document.body.dataset.auth || !navigator.onLine) return;
-    flushPending(createStore(window.localStorage), (p) => sendWorkout(p, { token }));
+    if (!token || !userId() || !navigator.onLine) return;
+    flushPending(userStore(), (p) => sendWorkout(p, { token }));
 }
 
 function showResumeBanner() {
     const banner = document.getElementById('resume-banner');
-    if (banner && createStore(window.localStorage).loadActive()) banner.hidden = false;
+    if (banner && userId() && userStore().loadActive()) banner.hidden = false;
 }
+
+// À la déconnexion, on vide le cache des pages pour que le compte suivant ne voie pas celles-ci hors ligne.
+// Les séances non envoyées restent rangées sous l'identifiant de leur propriétaire.
+document.addEventListener('submit', (event) => {
+    if (event.target.matches('form[action$="/logout"]') && 'caches' in window) {
+        caches.delete('ego-v1');
+    }
+});
 
 window.addEventListener('online', () => { updateOfflineBanner(); syncPending(); });
 window.addEventListener('offline', updateOfflineBanner);

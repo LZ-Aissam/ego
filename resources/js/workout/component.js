@@ -26,7 +26,7 @@ export default function workout() {
 
         init() {
             this.boot = JSON.parse(document.getElementById('workout-boot').textContent);
-            this.store = createStore(window.localStorage);
+            this.store = createStore(window.localStorage, document.body.dataset.userId);
             this.state = this.store.loadActive() ?? newWorkout(uuid(), new Date().toISOString());
             this.picking = this.state.exercises.length === 0;
             this.persist();

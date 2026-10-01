@@ -106,6 +106,18 @@ describe('stockage', () => {
         expect(store.loadActive()).toBeNull();
     });
 
+    it('sépare les séances de chaque utilisateur sur un même appareil', () => {
+        const storage = memoryStorage();
+        const alice = createStore(storage, 1);
+        const bob = createStore(storage, 2);
+        alice.saveActive(addExercise(newWorkout('a', 't'), bench, { restSeconds: 90 }));
+        alice.queuePending({ client_id: 'a' });
+
+        expect(bob.loadActive()).toBeNull();
+        expect(bob.pending()).toEqual([]);
+        expect(alice.pending()).toHaveLength(1);
+    });
+
     it('ignore un contenu corrompu', () => {
         const storage = memoryStorage();
         storage.setItem('ego.activeWorkout', '{pas du json');

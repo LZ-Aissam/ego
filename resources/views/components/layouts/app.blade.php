@@ -12,7 +12,7 @@
 <head>
     @include('partials.head', ['title' => $title])
 </head>
-<body class="min-h-full bg-zinc-950 text-zinc-100 antialiased" data-auth="1">
+<body class="min-h-full bg-zinc-950 text-zinc-100 antialiased" data-user-id="{{ auth()->id() }}">
     <div id="offline-banner" hidden class="sticky top-0 z-30 bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-zinc-950">
         Hors ligne — ta séance sera synchronisée
     </div>

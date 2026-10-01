@@ -112,19 +112,25 @@ function readJson(storage, key, fallback) {
     }
 }
 
-export function createStore(storage) {
+// userId : les séances sont rangées par utilisateur, pour qu'un autre compte connecté
+// sur le même appareil ne reprenne ni n'envoie la séance de quelqu'un d'autre.
+export function createStore(storage, userId = null) {
+    const suffix = userId === null ? '' : `.${userId}`;
+    const activeKey = ACTIVE_KEY + suffix;
+    const pendingKey = PENDING_KEY + suffix;
+
     return {
-        loadActive: () => readJson(storage, ACTIVE_KEY, null),
-        saveActive: (state) => storage.setItem(ACTIVE_KEY, JSON.stringify(state)),
-        clearActive: () => storage.removeItem(ACTIVE_KEY),
-        pending: () => readJson(storage, PENDING_KEY, []),
+        loadActive: () => readJson(storage, activeKey, null),
+        saveActive: (state) => storage.setItem(activeKey, JSON.stringify(state)),
+        clearActive: () => storage.removeItem(activeKey),
+        pending: () => readJson(storage, pendingKey, []),
         queuePending(payload) {
             const list = this.pending().filter((p) => p.client_id !== payload.client_id);
             list.push(payload);
-            storage.setItem(PENDING_KEY, JSON.stringify(list));
+            storage.setItem(pendingKey, JSON.stringify(list));
         },
         removePending(clientId) {
-            storage.setItem(PENDING_KEY, JSON.stringify(this.pending().filter((p) => p.client_id !== clientId)));
+            storage.setItem(pendingKey, JSON.stringify(this.pending().filter((p) => p.client_id !== clientId)));
         },
     };
 }
