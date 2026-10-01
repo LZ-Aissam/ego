@@ -116,11 +116,18 @@ it('propose de refaire le test après un nouveau programme quand on est déjà c
         ->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE');
 });
 
-it('ferme la proposition de test avec « Plus tard »', function () {
+it('ferme la proposition de test avec « Plus tard » quand on est déjà calibré', function () {
+    $this->user->forceFill(['calibrated_at' => now()])->save();
     answerQuestionnaire(Livewire::test(ProgramPage::class))->call('generate');
 
-    Livewire::test(ProgramPage::class)->assertSet('justForged', true)
-        ->call('dismissTest')->assertSet('justForged', false)->assertDontSee('TON EGO DOIT MESURER TA PUISSANCE');
+    Livewire::test(ProgramPage::class)->assertSet('justForged', true)->assertSee('Plus tard')
+        ->call('dismissTest')->assertSet('justForged', false)->assertDontSee('TEST DE PUISSANCE');
+});
+
+it("impose le test sans « Plus tard » quand on n'est pas calibré", function () {
+    answerQuestionnaire(Livewire::test(ProgramPage::class))->call('generate');
+
+    Livewire::test(ProgramPage::class)->assertSee('Tester maintenant')->assertDontSee('Plus tard');
 });
 
 it('ne propose pas le test lors d\'une simple visite', function () {

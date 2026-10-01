@@ -24,6 +24,13 @@
         </div>
     </x-sys.window>
 
+    @if ($needsCalibration)
+        <x-sys.window title="TON EGO DOIT MESURER TA PUISSANCE" variant="alert" :index="1">
+            <p class="text-sm text-mist">Sans ce test, TON EGO ne connaît pas tes charges de départ et ne peut pas suivre ta progression : 3 ou 4 mouvements, environ 15 minutes.</p>
+            <x-sys.button class="mt-3" :pulse="true" :href="route('calibration')">Lancer le test</x-sys.button>
+        </x-sys.window>
+    @endif
+
     <a href="{{ route('community') }}" class="sys-row sys-num text-sm">
         @if ($weekRank)
             <span>Classement de la semaine : tu es {{ $weekRank }}{{ $weekRank === 1 ? 'ᵉʳ' : 'ᵉ' }}</span>
@@ -68,9 +75,6 @@
             <p class="sys-num mt-2 text-center text-xs text-mist">Récompense : +{{ $quest->status === 'done' ? $quest->xp_awarded : $reward }} XP · avant minuit</p>
             @if ($quest->status === 'pending')
                 <x-sys.button class="mt-3" :pulse="true" :href="$quest->type === 'calibration' ? route('calibration.quest', $quest) : route('workout.quest', $quest)">Accepter la quête</x-sys.button>
-                @if ($quest->type === 'calibration')
-                    <button type="button" class="sys-label mt-2 block w-full text-center" wire:click="postponeCalibration">Plus tard · faire la séance du programme</button>
-                @endif
             @elseif ($quest->status === 'done')
                 <p class="mt-3 text-center font-bold text-ice">QUÊTE ACCOMPLIE ✓</p>
             @endif

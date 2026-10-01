@@ -8,20 +8,6 @@ use Livewire\Component;
 #[Title('Accueil')]
 class Home extends Component
 {
-    /** « Plus tard » : la quête de calibrage du jour devient la séance du programme ; TON EGO redemande dans une semaine. */
-    public function postponeCalibration(): void
-    {
-        $user = auth()->user();
-        $quest = $user->quests()->where('date', today()->toDateString())->where('type', 'calibration')->where('status', 'pending')->first();
-        $programDay = $quest ? \App\Models\ProgramDay::find($quest->program_day_id) : null;
-        if (! $programDay) {
-            return;
-        }
-
-        $quest->update(['type' => 'training', 'title' => $programDay->name, 'objectives' => $programDay->objectives()]);
-        $user->forceFill(['calibration_snoozed_until' => today()->addDays(6)])->save();
-    }
-
     public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board)
     {
         $user = auth()->user();
@@ -40,6 +26,8 @@ class Home extends Component
             'penalty' => $todayQuests['penalty'] ?? null,
             'questProgress' => $questProgress($todayQuests['training'] ?? $todayQuests['calibration'] ?? null),
             'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
+            'needsCalibration' => $user->calibrated_at === null && $user->active_program_id !== null
+                && ($todayQuests['calibration'] ?? null)?->status !== 'pending',
             'weekRank' => $board->rank('xp', 'week')->first(fn ($r) => $r['user']->id === $user->id && $r['value'] > 0)['rank'] ?? null,
             'reward' => $scheduler->rewardFor((int) $user->streak_days),
             'loads' => $user->workingLoads()->pluck('target_kg', 'exercise_id'),

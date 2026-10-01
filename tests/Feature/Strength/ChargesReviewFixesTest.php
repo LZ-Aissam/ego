@@ -5,7 +5,6 @@ use App\Game\CalibrationPlan;
 use App\Game\LoadPrescriber;
 use App\Game\QuestScheduler;
 use App\Livewire\CalibrationPage;
-use App\Livewire\Home;
 use App\Livewire\ProgramPage;
 use App\Models\Exercise;
 use App\Models\Quest;
@@ -116,28 +115,4 @@ it('précise « par haltère » pour les charges aux haltères', function () {
         'objectives' => $user->activeProgram->days->first()->objectives()]);
     $plan = app(WorkoutBootData::class)->forQuest($user->fresh(), $quest)['plan'];
     expect(collect($plan)->firstWhere('perDumbbell', true))->not->toBeNull();
-});
-
-it('laisse repousser le calibrage : la quête devient la séance du jour, et revient une semaine plus tard', function () {
-    $user = User::factory()->withMorphology()->create();
-    reviewProgram($user);
-    app(QuestScheduler::class)->sync($user, now());
-    $quest = Quest::sole();
-    $this->actingAs($user);
-
-    Livewire::test(Home::class)->assertSee('Plus tard')->call('postponeCalibration');
-
-    $quest->refresh();
-    $programDay = \App\Models\ProgramDay::find($quest->program_day_id);
-    expect($quest->type)->toBe('training')
-        ->and($quest->title)->toBe($programDay->name)
-        ->and($quest->objectives)->toBe($programDay->objectives());
-
-    $this->travelTo(Carbon::parse('2026-10-07 10:00'));              // mercredi
-    app(QuestScheduler::class)->sync($user->fresh(), now());
-    expect(Quest::whereDate('date', '2026-10-07')->value('type'))->toBe('training');
-
-    $this->travelTo(Carbon::parse('2026-10-12 10:00'));              // lundi suivant
-    app(QuestScheduler::class)->sync($user->fresh(), now());
-    expect(Quest::whereDate('date', '2026-10-12')->value('type'))->toBe('calibration');
 });

@@ -83,7 +83,9 @@
                     @endif
                 </p>
                 <x-sys.button class="mt-3" :pulse="true" :href="route('calibration')">Tester maintenant</x-sys.button>
-                <button type="button" class="sys-label mt-2 block w-full text-center" wire:click="dismissTest">Plus tard</button>
+                @if (auth()->user()->calibrated_at)
+                    <button type="button" class="sys-label mt-2 block w-full text-center" wire:click="dismissTest">Plus tard</button>
+                @endif
             </x-sys.window>
         @endif
         <x-sys.label>Programme</x-sys.label>

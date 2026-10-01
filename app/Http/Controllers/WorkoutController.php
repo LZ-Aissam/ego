@@ -15,6 +15,7 @@ class WorkoutController extends Controller
     public function quest(Request $request, \App\Models\Quest $quest, WorkoutBootData $bootData)
     {
         abort_unless($quest->user_id === $request->user()->id, 403);
+        $quest->refresh();                  // chargée avant SyncQuests, qui a pu la changer en calibrage
 
         if ($quest->type === 'calibration') {
             return redirect()->route('calibration.quest', $quest);

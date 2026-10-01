@@ -133,6 +133,12 @@ final class QuestScheduler
             }
         }
 
+        // Pas encore calibré : le test passe avant tout entraînement, même si la séance du jour existait déjà.
+        if ($user->calibrated_at === null) {
+            $user->quests()->where('date', $upTo->toDateString())->where('type', 'training')->where('status', 'pending')
+                ->update(['type' => 'calibration', 'title' => 'Calibrage', 'objectives' => json_encode($this->calibrationPlan->objectives($user))]);
+        }
+
         return $notes;
     }
 
@@ -158,8 +164,7 @@ final class QuestScheduler
 
         if (in_array($day->isoWeekday(), $user->training_weekdays ?? [], true)) {
             $programDay = $this->nextProgramDay($user, $program);
-            $calibrating = $user->calibrated_at === null
-                && ($user->calibration_snoozed_until === null || $day->gt($user->calibration_snoozed_until));
+            $calibrating = $user->calibrated_at === null;
             $quest = $user->quests()->create([
                 'date' => $day->toDateString(),
                 'type' => $calibrating ? 'calibration' : 'training',
@@ -185,6 +190,11 @@ final class QuestScheduler
     private function completeIfAccomplished(User $user, Quest $quest, Collection $sets): array
     {
         if (! in_array($quest->status, ['pending', 'failed'], true) || ! $this->evaluator->isAccomplished($quest->objectives, $sets)) {
+            return [];
+        }
+
+        // Seul le vrai test valide le calibrage (Calibration::complete enregistre calibrated_at avant cette étape).
+        if ($quest->type === 'calibration' && $user->calibrated_at === null) {
             return [];
         }
 
