@@ -94,6 +94,12 @@ final class SystemMessage
         return self::make('add_weight', 'LESTE-TOI', [$exercise, 'Ajoute 2,5 kg de lest la prochaine fois.']);
     }
 
+    /** @param list<string> $lines */
+    public static function powerMeasured(array $lines): array
+    {
+        return self::make('power', 'PUISSANCE MESURÉE', $lines, highlight: 'CALIBRAGE');
+    }
+
     public static function title(string $key): array
     {
         return self::make('title', 'TITRE DÉBLOQUÉ', [Titles::name($key) ?? $key, Titles::CATALOG[$key]['condition'] ?? '']);
