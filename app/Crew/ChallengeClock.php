@@ -15,7 +15,9 @@ final class ChallengeClock
 
     public function tick(User $user): void
     {
-        $user->challenges()->whereIn('status', ['upcoming', 'active'])->where('starts_at', '<=', now())->pluck('challenges.id')
+        // Tous les défis de ses groupes, même ceux qu'il n'a pas rejoints : un défi avance dès qu'un membre ouvre l'app.
+        Challenge::whereIn('crew_id', $user->crews()->pluck('crews.id'))->whereIn('status', ['upcoming', 'active'])
+            ->where('starts_at', '<=', now())->pluck('id')
             ->each(fn (int $id) => $this->advance($id));
     }
 

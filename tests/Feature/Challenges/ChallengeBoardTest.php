@@ -108,3 +108,12 @@ it('formate les valeurs et le temps restant', function () {
         ->and(ChallengeBoard::remaining(now()->addHours(5)->addMinutes(10)))->toBe('encore 5 h')
         ->and(ChallengeBoard::remaining(now()->addMinutes(12)))->toBe('encore 12 min');
 });
+
+it("ne compte pas en force une séance faite après la fin, même clos en retard", function () use ($rows) {
+    $c = challengeFor($this, 'strength', 'bench');                                       // du 12 au 19 octobre
+    liftOn($this->ana, '2026-10-01 18:00', [['bench-press', 100, 5]]);
+    liftOn($this->ana, '2026-10-14 18:00', [['bench-press', 100, 5]]);
+    liftOn($this->ana, '2026-10-20 18:00', [['bench-press', 130, 5]]);                   // après la fin
+
+    expect($rows($this->board->compute($c)))->toBe([['Ana', 0, 1]]);
+});

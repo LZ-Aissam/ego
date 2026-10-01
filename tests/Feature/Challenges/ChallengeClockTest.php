@@ -74,3 +74,24 @@ it('avance les défis à chaque page ouverte', function () {
 
     expect($this->challenge->fresh()->status)->toBe('active');
 });
+
+it("fait avancer les défis du groupe même pour un membre qui n'y participe pas", function () {
+    $watcher = User::factory()->create();
+    app(CrewService::class)->join($watcher, $this->challenge->crew->code);
+
+    $this->travelTo(Carbon::parse('2026-10-16 09:00'));
+    $this->clock->tick($watcher);
+
+    expect($this->challenge->fresh()->status)->toBe('finished');
+});
+
+it("annule les défis à venir d'un créateur qui quitte le groupe et libère la place", function () {
+    $crew = $this->challenge->crew;
+    app(CrewService::class)->leave($this->ana, $crew);
+
+    expect($this->challenge->fresh()->status)->toBe('cancelled');
+    foreach (range(1, 3) as $i) {
+        app(ChallengeService::class)->create($this->bob, $crew->fresh(), 'xp', null, '1w', null);
+    }
+    expect($crew->challenges()->where('status', 'upcoming')->count())->toBe(3);
+});

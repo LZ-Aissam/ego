@@ -35,7 +35,7 @@ final class ChallengeBoard
             'xp' => $this->xp($users, $from, $to),
             'sessions' => $this->workouts($users, $from, $to)->map->count(),
             'volume' => $this->workouts($users, $from, $to)->map(fn (Collection $ws) => round((float) $ws->sum(fn (Workout $w) => $w->volume()), 1)),
-            'strength' => $this->strength($users, $challenge->lift, $from),
+            'strength' => $this->strength($users, $challenge->lift, $from, $to),
         };
 
         if ($challenge->metric !== 'strength') {
@@ -96,20 +96,21 @@ final class ChallengeBoard
     }
 
     /** Gain en % du meilleur 1RM estimé pendant le défi sur le meilleur d'avant ; non classé sans l'un des deux. */
-    private function strength(Collection $users, ?string $lift, Carbon $from): Collection
+    private function strength(Collection $users, ?string $lift, Carbon $from, Carbon $to): Collection
     {
         $exerciseId = Exercise::where('slug', Leaderboard::LIFTS[$lift] ?? 'bench-press')->value('id');
         $sets = WorkoutSet::with('workout', 'exercise')->where('exercise_id', $exerciseId)
             ->whereHas('workout', fn ($q) => $q->whereIn('user_id', $users->modelKeys()))->get()
             ->groupBy(fn (WorkoutSet $s) => $s->workout->user_id);
 
-        return $users->mapWithKeys(function (User $u) use ($sets, $from) {
+        return $users->mapWithKeys(function (User $u) use ($sets, $from, $to) {
             $mine = $sets[$u->id] ?? collect();
             $best = fn (Collection $list) => $list->max(fn (WorkoutSet $s) => $this->calc->estimatedOneRepMax(
                 $this->calc->effectiveLoad($s->weight_kg, $s->exercise->is_bodyweight, $s->workout->bodyweight_kg), $s->reps,
             ));
             $before = $best($mine->filter(fn (WorkoutSet $s) => $s->workout->finished_at->lt($from)));
-            $during = $best($mine->filter(fn (WorkoutSet $s) => $s->workout->finished_at->gte($from)));
+            // Fin exclue : une séance faite après la fin ne compte pas, même si la clôture arrive en retard.
+            $during = $best($mine->filter(fn (WorkoutSet $s) => $s->workout->finished_at->gte($from) && $s->workout->finished_at->lt($to)));
 
             return $before && $during ? [$u->id => (int) round(($during - $before) / $before * 100)] : [];
         });

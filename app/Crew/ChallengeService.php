@@ -77,9 +77,10 @@ final class ChallengeService
         $challenge->update(['status' => 'cancelled']);
     }
 
-    /** Départ du groupe : retrait des défis du groupe qui ne sont pas terminés. */
+    /** Départ du groupe : ses défis à venir sont annulés, et il est retiré des défis non terminés. */
     public function leaveCrew(User $user, Crew $crew): void
     {
+        $crew->challenges()->where('status', 'upcoming')->where('creator_id', $user->id)->update(['status' => 'cancelled']);
         $crew->challenges()->whereIn('status', ['upcoming', 'active'])->get()
             ->each(fn (Challenge $c) => $c->participants()->detach($user->id));
     }
