@@ -5,6 +5,8 @@ namespace App\Game;
 use App\Models\Exercise;
 use App\Models\ProgramExercise;
 use App\Models\User;
+use App\Models\Workout;
+use App\Models\WorkoutSet;
 use App\Services\StartingLoad;
 use Illuminate\Support\Collection;
 
@@ -70,5 +72,60 @@ final class LoadPrescriber
 
             $user->workingLoads()->updateOrCreate(['exercise_id' => $exerciseId], ['target_kg' => $target, 'fail_streak' => 0]);
         }
+    }
+
+    /** Double progression après une séance. @return list<array> notifications */
+    public function progress(User $user, Workout $workout): array
+    {
+        $plan = $this->planLines($user);
+        if ($plan->isEmpty()) {
+            return [];
+        }
+
+        $loads = $user->workingLoads()->get()->keyBy('exercise_id');
+        $notes = [];
+
+        foreach ($workout->sets->groupBy('exercise_id') as $exerciseId => $sets) {
+            $line = $plan[$exerciseId] ?? null;
+            if (! $line) {
+                continue;
+            }
+
+            if ($line->exercise->is_bodyweight) {
+                if ($sets->count() >= $line->sets && $sets->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max + 5)) {
+                    $notes[] = \App\Support\SystemMessage::addWeight($line->exercise->name);
+                }
+                continue;
+            }
+
+            $load = $loads[$exerciseId] ?? null;
+            if (! $load) {
+                continue;
+            }
+
+            $kept = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $load->target_kg);
+            if ($kept->isEmpty()) {
+                continue;
+            }
+
+            if ($kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min)) {
+                $load->fail_streak += 1;
+                if ($load->fail_streak >= 2) {
+                    $load->target_kg = max(2.5, round($load->target_kg * 0.9 / 2.5) * 2.5);
+                    $load->fail_streak = 0;
+                    $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
+                }
+            } elseif ($kept->count() >= $line->sets && $kept->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max)) {
+                $load->target_kg += in_array($line->slot, self::LOWER_BODY_SLOTS, true) ? 5.0 : 2.5;
+                $load->fail_streak = 0;
+                $notes[] = \App\Support\SystemMessage::loadUp($line->exercise->name, $load->target_kg);
+            } else {
+                $load->fail_streak = 0;
+            }
+
+            $load->save();
+        }
+
+        return $notes;
     }
 }

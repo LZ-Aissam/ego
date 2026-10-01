@@ -79,6 +79,21 @@ final class SystemMessage
         return self::make('pause_off', 'RETOUR DE TON EGO', ['Tes quêtes reprennent.']);
     }
 
+    public static function loadUp(string $exercise, float $kg): array
+    {
+        return self::make('load_up', 'CHARGE AUGMENTÉE', [$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta progression.'], highlight: '+');
+    }
+
+    public static function deload(string $exercise, float $kg): array
+    {
+        return self::make('deload', 'DÉCHARGE', [$exercise.' → '.Format::kg($kg), 'TON EGO allège. Reconstruis.'], 'alert');
+    }
+
+    public static function addWeight(string $exercise): array
+    {
+        return self::make('add_weight', 'LESTE-TOI', [$exercise, 'Ajoute 2,5 kg de lest la prochaine fois.']);
+    }
+
     public static function title(string $key): array
     {
         return self::make('title', 'TITRE DÉBLOQUÉ', [Titles::name($key) ?? $key, Titles::CATALOG[$key]['condition'] ?? '']);

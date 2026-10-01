@@ -13,29 +13,32 @@ final class GameEvents
     public const RECORD_XP = 50;
     public const RECORDS_PER_WORKOUT = 3;
 
-    public function __construct(private XpLedger $ledger, private Titles $titles, private RecordCalculator $calc, private QuestScheduler $quests) {}
+    public function __construct(private XpLedger $ledger, private Titles $titles, private RecordCalculator $calc, private QuestScheduler $quests, private LoadPrescriber $loads) {}
 
     /**
      * @param  list<\App\Models\PersonalRecord>  $newRecords  records battus par cette séance
      * @return array{xp: int, notifications: list<array>, player: array}
      */
-    public function afterWorkout(User $user, Workout $workout, array $newRecords): array
+    public function afterWorkout(User $user, Workout $workout, array $newRecords, bool $progressLoads = true): array
     {
         // Verrou par joueur : deux envois simultanés passent l'un après l'autre (plafond du jour,
         // titres et montée de niveau calculés sur l'XP réellement en base).
-        return DB::transaction(function () use ($user, $workout, $newRecords) {
+        return DB::transaction(function () use ($user, $workout, $newRecords, $progressLoads) {
             $user->xp_total = (int) User::whereKey($user->id)->lockForUpdate()->value('xp_total');
 
-            return $this->play($user, $workout, $newRecords);
+            return $this->play($user, $workout, $newRecords, $progressLoads);
         });
     }
 
-    private function play(User $user, Workout $workout, array $newRecords): array
+    private function play(User $user, Workout $workout, array $newRecords, bool $progressLoads): array
     {
         $startXp = (int) $user->xp_total;
         $before = Leveling::progress($startXp);
         $this->awardWorkout($user, $workout, count($newRecords));
         $notifications = $this->quests->onWorkout($user, $workout);
+        if ($progressLoads) {
+            array_push($notifications, ...$this->loads->progress($user, $workout));
+        }
         $xp = (int) $user->xp_total - $startXp;
         $after = Leveling::progress((int) $user->xp_total);
 
