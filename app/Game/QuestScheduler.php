@@ -5,6 +5,8 @@ namespace App\Game;
 use App\Models\Program;
 use App\Models\ProgramDay;
 use App\Models\User;
+use App\Models\Workout;
+use App\Models\WorkoutSet;
 use App\Support\SystemMessage;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -20,6 +22,8 @@ final class QuestScheduler
         private Titles $titles,
         private StreakCalculator $streaks,
         private PenaltyCircuit $penalties,
+        private XpLedger $ledger,
+        private QuestEvaluator $evaluator,
     ) {}
 
     public function rewardFor(int $streak): int
@@ -66,6 +70,50 @@ final class QuestScheduler
 
             return $notes;
         });
+    }
+
+    /** À appeler sous le verrou du joueur (GameEvents). @return list<array> */
+    public function onWorkout(User $user, Workout $workout): array
+    {
+        $date = $workout->finished_at->toDateString();
+        $quests = $user->quests()->where('date', $date)->whereIn('type', ['training', 'penalty'])
+            ->whereIn('status', ['pending', 'failed'])->orderBy('id')->get();
+
+        if ($quests->isEmpty()) {
+            return [];
+        }
+
+        $sets = WorkoutSet::query()->with('exercise')
+            ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+            ->where('workouts.user_id', $user->id)
+            ->whereDate('workouts.finished_at', $date)
+            ->get(['workout_sets.*']);
+
+        $notes = [];
+        foreach ($quests as $quest) {
+            if (! $this->evaluator->isAccomplished($quest->objectives, $sets)) {
+                continue;
+            }
+
+            if ($quest->type === 'training') {
+                $xp = $this->rewardFor($this->streaks->compute($user, Carbon::parse($date)->subDay()));
+                $this->ledger->award($user, 'quest', $quest->id, $xp, at: $workout->finished_at);
+                if ($quest->status === 'failed') {
+                    $user->quests()->where('type', 'penalty')->where('status', 'pending')
+                        ->where('date', Carbon::parse($date)->addDay()->toDateString())->update(['status' => 'cancelled']);
+                }
+                $quest->update(['status' => 'done', 'completed_at' => now(), 'xp_awarded' => $xp]);
+                $notes[] = SystemMessage::questDone($quest, $xp);
+            } else {
+                $this->ledger->award($user, 'penalty', $quest->id, self::PENALTY_XP, at: $workout->finished_at);
+                $quest->update(['status' => 'done', 'completed_at' => now(), 'xp_awarded' => self::PENALTY_XP]);
+                $notes[] = SystemMessage::penaltyDone();
+            }
+        }
+
+        $this->streaks->refresh($user, now());
+
+        return $notes;
     }
 
     private function firstDayToProcess(User $user, Program $program, Carbon $today): Carbon

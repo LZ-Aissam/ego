@@ -13,7 +13,7 @@ final class GameEvents
     public const RECORD_XP = 50;
     public const RECORDS_PER_WORKOUT = 3;
 
-    public function __construct(private XpLedger $ledger, private Titles $titles, private RecordCalculator $calc) {}
+    public function __construct(private XpLedger $ledger, private Titles $titles, private RecordCalculator $calc, private QuestScheduler $quests) {}
 
     /**
      * @param  list<\App\Models\PersonalRecord>  $newRecords  records battus par cette séance
@@ -32,11 +32,13 @@ final class GameEvents
 
     private function play(User $user, Workout $workout, array $newRecords): array
     {
-        $before = Leveling::progress((int) $user->xp_total);
-        $xp = $this->awardWorkout($user, $workout, count($newRecords));
+        $startXp = (int) $user->xp_total;
+        $before = Leveling::progress($startXp);
+        $this->awardWorkout($user, $workout, count($newRecords));
+        $notifications = $this->quests->onWorkout($user, $workout);
+        $xp = (int) $user->xp_total - $startXp;
         $after = Leveling::progress((int) $user->xp_total);
 
-        $notifications = [];
         if ($after['level'] > $before['level']) {
             $notifications[] = SystemMessage::levelUp($after);
         }
