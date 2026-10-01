@@ -54,6 +54,7 @@ final class CrewService
     public function leave(User $user, Crew $crew): void
     {
         DB::transaction(function () use ($user, $crew) {
+            app(ChallengeService::class)->leaveCrew($user, $crew);
             $crew->members()->detach($user->id);
 
             if (! $crew->isOwnedBy($user)) {
@@ -84,6 +85,7 @@ final class CrewService
         $this->authorizeOwner($owner, $crew);
 
         if ($member->id !== $owner->id) {
+            app(ChallengeService::class)->leaveCrew($member, $crew);
             $crew->members()->detach($member->id);
         }
     }
