@@ -44,6 +44,10 @@ final class ProgramGenerator
 
     public function generate(array $params, Collection $exercises): array
     {
+        if (($params['goal'] ?? null) === 'power') {
+            return (new PowerProgram)->generate($params, $exercises);
+        }
+
         [$split, $days] = self::SPLITS[$params['days']];
         $limit = self::SLOTS_BY_LEVEL[$params['level']] ?? 5;
         $variants = [];
