@@ -47,8 +47,8 @@ final class ProgramGenerator
 
     public function generate(array $params, Collection $exercises): array
     {
-        if (($params['goal'] ?? null) === 'power') {
-            return (new PowerProgram)->generate($params, $exercises);
+        if (in_array($params['goal'] ?? null, ['power', 'pure'], true)) {
+            return (new PowerProgram($params['goal']))->generate($params, $exercises);
         }
 
         [$split, $days] = self::SPLITS[$params['days']];

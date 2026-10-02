@@ -90,7 +90,7 @@
         @endif
         <x-sys.label>Programme</x-sys.label>
         <h1 class="text-2xl font-bold">{{ $program->name }}</h1>
-        @if ($hasIntents)<p class="text-xs text-amber">{{ \App\Game\Intent::ADVICE }}</p>@endif
+        @if ($hasIntents)<p class="text-xs text-amber">{{ \App\Game\Intent::adviceFor($program->params['goal'] ?? null) }}</p>@endif
         <p class="text-sm text-mist">
             {{ \App\Services\ProgramBuilder::LEVELS[$program->params['level']] ?? '' }} · {{ \App\Services\ProgramBuilder::EQUIPMENT[$program->params['equipment']] ?? '' }}
             · {{ collect($program->params['weekdays'] ?? [])->map(fn ($d) => $days[(string) $d])->join(', ') }}

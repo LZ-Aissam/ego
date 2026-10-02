@@ -5,12 +5,18 @@ namespace App\Services;
 use App\Models\Exercise;
 use Illuminate\Support\Collection;
 
-/** Objectif Force × Vitesse : séances à intentions tirées de power-templates.php, adaptées au niveau et au matériel. */
+/**
+ * Programmes à intentions tirés d'un modèle de séances (Force × Vitesse : power-templates.php,
+ * Force pure : pure-templates.php), adaptés au niveau et au matériel.
+ */
 final class PowerProgram
 {
+    /** @param  string  $split  objectif et nom du découpage : power, pure */
+    public function __construct(private string $split = 'power') {}
+
     public function generate(array $params, Collection $exercises): array
     {
-        $templates = require database_path('data/programs/power-templates.php');
+        $templates = require database_path("data/programs/{$this->split}-templates.php");
         // Comme les autres objectifs avec leur exercice de bras : 6, 7 ou 8 exercices par séance.
         $limit = (ProgramGenerator::SLOTS_BY_LEVEL[$params['level']] ?? 5) + 1;
         $days = [];
@@ -21,12 +27,20 @@ final class PowerProgram
             $main = [];
             $core = [];
 
+            $previous = null;
+
             foreach ($lines as [$slot, $intent, $sets, $min, $max, $rest, $preferred]) {
-                $pick = $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used);
+                $pick = $preferred === ['@same'] ? $previous : $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used);
                 if (! $pick) {
                     continue;
                 }
+                $previous = $pick;
                 $used[] = $pick->id;
+
+                // Série record : pas pour un débutant, ni sans charge à mesurer. Ses séries lourdes (@same) restent.
+                if ($intent === 'top' && ($params['level'] === 'beginner' || $pick->is_bodyweight)) {
+                    continue;
+                }
                 $item = $this->adapt(['exercise_id' => $pick->id, 'slot' => $slot, 'intent' => $intent, 'sets' => $sets, 'reps_min' => $min, 'reps_max' => $max, 'rest_seconds' => $rest], $pick, $params['level'], $params['equipment']);
                 $slot === 'core' ? $core[] = $item : $main[] = $item;
             }
@@ -34,7 +48,7 @@ final class PowerProgram
             $days[] = ['name' => $name, 'type' => 'custom', 'exercises' => [...array_slice($main, 0, max(0, $limit - count($core))), ...$core]];
         }
 
-        return ['split' => 'power', 'days' => $days];
+        return ['split' => $this->split, 'days' => $days];
     }
 
     /** Premier slug préféré disponible, sinon le premier exercice de l'emplacement pour ce matériel. */

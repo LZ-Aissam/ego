@@ -140,7 +140,7 @@ final class LoadPrescriber
         }
 
         $value = $best * $pct;
-        $rounded = $intent === 'max' ? floor($value / 2.5) * 2.5 : round($value / 2.5) * 2.5;
+        $rounded = in_array($intent, ['max', 'top'], true) ? floor($value / 2.5) * 2.5 : round($value / 2.5) * 2.5;
 
         return max(2.5, $rounded);
     }
@@ -200,8 +200,9 @@ final class LoadPrescriber
 
         $loads = $user->workingLoads()->get()->keyBy('exercise_id');
         $notes = [];
-        $fastIds = $user->activeProgram()->with('days.exercises')->first()?->days->flatMap->exercises
-            ->whereIn('intent', ['speed', 'explosive'])->pluck('exercise_id')->unique()->all() ?? [];
+        $lines = $user->activeProgram()->with('days.exercises.exercise')->first()?->days->flatMap->exercises ?? collect();
+        $fastIds = $lines->whereIn('intent', ['speed', 'explosive'])->pluck('exercise_id')->unique()->all();
+        $topLines = $lines->where('intent', 'top')->keyBy('exercise_id');
 
         foreach ($workout->sets->groupBy('exercise_id') as $exerciseId => $sets) {
             $line = $plan[$exerciseId] ?? null;
@@ -224,6 +225,17 @@ final class LoadPrescriber
             // Séance de vitesse (charges légères) d'un exercice aussi travaillé lourd : elle ne juge pas la charge lourde.
             if (in_array((int) $exerciseId, $fastIds, true) && $sets->max('weight_kg') < $load->target_kg * 0.75) {
                 continue;
+            }
+
+            // Série record (🏆) : faite à sa propre charge, plus lourde, elle ne juge pas la charge lourde (🔥).
+            if ($top = $topLines[$exerciseId] ?? null) {
+                $topKg = $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max);
+                if ($topKg !== null && $topKg > $load->target_kg) {
+                    $sets = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 < $topKg);
+                    if ($sets->isEmpty()) {
+                        continue;
+                    }
+                }
             }
 
             $small = $line->exercise->kind === 'isolation' && $load->target_kg < self::SMALL_LOAD_KG;

@@ -6,7 +6,7 @@ use App\Services\ProgramBuilder;
 use Database\Seeders\ExerciseSeeder;
 
 it('décrit chaque intention', function () {
-    expect(Intent::KEYS)->toBe(['speed', 'max', 'explosive', 'mass'])
+    expect(Intent::KEYS)->toBe(['speed', 'max', 'explosive', 'top', 'mass'])
         ->and(Intent::badge('speed'))->toBe('⚡ VITESSE')
         ->and(Intent::badge(null))->toBe('')
         ->and(Intent::cue('max'))->toBe('Lourd : 1 à 3 répétitions parfaites, repos complet.')

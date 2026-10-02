@@ -1,0 +1,66 @@
+<?php
+
+use App\Models\Exercise;
+use App\Services\ProgramGenerator;
+use Database\Seeders\ExerciseSeeder;
+
+beforeEach(function () {
+    $this->seed(ExerciseSeeder::class);
+    $this->exercises = Exercise::all();
+    $this->byId = $this->exercises->keyBy('id');
+    $this->pure = fn (array $over = []) => (new ProgramGenerator)->generate([...['level' => 'advanced', 'goal' => 'pure', 'days' => 4, 'equipment' => 'gym'], ...$over], $this->exercises);
+    $this->lines = fn (array $day) => array_map(fn ($l) => [$this->byId[$l['exercise_id']]->slug, $l['intent'], $l['sets'], $l['reps_min'], $l['reps_max'], $l['rest_seconds']], $day['exercises']);
+});
+
+it('construit la semaine Force pure de 4 jours en salle, niveau avancé', function () {
+    $program = ($this->pure)();
+
+    expect($program['split'])->toBe('pure')
+        ->and(array_column($program['days'], 'name'))->toBe(['Couché · LOURD', 'Squat · LOURD', 'Haut du corps · VITESSE', 'Soulevé de terre · LOURD'])
+        ->and(($this->lines)($program['days'][0]))->toBe([
+            ['clap-push-up', 'explosive', 4, 3, 3, 120], ['bench-press', 'top', 1, 1, 2, 300], ['bench-press', 'max', 4, 2, 3, 240],
+            ['pull-up', 'max', 5, 3, 3, 180], ['face-pull', 'mass', 3, 12, 15, 60], ['hanging-leg-raise', 'mass', 3, 8, 12, 60],
+        ])
+        ->and(($this->lines)($program['days'][1]))->toBe([
+            ['box-jump', 'explosive', 4, 3, 3, 120], ['back-squat', 'max', 5, 2, 3, 240], ['overhead-press', 'max', 5, 3, 5, 180], ['cable-crunch', 'mass', 3, 8, 12, 60],
+        ])
+        ->and(($this->lines)($program['days'][3]))->toBe([
+            ['broad-jump', 'explosive', 4, 3, 3, 120], ['deadlift', 'top', 1, 1, 2, 300], ['deadlift', 'max', 3, 2, 3, 240],
+            ['back-squat', 'speed', 6, 2, 2, 90], ['hip-thrust', 'max', 4, 3, 5, 180], ['cable-crunch', 'mass', 3, 8, 12, 60],
+        ]);
+});
+
+it('enchaîne les séances selon le nombre de jours', function (int $days, array $names) {
+    expect(array_column(($this->pure)(['days' => $days])['days'], 'name'))->toBe($names);
+})->with([
+    [2, ['Full · COUCHÉ & SQUAT', 'Full · TERRE & ÉPAULES']],
+    [3, ['Couché · LOURD', 'Squat · LOURD', 'Soulevé de terre · LOURD']],
+    [5, ['Couché · LOURD', 'Squat · LOURD', 'Haut du corps · VITESSE', 'Soulevé de terre · LOURD', 'Épaules & tractions · VITESSE']],
+    [6, ['Couché · LOURD', 'Squat · LOURD', 'Haut du corps · VITESSE', 'Soulevé de terre · LOURD', 'Épaules & tractions · VITESSE', 'Jambes · VITESSE']],
+]);
+
+it('reprend l\'exercice de la série record pour les séries lourdes, quel que soit le matériel', function (string $equipment) {
+    foreach (($this->pure)(['equipment' => $equipment, 'days' => 2])['days'] as $day) {
+        $top = collect($day['exercises'])->firstWhere('intent', 'top');
+        $next = $day['exercises'][array_search($top, $day['exercises'], true) + 1];
+        expect($next['exercise_id'])->toBe($top['exercise_id']);
+    }
+})->with(['gym', 'dumbbells']);
+
+it('ne donne pas de série record à un débutant', function () {
+    foreach ([2, 3, 4, 5, 6] as $days) {
+        $intents = collect(($this->pure)(['level' => 'beginner', 'days' => $days])['days'])->flatMap(fn ($d) => $d['exercises'])->pluck('intent');
+        expect($intents->all())->not->toContain('top')->not->toContain('max');
+    }
+});
+
+it('respecte le matériel', function (string $equipment) {
+    foreach ([2, 3, 4, 5, 6] as $days) {
+        foreach (($this->pure)(['equipment' => $equipment, 'days' => $days])['days'] as $day) {
+            expect($day['exercises'])->not->toBeEmpty();
+            foreach ($day['exercises'] as $line) {
+                expect($this->byId[$line['exercise_id']]->equipment)->toContain($equipment);
+            }
+        }
+    }
+})->with(['dumbbells', 'bodyweight']);
