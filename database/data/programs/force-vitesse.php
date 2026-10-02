@@ -3,7 +3,8 @@
 return [
     ['Poussée · FORCE MAX', [
         ['clap-push-up', 'explosive', 4, 3, 3, 120], ['bench-press', 'max', 5, 2, 3, 240], ['incline-dumbbell-press', 'mass', 4, 6, 8, 120],
-        ['dips', 'max', 4, 3, 5, 180], ['skull-crusher', 'mass', 3, 8, 10, 90], ['cable-crunch', 'mass', 3, 8, 12, 60],
+        ['dips', 'max', 4, 3, 5, 180], ['skull-crusher', 'mass', 3, 8, 10, 90], ['face-pull', 'mass', 3, 12, 15, 60],
+        ['cable-crunch', 'mass', 3, 8, 12, 60],
     ]],
     ['Tirage · FORCE MAX', [
         ['pull-up', 'explosive', 4, 3, 3, 120], ['barbell-row', 'max', 5, 3, 5, 180], ['chin-up', 'max', 4, 3, 5, 180],
@@ -17,7 +18,7 @@ return [
     ['Haut du corps · VITESSE', [
         ['bench-press', 'speed', 8, 3, 3, 60], ['barbell-row', 'speed', 6, 3, 3, 60], ['diamond-push-up', 'explosive', 4, 5, 5, 90],
         ['dips', 'mass', 3, 8, 10, 90], ['hammer-curl', 'mass', 3, 8, 10, 60], ['triceps-pushdown', 'mass', 3, 10, 12, 60],
-        ['hanging-leg-raise', 'mass', 3, 8, 12, 60],
+        ['lateral-raise', 'mass', 3, 12, 15, 60], ['hanging-leg-raise', 'mass', 3, 8, 12, 60],
     ]],
     ['Jambes & hanches · EXPLOSIF', [
         ['box-jump', 'explosive', 5, 3, 3, 120], ['broad-jump', 'explosive', 4, 3, 3, 120], ['back-squat', 'speed', 8, 2, 2, 60],

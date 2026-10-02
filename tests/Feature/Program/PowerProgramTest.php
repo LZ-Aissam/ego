@@ -40,7 +40,7 @@ it('limite les lignes selon le niveau et garde les abdos en dernier', function (
                 ->and(end($day['exercises'])['slot'])->toBe('core');
         }
     }
-})->with([['beginner', 5], ['intermediate', 6], ['advanced', 7]]);
+})->with([['beginner', 6], ['intermediate', 7], ['advanced', 8]]);
 
 it('ne donne pas de force max 87,5 % à un débutant', function () {
     $days = ($this->power)(['level' => 'beginner', 'days' => 6])['days'];
@@ -77,4 +77,12 @@ it('laisse les autres objectifs sans intention', function () {
 
     expect($program['split'])->toBe('ppl_ul')
         ->and(collect($program['days'])->flatMap(fn ($d) => $d['exercises'])->pluck('intent')->filter()->all())->toBe([]);
+});
+
+it('travaille les épaules latérales et arrière deux fois par semaine en 5 jours', function () {
+    $days = ($this->power)()['days'];
+    $slugs = fn (int $i) => array_map(fn ($l) => $this->byId[$l['exercise_id']]->slug, $days[$i]['exercises']);
+
+    expect(array_slice($slugs(0), -2))->toBe(['face-pull', 'cable-crunch'])
+        ->and(array_slice($slugs(3), -2))->toBe(['lateral-raise', 'hanging-leg-raise']);
 });

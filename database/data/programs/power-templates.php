@@ -11,6 +11,7 @@ return [
             ['horizontal_push', 'mass', 4, 6, 8, 120, ['incline-dumbbell-press', 'dumbbell-bench-press', 'push-up']],
             ['triceps', 'max', 4, 3, 5, 180, ['dips']],
             ['triceps', 'mass', 3, 8, 10, 90, ['skull-crusher', 'overhead-dumbbell-extension', 'diamond-push-up']],
+            ['shoulder_iso', 'mass', 3, 12, 15, 60, ['face-pull', 'rear-delt-fly']],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
         'pull' => ['Tirage · FORCE MAX', [
@@ -37,6 +38,7 @@ return [
             ['triceps', 'mass', 3, 8, 10, 90, ['dips', 'bench-dips']],
             ['biceps', 'mass', 3, 8, 10, 60, ['hammer-curl', 'dumbbell-curl']],
             ['triceps', 'mass', 3, 10, 12, 60, ['triceps-pushdown', 'overhead-dumbbell-extension']],
+            ['shoulder_iso', 'mass', 3, 12, 15, 60, ['lateral-raise', 'cable-lateral-raise']],
             ['core', 'mass', 3, 8, 12, 60, ['hanging-leg-raise', 'crunch']],
         ]],
         'upper' => ['Haut du corps · FORCE MAX', [

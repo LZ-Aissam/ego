@@ -11,7 +11,8 @@ final class PowerProgram
     public function generate(array $params, Collection $exercises): array
     {
         $templates = require database_path('data/programs/power-templates.php');
-        $limit = ProgramGenerator::SLOTS_BY_LEVEL[$params['level']] ?? 5;
+        // Comme les autres objectifs avec leur exercice de bras : 6, 7 ou 8 exercices par séance.
+        $limit = (ProgramGenerator::SLOTS_BY_LEVEL[$params['level']] ?? 5) + 1;
         $days = [];
 
         foreach ($templates['weeks'][$params['days']] as $key) {
