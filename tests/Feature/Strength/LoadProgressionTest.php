@@ -80,7 +80,7 @@ it('compte une séance entièrement plus légère comme un échec et ramène la 
 
 it("monte de 1 kg les petites charges d'isolation", function () {
     $user = User::factory()->withMorphology()->create();
-    $program = app(ProgramBuilder::class)->build($user, ['level' => 'intermediate', 'goal' => 'hypertrophy', 'weekdays' => [1, 2, 4, 5], 'equipment' => 'gym']);
+    $program = app(ProgramBuilder::class)->build($user, ['level' => 'advanced', 'goal' => 'hypertrophy', 'weekdays' => [1, 2, 4, 5], 'equipment' => 'gym']);
     $iso = $program->days->flatMap->exercises->firstWhere('slot', 'shoulder_iso');
     $user->workingLoads()->updateOrCreate(['exercise_id' => $iso->exercise_id], ['target_kg' => 6, 'fail_streak' => 0]);
 

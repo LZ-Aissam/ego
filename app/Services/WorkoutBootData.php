@@ -22,6 +22,7 @@ final class WorkoutBootData
                 'id' => $e->id,
                 'slug' => $e->slug,
                 'name' => $e->name,
+                'muscles' => $e->primary_muscles ?? [],
                 'guide' => \App\Support\ExerciseGuide::for($e->slug),
                 'isBodyweight' => $e->is_bodyweight,
                 'suggestedKg' => $this->startingLoad->suggest($e, $user),

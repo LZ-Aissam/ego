@@ -34,6 +34,7 @@ function grip(g) {
         pronation: hand(-98, 0),
         supination: hand(-98, 180),
         curl: hand(-98, 0),
+        reverse: hand(-98, 180),
         neutral: hand(-103, -90) + hand(-93, 90),
         arnold: hand(-98, 180 + g.turn),
         diamond: `<path d="M -98 7 L -93 12 L -98 17 L -103 12 Z" fill="none" stroke="${ICE}" stroke-width="1.5"/>`,

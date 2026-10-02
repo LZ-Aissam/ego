@@ -85,4 +85,8 @@ return [
     ['box-jump', 'Sauts sur box', ['quadriceps', 'fessiers', 'mollets'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
     ['broad-jump', 'Saut en longueur', ['fessiers', 'quadriceps', 'ischio-jambiers'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
     ['jump-squat', 'Squat sauté', ['quadriceps', 'fessiers', 'mollets'], ['bodyweight', 'dumbbells', 'gym'], 'compound', ['jump'], null],
+    // Avant-bras
+    ['wrist-curl', 'Curl poignets', ['avant-bras'], ['gym', 'dumbbells'], 'isolation', ['forearms'], 0.06],
+    ['wrist-extension', 'Extension des poignets', ['avant-bras'], ['gym', 'dumbbells'], 'isolation', ['forearms'], 0.04],
+    ['reverse-curl', 'Curl inversé', ['avant-bras', 'biceps'], ['gym', 'dumbbells'], 'isolation', ['forearms', 'biceps'], 0.06],
 ];

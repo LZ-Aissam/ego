@@ -18,7 +18,7 @@ it('réordonne les journées Pull des programmes existants sans changer les exer
     (require database_path('migrations/2026_10_07_000100_reorder_pull_days.php'))->up();
 
     $after = $pull->fresh()->exercises;
-    expect($after->pluck('slot')->all())->toBe(['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps'])
-        ->and($after->pluck('position')->all())->toBe([1, 2, 3, 4, 5])
+    expect($after->pluck('slot')->all())->toBe(['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'triceps'])
+        ->and($after->pluck('position')->all())->toBe([1, 2, 3, 4, 5, 6])
         ->and($after->pluck('exercise_id')->sort()->values()->all())->toBe($before);
 });

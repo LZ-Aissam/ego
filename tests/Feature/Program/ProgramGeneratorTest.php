@@ -24,14 +24,6 @@ it('choisit le découpage selon le nombre de jours', function (int $days, string
     [6, 'ppl', ['Push A', 'Pull A', 'Legs A', 'Push B', 'Pull B', 'Legs B']],
 ]);
 
-it('met 5, 6 ou 7 exercices par jour selon le niveau (salle complète)', function (string $level, int $count) {
-    foreach ([2, 4, 5, 6] as $days) {
-        foreach ($this->generator->generate(($this->params)(['level' => $level, 'days' => $days]), $this->exercises)['days'] as $day) {
-            expect($day['exercises'])->toHaveCount($count);
-        }
-    }
-})->with([['beginner', 5], ['intermediate', 6], ['advanced', 7]]);
-
 it('respecte le matériel et ne répète pas un exercice dans une journée', function (string $equipment) {
     $byId = $this->exercises->keyBy('id');
 
@@ -82,13 +74,13 @@ it('fait commencer la journée Pull par la charnière de hanche, isolation et ga
 
     expect($pull['name'])->toBe('Pull A')->and(array_column($pull['exercises'], 'slot'))->toBe($slots);
 })->with([
-    ['beginner', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps']],
-    ['advanced', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'calves', 'core']],
+    ['beginner', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'triceps']],
+    ['advanced', ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'calves', 'core', 'triceps']],
 ]);
 
 it('garde l\'ordre des autres journées, polyarticulaires d\'abord', function () {
     $days = $this->generator->generate(($this->params)(['level' => 'advanced', 'days' => 6]), $this->exercises)['days'];
 
-    expect(array_column($days[0]['exercises'], 'slot'))->toBe(ProgramGenerator::DAY_SLOTS['push'])
-        ->and(array_column($days[2]['exercises'], 'slot'))->toBe(ProgramGenerator::DAY_SLOTS['legs']);
+    expect(array_column($days[0]['exercises'], 'slot'))->toBe([...ProgramGenerator::DAY_SLOTS['push'], 'biceps'])
+        ->and(array_column($days[2]['exercises'], 'slot'))->toBe([...ProgramGenerator::DAY_SLOTS['legs'], 'forearms']);
 });

@@ -480,6 +480,21 @@ const FAMILIES = {
         },
     },
 
+    wrist: {
+        segments: [['Enroulement du poignet', 800], ['Contraction', 300], ['Descente contrôlée', 1600], ['Étirement', 300]],
+        pose(t, v) {
+            // Assis penché, avant-bras posés sur les cuisses : seul le poignet bouge.
+            const b = seated([-10, -40], 45);
+            const elbow = add(b.shoulder, L.upper, -95);
+            const wrist = add(elbow, L.fore, -8);
+            const hand = add(wrist, 11, v === 'flex' ? lerp(-70, 45, t) : lerp(-55, 30, t));
+            return scene(
+                { leg: [b.hip, b.knee, b.ankle], foot: b.foot, torso: [b.hip, b.shoulder], arm: [b.shoulder, elbow, wrist, hand] },
+                headOf(b.hip, b.shoulder), [dumbbell(hand)], [rect(-45, -38, 50, 5), line([-40, -33], [-40, 0])],
+            );
+        },
+    },
+
     pushdown: {
         segments: [['Extension', 1000], ['Bras tendus', 400], ['Retour contrôlé', 2000], ['Départ', 400]],
         pose(t) {
@@ -723,6 +738,9 @@ export const DEMOS = {
     'dumbbell-curl': ['curl', 'db'],
     'hammer-curl': ['curl', 'db'],
     'cable-curl': ['curl', 'cable'],
+    'reverse-curl': ['curl', 'bar'],
+    'wrist-curl': ['wrist', 'flex'],
+    'wrist-extension': ['wrist', 'ext'],
     'triceps-pushdown': ['pushdown'],
     'overhead-dumbbell-extension': ['overheadExt'],
     'skull-crusher': ['skull'],
@@ -750,6 +768,7 @@ const GRIPS = {
     'pull-up': 'pronation', 'chin-up': 'supination', 'lat-pulldown': 'pronation', 'barbell-row': 'pronation',
     'push-up': 'wide', 'diamond-push-up': 'diamond',
     'barbell-curl': 'curl', 'dumbbell-curl': 'curl', 'cable-curl': 'curl', 'hammer-curl': 'neutral',
+    'reverse-curl': 'reverse', 'wrist-curl': 'curl', 'wrist-extension': 'reverse',
     'dumbbell-shoulder-press': 'pronation', 'arnold-press': 'arnold',
 };
 
@@ -761,6 +780,7 @@ export const GRIP_LABELS = {
     diamond: 'Mains en losange',
     wide: 'Mains un peu plus larges que les épaules',
     arnold: 'Paumes vers toi → vers l’avant',
+    reverse: 'Paumes vers le bas',
 };
 
 /** Positions retournées (allongé dos à la barre, à plat ventre) : le regard part de l'autre côté de l'axe. */

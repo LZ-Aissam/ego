@@ -731,4 +731,37 @@ return [
         ],
         'mistake' => 'Atterrir jambes tendues et talons en premier.',
     ],
+    'wrist-curl' => [
+        'muscles' => 'Avant-bras (fléchisseurs)',
+        'tempo' => 'Montée 1 s · Descente 2 s',
+        'steps' => [
+            'Assis, avant-bras posés sur les cuisses, poignets juste au-delà des genoux.',
+            'Haltère ou barre en main, paumes vers le haut.',
+            'Laisse descendre la charge en ouvrant légèrement les doigts.',
+            'Enroule les poignets vers le haut le plus loin possible, sans décoller les avant-bras.',
+        ],
+        'mistake' => 'Décoller les avant-bras et tirer avec les biceps.',
+    ],
+    'wrist-extension' => [
+        'muscles' => 'Avant-bras (extenseurs)',
+        'tempo' => 'Montée 1 s · Descente 2 s',
+        'steps' => [
+            'Assis, avant-bras posés sur les cuisses, poignets juste au-delà des genoux.',
+            'Haltère ou barre en main, paumes vers le bas.',
+            'Relève le dos de la main vers le plafond, seul le poignet bouge.',
+            'Redescends lentement. Prends léger : ce muscle est petit.',
+        ],
+        'mistake' => 'Charger trop lourd et donner un élan avec l\'épaule.',
+    ],
+    'reverse-curl' => [
+        'muscles' => 'Avant-bras · biceps',
+        'tempo' => 'Montée 1 s · Descente 2 s',
+        'steps' => [
+            'Debout, barre ou haltères en main, paumes vers le bas.',
+            'Coudes collés au corps, poignets bien droits.',
+            'Monte la charge jusqu\'aux épaules en gardant les paumes vers le bas.',
+            'Redescends lentement jusqu\'aux bras tendus.',
+        ],
+        'mistake' => 'Casser les poignets vers le bas pendant la montée.',
+    ],
 ];

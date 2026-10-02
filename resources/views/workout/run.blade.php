@@ -122,12 +122,15 @@
                         <div class="flex justify-end" x-show="state.exercises.length">
                             <button type="button" class="sys-label" @click="picking = false">Fermer</button>
                         </div>
-                        <input type="search" class="sys-input" placeholder="Rechercher (ex. squat)" x-model="search">
+                        <input type="search" class="sys-input" placeholder="Rechercher (ex. squat, triceps, bras)" x-model="search">
                         <ul class="max-h-[50vh] overflow-y-auto">
                             <template x-for="ex in filtered" :key="ex.id">
                                 <li class="sys-row">
                                     <button type="button" class="flex min-w-0 flex-1 items-center justify-between py-1 text-left" @click="add(ex)">
-                                        <span x-text="ex.name"></span>
+                                        <span class="min-w-0">
+                                            <span class="block" x-text="ex.name"></span>
+                                            <span class="block text-xs text-mist" x-show="ex.muscles?.length" x-text="(ex.muscles ?? []).join(' · ')"></span>
+                                        </span>
                                         <span class="sys-label" x-show="boot.lastTime[ex.id]">déjà fait</span>
                                     </button>
                                     <button type="button" class="sys-chip !px-2.5" x-show="ex.guide" @click="openDemo(ex.id)" :aria-label="'Comment faire : ' + ex.name">?</button>

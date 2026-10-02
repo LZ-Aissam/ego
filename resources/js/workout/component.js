@@ -4,6 +4,7 @@ import {
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
 import { countdownCue, loadSettings, saveSettings, subtractRest } from './signals';
+import { matchExercises } from './search';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -81,10 +82,7 @@ export default function workout() {
         },
 
         get filtered() {
-            const q = this.search.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-            return this.boot.exercises
-                .filter((e) => !q || e.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))
-                .slice(0, 50);
+            return matchExercises(this.boot.exercises, this.search).slice(0, 50);
         },
 
         demoId: null,

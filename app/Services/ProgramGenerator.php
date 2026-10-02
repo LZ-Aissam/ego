@@ -18,9 +18,9 @@ final class ProgramGenerator
     /** Emplacements ordonnés par type de jour : poly-articulaires d'abord. */
     public const DAY_SLOTS = [
         'full_body' => ['squat', 'horizontal_push', 'horizontal_pull', 'hinge', 'vertical_push', 'vertical_pull', 'core'],
-        'upper' => ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'shoulder_iso', 'biceps', 'triceps'],
+        'upper' => ['horizontal_push', 'horizontal_pull', 'vertical_push', 'vertical_pull', 'biceps', 'triceps', 'shoulder_iso'],
         'lower' => ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'core'],
-        'push' => ['horizontal_push', 'vertical_push', 'chest_iso', 'shoulder_iso', 'triceps', 'calves', 'core'],
+        'push' => ['horizontal_push', 'vertical_push', 'chest_iso', 'triceps', 'shoulder_iso', 'calves', 'core'],
         'pull' => ['vertical_pull', 'horizontal_pull', 'hinge', 'biceps', 'shoulder_iso', 'core', 'calves'],
         'legs' => ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'core'],
     ];
@@ -32,6 +32,9 @@ final class ProgramGenerator
     public const EXECUTION_ORDER = [
         'pull' => ['hinge', 'vertical_pull', 'horizontal_pull', 'shoulder_iso', 'biceps', 'calves', 'core'],
     ];
+
+    /** Exercice de bras en fin de séance : le groupe tourne d'une journée à l'autre. */
+    public const ARM_ROTATION = ['biceps', 'triceps', 'forearms'];
 
     public const SLOTS_BY_LEVEL = ['beginner' => 5, 'intermediate' => 6, 'advanced' => 7];
 
@@ -53,7 +56,7 @@ final class ProgramGenerator
         $variants = [];
         $out = [];
 
-        foreach ($days as [$name, $type]) {
+        foreach ($days as $index => [$name, $type]) {
             $variant = $variants[$type] = ($variants[$type] ?? -1) + 1;
             $used = [];
             $items = [];
@@ -67,7 +70,12 @@ final class ProgramGenerator
                 $items[] = ['exercise_id' => $pick->id, 'slot' => $slot, ...$this->prescription($params['goal'], $params['level'], $pick->kind)];
             }
 
-            $out[] = ['name' => $name, 'type' => $type, 'exercises' => self::inExecutionOrder($type, $items)];
+            $items = self::inExecutionOrder($type, $items);
+            if ($arm = $this->armFinisher($index, $items, $params, $exercises, $variant, $used)) {
+                $items[] = $arm;
+            }
+
+            $out[] = ['name' => $name, 'type' => $type, 'exercises' => $items];
         }
 
         return ['split' => $split, 'days' => $out];
@@ -77,7 +85,9 @@ final class ProgramGenerator
     public static function inExecutionOrder(string $type, array $items): array
     {
         $order = self::EXECUTION_ORDER[$type] ?? self::DAY_SLOTS[$type];
-        usort($items, fn (array $a, array $b) => array_search($a['slot'], $order, true) <=> array_search($b['slot'], $order, true));
+        // Un emplacement hors de l'ordre du jour (l'exercice de bras ajouté) reste en fin de séance.
+        $rank = fn (array $item) => ($i = array_search($item['slot'], $order, true)) === false ? PHP_INT_MAX : $i;
+        usort($items, fn (array $a, array $b) => $rank($a) <=> $rank($b));
 
         return $items;
     }
@@ -93,6 +103,23 @@ final class ProgramGenerator
     public function alternativesFor(string $slot, string $equipment, Collection $exercises, ?int $exceptId = null): Collection
     {
         return $this->candidates($slot, $equipment, $exercises)->reject(fn (Exercise $e) => $e->id === $exceptId)->values();
+    }
+
+    /** Premier groupe de bras du tour absent de la journée et disponible pour ce matériel. */
+    private function armFinisher(int $index, array $items, array $params, Collection $exercises, int $variant, array $used): ?array
+    {
+        $present = array_column($items, 'slot');
+
+        foreach (range(0, 2) as $step) {
+            $slot = self::ARM_ROTATION[($index + $step) % 3];
+            if (in_array($slot, $present, true) || ! $pick = $this->pick($slot, $params['equipment'], $exercises, $variant, $used)) {
+                continue;
+            }
+
+            return ['exercise_id' => $pick->id, 'slot' => $slot, ...$this->prescription($params['goal'], $params['level'], $pick->kind)];
+        }
+
+        return null;
     }
 
     private function pick(string $slot, string $equipment, Collection $exercises, int $variant, array $used): ?Exercise

@@ -40,7 +40,7 @@ it('assigne la séance du jour un jour d\'entraînement', function () {
 
     $quest = Quest::sole();
     expect($quest->type)->toBe('training')->and($quest->title)->toBe('Full body A')
-        ->and($quest->status)->toBe('pending')->and($quest->objectives)->toHaveCount(5)
+        ->and($quest->status)->toBe('pending')->and($quest->objectives)->toHaveCount(6)
         ->and($quest->objectives[0])->toHaveKeys(['exercise_id', 'name', 'slot', 'sets', 'reps_min', 'reps_max', 'rest_seconds']);
 });
 
@@ -106,7 +106,7 @@ it('garde les objectifs des quêtes existantes quand le programme est régénér
     $this->scheduler->sync($this->user, day('2026-10-07'));
 
     expect(Quest::where('date', '2026-10-05')->first()->objectives)->toBe($before)
-        ->and(Quest::where('date', '2026-10-07')->first()->objectives)->toHaveCount(7);
+        ->and(Quest::where('date', '2026-10-07')->first()->objectives)->toHaveCount(8);
 });
 
 it('calcule la récompense avec le bonus de série plafonné', function () {

@@ -62,3 +62,10 @@ it('affiche l\'écran de séance au style Système', function () {
         ->assertSee('VALIDER LA SÉRIE')
         ->assertSee('id="sys-notifications-data"', false);
 });
+
+it('transmet les muscles travaillés de chaque exercice pour la recherche par muscle', function () {
+    $data = app(WorkoutBootData::class)->for($this->user);
+
+    expect(collect($data['exercises'])->firstWhere('id', $this->bench->id)['muscles'])->toBe(['pectoraux', 'triceps', 'épaules']);
+    $this->actingAs($this->user)->get('/workout')->assertSee('Rechercher (ex. squat, triceps, bras)');
+});
