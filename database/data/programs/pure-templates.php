@@ -98,7 +98,7 @@ return [
         2 => ['bench', 'press'],
         3 => ['bench', 'press', 'upper_speed'],
         4 => ['bench', 'press', 'upper_speed', 'bench_b'],
-        5 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed'],
+        5 => ['bench', 'press', 'upper_speed', 'shoulders_speed', 'bench_b'],
         6 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed', 'upper_speed'],
     ],
 ];

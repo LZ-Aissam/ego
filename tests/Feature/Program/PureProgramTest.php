@@ -91,3 +91,8 @@ it('sans jambes, aucun exercice de jambes quel que soit le nombre de jours et le
         }
     }
 })->with(['gym', 'dumbbells', 'bodyweight']);
+
+it('sans jambes sur 5 jours, couché un jour sur deux et militaire 2 fois', function () {
+    expect(array_column(($this->pure)(['upper_only' => true, 'days' => 5])['days'], 'name'))
+        ->toBe(['Couché · LOURD', 'Développé militaire · LOURD', 'Haut du corps · VITESSE', 'Épaules & tractions · VITESSE', 'Couché · LOURD B']);
+});
