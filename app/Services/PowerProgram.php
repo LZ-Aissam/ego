@@ -19,9 +19,10 @@ final class PowerProgram
         $templates = require database_path("data/programs/{$this->split}-templates.php");
         // Comme les autres objectifs avec leur exercice de bras : 6, 7 ou 8 exercices par séance.
         $limit = (ProgramGenerator::SLOTS_BY_LEVEL[$params['level']] ?? 5) + 1;
+        $weeks = ($params['upper_only'] ?? false) && isset($templates['weeks_upper']) ? $templates['weeks_upper'] : $templates['weeks'];
         $days = [];
 
-        foreach ($templates['weeks'][$params['days']] as $key) {
+        foreach ($weeks[$params['days']] as $key) {
             [$name, $lines] = $templates['sessions'][$templates['substitutes'][$params['equipment']][$key] ?? $key];
             $used = [];
             $main = [];

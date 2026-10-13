@@ -40,6 +40,11 @@
                         </label>
                     @endforeach
                 </div>
+                @if ($goal === 'pure')
+                    <label @class(['sys-chip mt-3 flex cursor-pointer items-center justify-center gap-2 py-3', 'sys-chip--active' => $upperOnly])>
+                        <input type="checkbox" wire:model.live="upperOnly" class="sr-only">Sans jambes · 100 % haut du corps
+                    </label>
+                @endif
                 @error('goal') <p class="sys-error">{{ $message }}</p> @enderror
             @elseif ($step === 4)
                 <p class="mb-3 text-sm text-mist">Coche les jours où tu t'entraînes (2 à 6). Les autres seront des jours de repos.</p>

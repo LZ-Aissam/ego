@@ -18,19 +18,21 @@ final class ProgramBuilder
 
     public function __construct(private ProgramGenerator $generator, private \App\Game\LoadPrescriber $prescriber) {}
 
-    /** @param array{level: string, goal: string, weekdays: array<int|string>, equipment: string} $params */
+    /** @param array{level: string, goal: string, weekdays: array<int|string>, equipment: string, upper_only?: bool} $params */
     public function build(User $user, array $params): Program
     {
+        // Sans jambes : seulement pour la force pure, qui a ses séances du haut du corps.
+        $params['upper_only'] = $params['goal'] === 'pure' && ($params['upper_only'] ?? false);
         $weekdays = collect($params['weekdays'])->map(fn ($d) => (int) $d)->unique()->sort()->values()->all();
         $generated = $this->generator->generate([
-            'level' => $params['level'], 'goal' => $params['goal'], 'days' => count($weekdays), 'equipment' => $params['equipment'],
+            'level' => $params['level'], 'goal' => $params['goal'], 'days' => count($weekdays), 'equipment' => $params['equipment'], 'upper_only' => $params['upper_only'],
         ], Exercise::all());
 
         $goalChanged = $user->goal !== $params['goal'];
 
         return DB::transaction(function () use ($user, $params, $weekdays, $generated, $goalChanged) {
             $program = $user->programs()->create([
-                'name' => 'Programme '.self::GOALS[$params['goal']].' · '.count($weekdays).' j',
+                'name' => 'Programme '.self::GOALS[$params['goal']].($params['upper_only'] ? ' · haut du corps' : '').' · '.count($weekdays).' j',
                 'split' => $generated['split'],
                 'params' => [...$params, 'weekdays' => $weekdays],
             ]);

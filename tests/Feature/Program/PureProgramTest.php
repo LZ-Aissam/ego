@@ -64,3 +64,30 @@ it('respecte le matériel', function (string $equipment) {
         }
     }
 })->with(['dumbbells', 'bodyweight']);
+
+it('sans jambes, remplace squat et soulevé de terre par des séances du haut du corps', function () {
+    $program = ($this->pure)(['upper_only' => true]);
+
+    expect(array_column($program['days'], 'name'))->toBe(['Couché · LOURD', 'Développé militaire · LOURD', 'Haut du corps · VITESSE', 'Couché · LOURD B'])
+        ->and(($this->lines)($program['days'][1]))->toBe([
+            ['push-press', 'explosive', 4, 3, 3, 150], ['overhead-press', 'top', 1, 1, 2, 300], ['overhead-press', 'max', 4, 2, 3, 240],
+            ['barbell-row', 'max', 5, 3, 5, 180], ['dips', 'max', 4, 3, 5, 180], ['hanging-leg-raise', 'mass', 3, 8, 12, 60],
+        ])
+        ->and(($this->lines)($program['days'][3]))->toBe([
+            ['bench-press', 'top', 1, 1, 2, 300], ['bench-press', 'max', 4, 2, 3, 240], ['incline-bench-press', 'max', 4, 3, 5, 180],
+            ['chin-up', 'max', 5, 3, 3, 180], ['rear-delt-fly', 'mass', 3, 12, 15, 60], ['cable-crunch', 'mass', 3, 8, 12, 60],
+        ]);
+});
+
+it('sans jambes, aucun exercice de jambes quel que soit le nombre de jours et le matériel', function (string $equipment) {
+    $legs = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
+    foreach ([2, 3, 4, 5, 6] as $days) {
+        $days = ($this->pure)(['upper_only' => true, 'equipment' => $equipment, 'days' => $days])['days'];
+        foreach ($days as $day) {
+            expect($day['exercises'])->not->toBeEmpty();
+            foreach ($day['exercises'] as $line) {
+                expect(array_intersect($this->byId[$line['exercise_id']]->slots, $legs))->toBe([]);
+            }
+        }
+    }
+})->with(['gym', 'dumbbells', 'bodyweight']);

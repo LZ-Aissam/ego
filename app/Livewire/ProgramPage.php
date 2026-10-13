@@ -31,6 +31,9 @@ class ProgramPage extends Component
 
     public ?string $goal = null;
 
+    /** Force pure sans jambes : séances 100 % haut du corps. */
+    public bool $upperOnly = false;
+
     public array $weekdays = [];
 
     public ?string $equipment = null;
@@ -46,6 +49,7 @@ class ProgramPage extends Component
         $this->weightKg = $user->weight_kg;
         $this->level = $user->level;
         $this->goal = $user->goal;
+        $this->upperOnly = (bool) ($user->activeProgram()->first()?->params['upper_only'] ?? false);
         $this->weekdays = $user->training_weekdays ?? [];
         $this->equipment = $user->equipment;
     }
@@ -83,7 +87,7 @@ class ProgramPage extends Component
         ])->save();
 
         $program = $builder->build($user, [
-            'level' => $this->level, 'goal' => $this->goal, 'weekdays' => $this->weekdays, 'equipment' => $this->equipment,
+            'level' => $this->level, 'goal' => $this->goal, 'upper_only' => $this->upperOnly, 'weekdays' => $this->weekdays, 'equipment' => $this->equipment,
         ]);
 
         $notifier->push($user, SystemMessage::programForged($program->name));

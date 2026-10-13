@@ -45,3 +45,28 @@ it('conseille de manger à maintien pour la force pure', function () {
 
     $this->get('/program')->assertSeeText('mange à maintien')->assertSeeText('🏆 RECORD')->assertDontSeeText('léger déficit');
 });
+
+it('propose l\'option sans jambes pour la force pure et la garde au moment de refaire le programme', function () {
+    Livewire::test(ProgramPage::class)
+        ->call('next')->set('level', 'advanced')->call('next')
+        ->set('goal', 'strength')->assertDontSeeText('Sans jambes')
+        ->set('goal', 'pure')->assertSeeText('Sans jambes')
+        ->set('upperOnly', true)->call('next')
+        ->set('weekdays', [1, 2, 4, 5])->call('next')
+        ->set('equipment', 'gym')
+        ->call('generate')->assertHasNoErrors();
+
+    $program = $this->user->fresh()->activeProgram()->with('days')->first();
+    expect($program->name)->toBe('Programme Force pure · haut du corps · 4 j')
+        ->and($program->params['upper_only'])->toBeTrue()
+        ->and($program->days->pluck('name')->all())->toBe(['Couché · LOURD', 'Développé militaire · LOURD', 'Haut du corps · VITESSE', 'Couché · LOURD B']);
+
+    Livewire::test(ProgramPage::class)->assertSet('upperOnly', true);
+});
+
+it('ignore l\'option sans jambes hors force pure', function () {
+    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'strength', 'weekdays' => [1, 2, 4, 5], 'equipment' => 'gym', 'upper_only' => true]);
+
+    $program = $this->user->fresh()->activeProgram;
+    expect($program->name)->toBe('Programme Force · 4 j')->and($program->params['upper_only'])->toBeFalse();
+});

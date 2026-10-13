@@ -1,6 +1,7 @@
 <?php
 
 // Objectif Force pure (mode Anatoly) : très lourd, peu de répétitions, peu de volume. Même format que power-templates.php.
+// « weeks_upper » : option sans jambes, 100 % haut du corps.
 // « @same » : la ligne reprend l'exercice de la ligne précédente (série record puis séries lourdes du même mouvement).
 
 $bench = ['bench-press', 'dumbbell-bench-press', 'push-up'];
@@ -68,6 +69,22 @@ return [
             ['horizontal_pull', 'max', 5, 3, 5, 180, $row],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
+        'press' => ['Développé militaire · LOURD', [
+            ['vertical_push', 'explosive', 4, 3, 3, 150, ['push-press', 'dumbbell-shoulder-press', 'pike-push-up']],
+            ['vertical_push', 'top', 1, 1, 2, 300, $press],
+            ['vertical_push', 'max', 4, 2, 3, 240, ['@same']],
+            ['horizontal_pull', 'max', 5, 3, 5, 180, $row],
+            ['triceps', 'max', 4, 3, 5, 180, ['dips']],
+            ['core', 'mass', 3, 8, 12, 60, ['hanging-leg-raise', 'crunch']],
+        ]],
+        'bench_b' => ['Couché · LOURD B', [
+            ['horizontal_push', 'top', 1, 1, 2, 300, $bench],
+            ['horizontal_push', 'max', 4, 2, 3, 240, ['@same']],
+            ['horizontal_push', 'max', 4, 3, 5, 180, ['incline-bench-press', 'incline-dumbbell-press', 'dips']],
+            ['vertical_pull', 'max', 5, 3, 3, 180, ['chin-up', 'pull-up', 'inverted-row']],
+            ['shoulder_iso', 'mass', 3, 12, 15, 60, ['rear-delt-fly', 'face-pull']],
+            ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
+        ]],
     ],
     'substitutes' => [],
     'weeks' => [
@@ -76,5 +93,12 @@ return [
         4 => ['bench', 'squat', 'upper_speed', 'deadlift'],
         5 => ['bench', 'squat', 'upper_speed', 'deadlift', 'shoulders_speed'],
         6 => ['bench', 'squat', 'upper_speed', 'deadlift', 'shoulders_speed', 'legs_speed'],
+    ],
+    'weeks_upper' => [
+        2 => ['bench', 'press'],
+        3 => ['bench', 'press', 'upper_speed'],
+        4 => ['bench', 'press', 'upper_speed', 'bench_b'],
+        5 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed'],
+        6 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed', 'upper_speed'],
     ],
 ];
