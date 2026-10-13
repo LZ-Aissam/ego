@@ -18,6 +18,9 @@ final class LoadPrescriber
 
     public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
 
+    /** Au poids du corps, deux prises d'un même mouvement : la mesure de l'une sert à l'autre tant qu'elle n'a pas la sienne. */
+    public const BODYWEIGHT_TWINS = ['pull-up' => 'chin-up', 'chin-up' => 'pull-up'];
+
     public function __construct(private StartingLoad $startingLoad) {}
 
     public function startingLoad(float $e1rm, int $repsMax): float
@@ -95,11 +98,21 @@ final class LoadPrescriber
         });
     }
 
-    /** Meilleur 1RM estimé : calibrage ou record ; sinon charge déduite rapportée à un 1RM (Epley sur repsMax). */
+    /**
+     * Meilleur 1RM estimé : calibrage ou record ; sinon charge déduite rapportée à un 1RM (Epley sur repsMax).
+     * Réglé par les séries record (source « top »), il suit la forme du moment, à la hausse comme à la baisse.
+     */
     public function bestE1rm(User $user, Exercise $exercise, int $repsMax): ?float
     {
-        $calibrated = (float) $user->exerciseMaxes()->where('exercise_id', $exercise->id)->value('e1rm_kg');
+        $max = $user->exerciseMaxes()->where('exercise_id', $exercise->id)->first(['e1rm_kg', 'source']);
+        if ($max?->source === 'top') {
+            return round((float) $max->e1rm_kg, 1);
+        }
+        $calibrated = (float) $max?->e1rm_kg;
         $record = (float) $user->personalRecords()->where('exercise_id', $exercise->id)->value('best_e1rm_kg');
+        if ($calibrated <= 0 && $record <= 0 && $twin = self::BODYWEIGHT_TWINS[$exercise->slug] ?? null) {
+            $calibrated = (float) $user->exerciseMaxes()->whereHas('exercise', fn ($q) => $q->where('slug', $twin))->value('e1rm_kg');
+        }
         if ($calibrated > 0) {
             return round(max($calibrated, $record), 1);
         }
@@ -174,20 +187,27 @@ final class LoadPrescriber
         $done = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $topKg);
         $success = $done->contains(fn (WorkoutSet $s) => ($s->reps >= $top->reps_max && $s->effort !== Effort::LIMIT)
             || ($s->reps >= $top->reps_min && $s->effort === Effort::EASY));
-        if (! $success) {
+        // Moins de répétitions que visé, à la limite : la forme du jour est sous la charge, on redescend d'un cran.
+        $missed = ! $success && $done->contains(fn (WorkoutSet $s) => $s->reps < $top->reps_max && $s->effort === Effort::LIMIT);
+        if (! $success && ! $missed) {
             return null;
         }
 
         // Faite plus lourde que prévu : on repart de la vraie charge.
-        $next = max($topKg, floor($done->max('weight_kg') / 2.5) * 2.5) + $this->step($top->exercise);
+        $next = $success
+            ? max($topKg, floor($done->max('weight_kg') / 2.5) * 2.5) + $this->step($top->exercise)
+            : $topKg - $this->step($top->exercise);
         // Arrondi au dixième supérieur : 92,5 % du 1RM stocké retombe bien sur la charge visée.
         $e1rm = ceil($next / Intent::META['top']['pct'] * 10) / 10;
         $current = $user->exerciseMaxes()->where('exercise_id', $top->exercise_id)->first();
-        if (! $current || (float) $current->e1rm_kg < $e1rm) {
+        if ($missed || ! $current || (float) $current->e1rm_kg < $e1rm || $current->source !== 'top') {
             $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $top->exercise_id], ['e1rm_kg' => $e1rm, 'source' => 'top', 'measured_at' => now()]);
         }
 
-        return \App\Support\SystemMessage::topUp($top->exercise->name, $next);
+        // La série record reste au-dessus des séries lourdes : le message annonce la charge réellement prescrite.
+        $kg = $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max);
+
+        return $success ? \App\Support\SystemMessage::topUp($top->exercise->name, $kg) : \App\Support\SystemMessage::topDown($top->exercise->name, $kg);
     }
 
     /** Charge d'une intention à pourcentage du meilleur 1RM (force max arrondie vers le bas). */

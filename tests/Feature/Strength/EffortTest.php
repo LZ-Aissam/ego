@@ -108,3 +108,27 @@ it('repart de la vraie charge quand la série record est faite plus lourde que p
 
     expect(($this->top)())->toBe(100.0);
 });
+
+it('baisse la série record d\'un cran après 1 seule répétition limite : elle suit la forme du moment', function () {
+    $notes = $this->prescriber->progress($this->user, effortSets($this->user, [[92.5, 1, 'limit']]));
+
+    expect(($this->top)())->toBe(90.0)
+        ->and(collect($notes)->pluck('type')->all())->toContain('top_down');
+});
+
+it('continue de baisser la série record tant qu\'elle reste limite, sans passer sous les séries lourdes', function () {
+    foreach ([92.5, 90.0, 87.5] as $kg) {
+        $this->prescriber->progress($this->user, effortSets($this->user, [[$kg, 1, 'limit']]));
+    }
+
+    expect(($this->top)())->toBe(90.0);                                          // séries lourdes à 87,5 kg : la série record reste au-dessus
+});
+
+it('remonte ensuite la série record normalement, malgré un ancien meilleur 1RM plus haut', function () {
+    effortSets($this->user, [[90.0, 3]]);                                        // record ancien : 1RM estimé 99
+    $this->prescriber->progress($this->user, effortSets($this->user, [[92.5, 1, 'limit']]));
+    expect(($this->top)())->toBe(90.0);
+
+    $this->prescriber->progress($this->user, effortSets($this->user, [[90.0, 2, 'hard']]));
+    expect(($this->top)())->toBe(92.5);
+});

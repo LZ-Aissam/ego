@@ -90,6 +90,11 @@ final class SystemMessage
         return self::make('top_up', 'RECORD RELEVÉ', ['🏆 '.$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta série record. On monte.'], highlight: '+');
     }
 
+    public static function topDown(string $exercise, float $kg): array
+    {
+        return self::make('top_down', 'RECORD AJUSTÉ', ['🏆 '.$exercise.' → '.Format::kg($kg), 'TON EGO suit ta forme du jour. Reprends de l\'élan.'], 'alert');
+    }
+
     public static function deload(string $exercise, float $kg): array
     {
         return self::make('deload', 'DÉCHARGE', [$exercise.' → '.Format::kg($kg), 'TON EGO allège. Reconstruis.'], 'alert');

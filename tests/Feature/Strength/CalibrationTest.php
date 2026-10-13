@@ -99,5 +99,5 @@ it('teste un exercice chargé plutôt qu\'un exercice au poids du corps du même
     $this->artisan('ego:programme-force-vitesse', ['prenom' => 'Aïssam'])->assertSuccessful();
 
     expect(app(CalibrationPlan::class)->movementsFor($user->fresh())->pluck('slug')->all())
-        ->toBe(['bench-press', 'barbell-row', 'back-squat', 'deadlift']);
+        ->toBe(['bench-press', 'barbell-row', 'back-squat', 'deadlift', 'dips', 'chin-up']);
 });

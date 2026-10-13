@@ -65,7 +65,7 @@ it('teste au calibrage chaque mouvement à série record, dont le développé mi
     ($this->build)(['weekdays' => [1, 2, 3, 4, 5], 'upper_only' => true]);
 
     expect(app(CalibrationPlan::class)->movementsFor($this->user->fresh())->pluck('slug')->all())
-        ->toBe(['bench-press', 'barbell-row', 'overhead-press']);
+        ->toBe(['bench-press', 'barbell-row', 'overhead-press', 'pull-up', 'dips']);
 });
 
 it('adapte le pourcentage de la force max à la fourchette de répétitions', function () {
@@ -95,4 +95,23 @@ it('ne met pas de squats dans la pénalité d\'un programme sans jambes', functi
 
     expect(array_column(app(PenaltyCircuit::class)->for('advanced', upperOnly: true), 'exercise_id'))->not->toContain($legs[0])
         ->and(array_column(app(PenaltyCircuit::class)->for('advanced'), 'exercise_id'))->toContain($legs[0]);
+});
+
+it('teste aussi au calibrage les tractions et les dips lestés, une seule traction pour les deux prises', function () {
+    ($this->build)(['weekdays' => [1, 2, 3, 4, 5], 'upper_only' => true]);
+
+    expect(app(CalibrationPlan::class)->movementsFor($this->user->fresh())->pluck('slug')->all())
+        ->toBe(['bench-press', 'barbell-row', 'overhead-press', 'pull-up', 'dips']);
+});
+
+it('part du lest mesuré dès la première séance : tractions et tractions supination', function () {
+    ($this->build)(['weekdays' => [1, 2, 3, 4, 5], 'upper_only' => true]);
+    $pullUp = Exercise::firstWhere('slug', 'pull-up');
+    $chinUp = Exercise::firstWhere('slug', 'chin-up');
+    $this->user->exerciseMaxes()->create(['exercise_id' => $pullUp->id, 'e1rm_kg' => 105, 'best_reps' => 15, 'source' => 'calibration', 'measured_at' => now()]);
+    app(LoadPrescriber::class)->prescribeProgram($this->user->fresh());
+
+    $user = $this->user->fresh();
+    expect(app(LoadPrescriber::class)->prescriptionFor($user, $pullUp, 'max', 3))->toBe(20.0)        // 105 × 87,5 % − 70 = 21,9 → 20
+        ->and(app(LoadPrescriber::class)->prescriptionFor($user, $chinUp, 'max', 3))->toBe(20.0);
 });

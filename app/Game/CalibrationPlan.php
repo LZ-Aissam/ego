@@ -58,6 +58,16 @@ final class CalibrationPlan
             }
         }
 
+        // Tractions et dips lestés (🔥 au poids du corps) : leur lest part du vrai maximum, pas de 0 kg.
+        foreach ($lines->where('intent', 'max') as $line) {
+            $exercise = $line->exercise;
+            $twin = LoadPrescriber::BODYWEIGHT_TWINS[$exercise->slug] ?? null;
+            if ($exercise->is_bodyweight && ! $picked->contains('id', $exercise->id) && ! $picked->contains('slug', $twin)) {
+                $exercise->setAttribute('test_slot', $line->slot);
+                $picked->push($exercise);
+            }
+        }
+
         return $picked->values();
     }
 
