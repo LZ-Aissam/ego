@@ -85,6 +85,11 @@ final class SystemMessage
         return self::make('load_up', 'CHARGE AUGMENTÉE', [$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta progression.'], highlight: '+');
     }
 
+    public static function topUp(string $exercise, float $kg): array
+    {
+        return self::make('top_up', 'RECORD RELEVÉ', ['🏆 '.$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta série record. On monte.'], highlight: '+');
+    }
+
     public static function deload(string $exercise, float $kg): array
     {
         return self::make('deload', 'DÉCHARGE', [$exercise.' → '.Format::kg($kg), 'TON EGO allège. Reconstruis.'], 'alert');

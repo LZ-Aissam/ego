@@ -81,9 +81,13 @@ export function allTargetsDone(state) {
     return planned.length > 0 && planned.every(targetDone);
 }
 
+// Séries lourdes dont le ressenti (facile · dur · limite) règle la hausse de charge.
+export const RATED_INTENTS = ['top', 'max'];
+
 export function logSet(state, nowMs) {
     const ex = current(state);
     if (!ex || isResting(state, nowMs)) return state;
+    state.lastLogged = RATED_INTENTS.includes(ex.intent) ? { exercise: state.currentIndex, set: ex.sets.length } : null;
     ex.sets.push({
         weightKg: Math.max(0, round2(toNumber(ex.draft.weightKg))),
         reps: Math.max(1, Math.round(toNumber(ex.draft.reps))),
@@ -104,6 +108,23 @@ export function logSet(state, nowMs) {
 
 export function removeLastSet(state) {
     current(state)?.sets.pop();
+    state.lastLogged = null;
+    return state;
+}
+
+function lastLoggedSet(state) {
+    const at = state.lastLogged;
+    return at ? state.exercises[at.exercise]?.sets[at.set] ?? null : null;
+}
+
+export function effortPending(state) {
+    const set = lastLoggedSet(state);
+    return set !== null && !set.effort;
+}
+
+export function rateLastSet(state, effort) {
+    const set = lastLoggedSet(state);
+    if (set) set.effort = effort;
     return state;
 }
 
@@ -143,6 +164,7 @@ export function toPayload(state, finishedAtIso) {
             weight_kg: set.weightKg,
             reps: set.reps,
             done_at: set.doneAt,
+            ...(set.effort ? { effort: set.effort } : {}),
         }))),
     };
 }

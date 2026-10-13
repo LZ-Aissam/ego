@@ -22,6 +22,7 @@ class SyncWorkoutRequest extends FormRequest
             'sets.*.weight_kg' => ['required', 'numeric', 'min:0', 'max:1000'],
             'sets.*.reps' => ['required', 'integer', 'min:1', 'max:1000'],
             'sets.*.done_at' => ['required', 'date'],
+            'sets.*.effort' => ['nullable', 'in:'.implode(',', \App\Game\Effort::KEYS)],
         ];
     }
 }

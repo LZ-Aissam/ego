@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     addExercise, addRest, adjustDraft, allTargetsDone, createStore, finishWorkout, goTo, hasSets,
-    isResting, logSet, newWorkout, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
+    effortPending, isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
 } from './store';
 
 function memoryStorage() {
@@ -250,5 +250,43 @@ describe('enchaînement des séries', () => {
         for (let i = 0; i < 5; i++) s = logSet(skipRest(s), 0);
         expect(s.currentIndex).toBe(0);
         expect(allTargetsDone(s)).toBe(false);
+    });
+});
+
+describe('ressenti des séries lourdes', () => {
+    const heavyBench = { ...bench, intent: 'top' };
+    const t0 = Date.parse('2026-10-13T16:00:00.000Z');
+
+    it('demande le ressenti après une série record ou force max, pas après une série de masse', () => {
+        let s = addExercise(newWorkout('id', 't'), heavyBench, { restSeconds: 300, target: { sets: 1, repsMin: 1, repsMax: 2 } });
+        addExercise(s, { ...pullUp, intent: 'mass' }, { restSeconds: 60, target: { sets: 3, repsMin: 8, repsMax: 12 } });
+        goTo(s, 0);
+        logSet(s, t0);
+        expect(effortPending(s)).toBe(true);
+        expect(s.currentIndex).toBe(1);                       // passé à l'exercice suivant : le ressenti vise quand même la série record
+
+        rateLastSet(s, 'easy');
+        expect(s.exercises[0].sets[0].effort).toBe('easy');
+        expect(effortPending(s)).toBe(false);
+
+        skipRest(s);
+        logSet(s, t0 + 400_000);
+        expect(effortPending(s)).toBe(false);
+    });
+
+    it('envoie le ressenti seulement quand il est donné', () => {
+        let s = addExercise(newWorkout('abc', 't'), { ...bench, intent: 'max' }, { restSeconds: 240 });
+        logSet(s, t0);
+        rateLastSet(s, 'limit');
+        skipRest(s);
+        logSet(s, t0 + 300_000);
+        expect(toPayload(s, 'f').sets.map((x) => x.effort)).toEqual(['limit', undefined]);
+    });
+
+    it('annuler la dernière série efface la demande de ressenti', () => {
+        let s = addExercise(newWorkout('id', 't'), heavyBench, { restSeconds: 300 });
+        logSet(s, t0);
+        removeLastSet(s);
+        expect(effortPending(s)).toBe(false);
     });
 });

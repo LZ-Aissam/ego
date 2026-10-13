@@ -1,6 +1,6 @@
 import {
-    addExercise, addRest, adjustDraft, allTargetsDone, createStore, finishWorkout, goTo, hasSets,
-    isResting, logSet, newWorkout, removeLastSet, restProgress, skipRest, uuid,
+    addExercise, addRest, adjustDraft, allTargetsDone, createStore, effortPending, finishWorkout, goTo, hasSets,
+    isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
 import { countdownCue, loadSettings, saveSettings, subtractRest } from './signals';
@@ -101,6 +101,12 @@ export default function workout() {
         get resting() {
             return isResting(this.state, this.now);
         },
+
+        get effortPending() {
+            return effortPending(this.state);
+        },
+
+        rate(effort) { rateLastSet(this.state, effort); },
 
         get allDone() {
             return allTargetsDone(this.state);

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkoutSet extends Model
 {
-    protected $fillable = ['exercise_id', 'position', 'weight_kg', 'reps', 'done_at'];
+    protected $fillable = ['exercise_id', 'position', 'weight_kg', 'reps', 'effort', 'done_at'];
 
     protected function casts(): array
     {

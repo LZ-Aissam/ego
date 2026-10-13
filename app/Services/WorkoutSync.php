@@ -51,6 +51,7 @@ final class WorkoutSync
                     'position' => $index + 1,
                     'weight_kg' => (float) $set['weight_kg'],
                     'reps' => (int) $set['reps'],
+                    'effort' => $set['effort'] ?? null,
                     'done_at' => $this->localTime($set['done_at']),
                 ]);
             }

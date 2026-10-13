@@ -156,6 +156,15 @@
             <div class="sys-ring sys-ring--xl" :style="`--p: ${restPercent}%`"><span x-text="clock(restRemaining)"></span></div>
             <p class="max-w-xs text-mist" x-show="current"
                x-text="!current ? '' : state.justAdvanced ? 'Exercice suivant : ' + current.name : (current.target ? 'Série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets + ' · ' : '') + current.name + ' · ' + formatKg(Number(String(current.draft.weightKg).replace(',', '.')) || 0) + ' × ' + current.draft.reps"></p>
+            {{-- Ressenti de la série lourde : il règle la prochaine hausse de charge --}}
+            <div class="w-full max-w-xs" x-show="effortPending">
+                <p class="sys-label mb-2">Cette série lourde ?</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="rate('easy')">Facile</button>
+                    <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="rate('hard')">Dur</button>
+                    <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3 !text-alert" @click="rate('limit')">Limite</button>
+                </div>
+            </div>
             <div class="grid w-full max-w-xs grid-cols-3 gap-2">
                 <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="lessRest()">−15 s</button>
                 <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="moreRest()">+30 s</button>

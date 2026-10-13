@@ -119,6 +119,9 @@ final class LoadPrescriber
         }
 
         $pct = \App\Game\Intent::META[$intent]['pct'] ?? null;
+        if ($intent === 'top') {
+            return $this->topLoad($user, $exercise, $repsMax);
+        }
         if ($pct === null || $intent === 'max') {
             $stored = $user->workingLoads()->where('exercise_id', $exercise->id)->value('target_kg');
             if ($stored !== null || $intent !== 'max') {
@@ -127,6 +130,48 @@ final class LoadPrescriber
         }
 
         return $this->percentLoad($user, $exercise, $intent, $repsMax);
+    }
+
+    /** Série record : 92,5 % du meilleur 1RM, et toujours au-dessus des séries lourdes. */
+    private function topLoad(User $user, Exercise $exercise, int $repsMax): ?float
+    {
+        $percent = $this->percentLoad($user, $exercise, 'top', $repsMax);
+        $heavy = $user->workingLoads()->where('exercise_id', $exercise->id)->value('target_kg');
+        if ($heavy !== null && ($percent === null || $percent <= (float) $heavy)) {
+            return (float) $heavy + $this->step($exercise);
+        }
+
+        return $percent;
+    }
+
+    /** Pas d'une hausse de charge sur un poly-articulaire : 5 kg pour les jambes, 2,5 kg pour le haut. */
+    private function step(Exercise $exercise): float
+    {
+        return $this->isLowerBody($exercise->slots ?? []) ? 5.0 : 2.5;
+    }
+
+    /**
+     * Série record réussie (toutes ses répétitions sans « limite », ou une seule « facile ») :
+     * le 1RM estimé est relevé pour que la prochaine série record pèse un cran de plus.
+     */
+    private function progressTop(User $user, ProgramExercise $top, float $topKg, Collection $sets): ?array
+    {
+        $done = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $topKg);
+        $success = $done->contains(fn (WorkoutSet $s) => ($s->reps >= $top->reps_max && $s->effort !== Effort::LIMIT)
+            || ($s->reps >= $top->reps_min && $s->effort === Effort::EASY));
+        if (! $success) {
+            return null;
+        }
+
+        $next = $topKg + $this->step($top->exercise);
+        // Arrondi au dixième supérieur : 92,5 % du 1RM stocké retombe bien sur la charge visée.
+        $e1rm = ceil($next / Intent::META['top']['pct'] * 10) / 10;
+        $current = $user->exerciseMaxes()->where('exercise_id', $top->exercise_id)->first();
+        if (! $current || (float) $current->e1rm_kg < $e1rm) {
+            $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $top->exercise_id], ['e1rm_kg' => $e1rm, 'source' => 'top', 'measured_at' => now()]);
+        }
+
+        return \App\Support\SystemMessage::topUp($top->exercise->name, $next);
     }
 
     /** Charge d'une intention à pourcentage du meilleur 1RM (force max arrondie vers le bas). */
@@ -203,8 +248,17 @@ final class LoadPrescriber
         $lines = $user->activeProgram()->with('days.exercises.exercise')->first()?->days->flatMap->exercises ?? collect();
         $fastIds = $lines->whereIn('intent', ['speed', 'explosive'])->pluck('exercise_id')->unique()->all();
         $topLines = $lines->where('intent', 'top')->keyBy('exercise_id');
+        // Charges des séries record d'avant la séance : la hausse ne doit pas changer le tri des séries lourdes.
+        $topKgs = $topLines->map(fn (ProgramExercise $top) => $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max));
+        $bySets = $workout->sets->groupBy('exercise_id');
 
-        foreach ($workout->sets->groupBy('exercise_id') as $exerciseId => $sets) {
+        foreach ($topLines as $exerciseId => $top) {
+            if (isset($bySets[$exerciseId]) && $topKgs[$exerciseId] !== null && $note = $this->progressTop($user, $top, $topKgs[$exerciseId], $bySets[$exerciseId])) {
+                $notes[] = $note;
+            }
+        }
+
+        foreach ($bySets as $exerciseId => $sets) {
             $line = $plan[$exerciseId] ?? null;
             if (! $line) {
                 continue;
@@ -228,8 +282,8 @@ final class LoadPrescriber
             }
 
             // Série record (🏆) : faite à sa propre charge, plus lourde, elle ne juge pas la charge lourde (🔥).
-            if ($top = $topLines[$exerciseId] ?? null) {
-                $topKg = $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max);
+            if (isset($topLines[$exerciseId])) {
+                $topKg = $topKgs[$exerciseId];
                 if ($topKg !== null && $topKg > $load->target_kg) {
                     $sets = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 < $topKg);
                     if ($sets->isEmpty()) {
@@ -256,9 +310,13 @@ final class LoadPrescriber
                     $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
                 }
             } elseif ($kept->count() >= $line->sets && $kept->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max)) {
-                $load->target_kg += $small ? 1.0 : (in_array($line->slot, self::LOWER_BODY_SLOTS, true) ? 5.0 : 2.5);
+                // Ressenti : une série « limite » garde la charge, tout « facile » double la hausse.
                 $load->fail_streak = 0;
-                $notes[] = \App\Support\SystemMessage::loadUp($line->exercise->name, $load->target_kg);
+                if (! $kept->contains('effort', Effort::LIMIT)) {
+                    $step = $small ? 1.0 : (in_array($line->slot, self::LOWER_BODY_SLOTS, true) ? 5.0 : 2.5);
+                    $load->target_kg += $kept->every(fn (WorkoutSet $s) => $s->effort === Effort::EASY) ? 2 * $step : $step;
+                    $notes[] = \App\Support\SystemMessage::loadUp($line->exercise->name, $load->target_kg);
+                }
             } else {
                 $load->fail_streak = 0;
             }
