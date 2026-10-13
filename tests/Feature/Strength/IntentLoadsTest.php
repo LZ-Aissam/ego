@@ -30,7 +30,7 @@ it('prescrit selon l\'intention', function () {
         ->and($this->prescriber->prescriptionFor($this->user, $this->bench, 'max', 3))->toBe(87.5)
         ->and($this->prescriber->prescriptionFor($this->user, $this->bench, 'explosive', 3))->toBe(40.0)
         ->and($this->prescriber->prescriptionFor($this->user, Exercise::firstWhere('slug', 'pull-up'), 'max', 5))->toBeNull()
-        ->and($this->prescriber->prescriptionFor($this->user, Exercise::firstWhere('slug', 'pull-up'), 'explosive', 3))->toBeNull();
+        ->and($this->prescriber->prescriptionFor($this->user, Exercise::firstWhere('slug', 'pull-up'), 'explosive', 3))->toBe(0.0);      // sans lest
 });
 
 it('repli sur la charge déduite sans 1RM connu, et rien sans aucune donnée', function () {

@@ -177,6 +177,7 @@ class ProgramPage extends Component
             'showQuestionnaire' => ! $program || $this->editing,
             'alternatives' => $alternatives,
             'loads' => auth()->user()->workingLoads()->pluck('target_kg', 'exercise_id'),
+            'cycleWeek' => \App\Game\Cycle::week($user, now()),
             'hasIntents' => (bool) $program?->days->flatMap->exercises->contains(fn ($l) => $l->intent !== null),
             'intentLoads' => $program ? $program->days->flatMap->exercises->filter(fn ($l) => $l->intent !== null)
                 ->mapWithKeys(fn ($l) => [$l->id => app(\App\Game\LoadPrescriber::class)->prescriptionFor(auth()->user(), $l->exercise, $l->intent, $l->reps_max)]) : collect(),

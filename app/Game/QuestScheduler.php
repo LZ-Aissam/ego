@@ -170,7 +170,7 @@ final class QuestScheduler
                 'type' => $calibrating ? 'calibration' : 'training',
                 'program_day_id' => $programDay->id,
                 'title' => $calibrating ? 'Calibrage' : $programDay->name,
-                'objectives' => $calibrating ? $this->calibrationPlan->objectives($user) : $programDay->objectives(),
+                'objectives' => $calibrating ? $this->calibrationPlan->objectives($user) : $this->objectivesOn($user, $programDay, $day),
                 'status' => 'pending',
             ]);
 
@@ -240,8 +240,14 @@ final class QuestScheduler
             }
 
             $programDay = $this->nextProgramDay($user, $program, Carbon::parse($quest->date->toDateString()));
-            $quest->update(['program_day_id' => $programDay->id, 'title' => $programDay->name, 'objectives' => $programDay->objectives()]);
+            $quest->update(['program_day_id' => $programDay->id, 'title' => $programDay->name, 'objectives' => $this->objectivesOn($user, $programDay, Carbon::parse($quest->date->toDateString()))]);
         }
+    }
+
+    /** Séance du jour, allégée la 4e semaine du cycle. */
+    private function objectivesOn(User $user, ProgramDay $programDay, Carbon $day): array
+    {
+        return Cycle::isDeload($user, $day) ? Cycle::lighten($programDay->objectives()) : $programDay->objectives();
     }
 
     private function setsOn(User $user, Carbon $day): Collection

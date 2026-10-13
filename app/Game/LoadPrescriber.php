@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workout;
 use App\Models\WorkoutSet;
 use App\Services\StartingLoad;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 final class LoadPrescriber
@@ -111,11 +112,25 @@ final class LoadPrescriber
         return $best > 0 ? round($best, 1) : null;
     }
 
-    /** Charge prescrite pour une ligne de programme selon son intention (null : rien à prescrire). */
-    public function prescriptionFor(User $user, Exercise $exercise, ?string $intent, int $repsMax): ?float
+    /**
+     * Charge prescrite pour une ligne de programme selon son intention (null : rien à prescrire).
+     * Au poids du corps, seule la force max a une charge : le lest. Semaine allégée du cycle : force max −10 %.
+     */
+    public function prescriptionFor(User $user, Exercise $exercise, ?string $intent, int $repsMax, ?CarbonInterface $on = null): ?float
     {
-        if ($exercise->is_bodyweight) {
-            return null;
+        $load = $this->basePrescription($user, $exercise, $intent, $repsMax);
+        if ($load === null || $intent !== 'max' || ! Cycle::isDeload($user, $on ?? now())) {
+            return $load;
+        }
+
+        return max($exercise->is_bodyweight ? 0.0 : 2.5, floor($load * Cycle::DELOAD_FACTOR / 2.5) * 2.5);
+    }
+
+    private function basePrescription(User $user, Exercise $exercise, ?string $intent, int $repsMax): ?float
+    {
+        if ($exercise->is_bodyweight && $intent !== 'max') {
+            // Explosif ou vitesse : sans lest, même si la dernière séance de l'exercice était lestée.
+            return in_array($intent, ['speed', 'explosive'], true) ? 0.0 : null;
         }
 
         $pct = \App\Game\Intent::META[$intent]['pct'] ?? null;
@@ -185,6 +200,10 @@ final class LoadPrescriber
         }
 
         $value = $best * $pct;
+        // Au poids du corps, le 1RM compte le corps : la charge à prescrire est le lest, jamais négatif.
+        if ($exercise->is_bodyweight) {
+            return $user->weight_kg ? max(0.0, floor(($value - $user->weight_kg) / 2.5) * 2.5) : null;
+        }
         $rounded = in_array($intent, ['max', 'top'], true) ? floor($value / 2.5) * 2.5 : round($value / 2.5) * 2.5;
 
         return max(2.5, $rounded);
@@ -217,7 +236,7 @@ final class LoadPrescriber
 
         foreach ($this->loadLines($user) as $exerciseId => $line) {
             /** @var ProgramExercise $line */
-            if ($line->exercise->is_bodyweight || ($existing->has($exerciseId) && ! in_array($exerciseId, $overwrite, true))) {
+            if (($line->exercise->is_bodyweight && $line->intent !== 'max') || ($existing->has($exerciseId) && ! in_array($exerciseId, $overwrite, true))) {
                 continue;
             }
 
@@ -239,7 +258,8 @@ final class LoadPrescriber
     public function progress(User $user, Workout $workout): array
     {
         $plan = $this->loadLines($user);
-        if ($plan->isEmpty()) {
+        // Semaine allégée : on recharge, les charges ne bougent pas.
+        if ($plan->isEmpty() || Cycle::isDeload($user, $workout->finished_at)) {
             return [];
         }
 
@@ -264,11 +284,21 @@ final class LoadPrescriber
                 continue;
             }
 
-            if ($line->exercise->is_bodyweight) {
+            // Au poids du corps hors force max : on prévient seulement quand il est temps de se lester.
+            if ($line->exercise->is_bodyweight && $line->intent !== 'max') {
                 if ($sets->count() >= $line->sets && $sets->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max + 5)) {
                     $notes[] = \App\Support\SystemMessage::addWeight($line->exercise->name);
                 }
                 continue;
+            }
+
+            // Force max au poids du corps sans lest suivi : il part de cette séance (le record vient d'être mis à jour).
+            if ($line->exercise->is_bodyweight && ! isset($loads[$exerciseId])) {
+                $start = $this->percentLoad($user, $line->exercise, 'max', $line->reps_max);
+                if ($start === null) {
+                    continue;
+                }
+                $loads[$exerciseId] = $user->workingLoads()->create(['exercise_id' => $exerciseId, 'target_kg' => $start, 'fail_streak' => 0]);
             }
 
             $load = $loads[$exerciseId] ?? null;
@@ -305,7 +335,7 @@ final class LoadPrescriber
                     if ($kept->isEmpty()) {
                         $target = min($target, floor($sets->max('weight_kg') / $step) * $step);
                     }
-                    $load->target_kg = max($step, $target);
+                    $load->target_kg = max($line->exercise->is_bodyweight ? 0.0 : $step, $target);
                     $load->fail_streak = 0;
                     $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
                 }

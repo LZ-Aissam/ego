@@ -49,7 +49,7 @@ final class WorkoutBootData
             'intentCue' => \App\Game\Intent::cue($o['intent'] ?? null),
             'prescribedKg' => ($o['intent'] ?? null) === null
                 ? ($library[$o['exercise_id']]['prescribedKg'] ?? null)
-                : app(\App\Game\LoadPrescriber::class)->prescriptionFor($user, \App\Models\Exercise::find($o['exercise_id']), $o['intent'], $o['reps_max']),
+                : app(\App\Game\LoadPrescriber::class)->prescriptionFor($user, \App\Models\Exercise::find($o['exercise_id']), $o['intent'], $o['reps_max'], \Illuminate\Support\Carbon::parse($quest->date->toDateString())),
             'perDumbbell' => $library[$o['exercise_id']]['perDumbbell'] ?? false,
             'sets' => $o['sets'],
             'repsMin' => $o['reps_min'],

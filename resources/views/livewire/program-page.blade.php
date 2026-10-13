@@ -95,6 +95,12 @@
         @endif
         <x-sys.label>Programme</x-sys.label>
         <h1 class="text-2xl font-bold">{{ $program->name }}</h1>
+        @if ($cycleWeek)
+            <p class="sys-num text-xs font-bold uppercase tracking-wider {{ $cycleWeek === \App\Game\Cycle::LENGTH ? 'text-amber' : 'text-ice' }}">{{ \App\Game\Cycle::label($cycleWeek) }}</p>
+            @if ($cycleWeek === \App\Game\Cycle::LENGTH)
+                <p class="text-xs text-mist">Charges lourdes −10 %, moitié des séries, pas de série record : tu recharges pour battre tes records la semaine prochaine.</p>
+            @endif
+        @endif
         @if ($hasIntents)<p class="text-xs text-amber">{{ \App\Game\Intent::adviceFor($program->params['goal'] ?? null) }}</p>@endif
         <p class="text-sm text-mist">
             {{ \App\Services\ProgramBuilder::LEVELS[$program->params['level']] ?? '' }} · {{ \App\Services\ProgramBuilder::EQUIPMENT[$program->params['equipment']] ?? '' }}
@@ -109,7 +115,7 @@
                             @if ($line->intent)<p class="sys-label !text-amber">{{ \App\Game\Intent::badge($line->intent) }}</p>@endif
                             <p class="font-semibold">{{ $line->exercise->name }}</p>
                             <x-exercise-demo :slug="$line->exercise->slug" :name="$line->exercise->name" wire:key="demo-{{ $line->id }}" />
-                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@php $lineLoad = $line->intent ? ($intentLoads[$line->id] ?? null) : ($loads[$line->exercise_id] ?? null); @endphp@if ($lineLoad) · <span class="text-ice">{{ \App\Support\Format::kg((float) $lineLoad) }}{{ $line->exercise->isPerDumbbell() ? ' par haltère' : '' }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
+                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@php $lineLoad = $line->intent ? ($intentLoads[$line->id] ?? null) : ($loads[$line->exercise_id] ?? null); @endphp@if ($lineLoad) · <span class="text-ice">{{ $line->exercise->is_bodyweight ? '+' : '' }}{{ \App\Support\Format::kg((float) $lineLoad) }}{{ $line->exercise->is_bodyweight ? ' de lest' : '' }}{{ $line->exercise->isPerDumbbell() ? ' par haltère' : '' }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
                         </div>
                         <button type="button" class="sys-label shrink-0" wire:click="$set('replacing', {{ $replacing === $line->id ? 'null' : $line->id }})">Remplacer</button>
                     </div>
