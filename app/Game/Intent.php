@@ -7,7 +7,7 @@ final class Intent
 {
     public const META = [
         'speed' => ['icon' => '⚡', 'label' => 'VITESSE', 'pct' => 0.575, 'cue' => 'Charge légère : chaque répétition le plus vite possible, arrête la série dès que ça ralentit.'],
-        'max' => ['icon' => '🔥', 'label' => 'FORCE MAX', 'pct' => 0.875, 'cue' => 'Lourd : 1 à 3 répétitions parfaites, repos complet.'],
+        'max' => ['icon' => '🔥', 'label' => 'FORCE MAX', 'pct' => 0.875, 'cue' => 'Lourd : peu de répétitions, toutes parfaites, repos complet.'],
         'explosive' => ['icon' => '💥', 'label' => 'EXPLOSIF', 'pct' => 0.40, 'cue' => 'Explosion maximale, repos complet entre les séries : la qualité avant la fatigue.'],
         'top' => ['icon' => '🏆', 'label' => 'RECORD', 'pct' => 0.925, 'cue' => 'Une seule série très lourde : 1 à 2 répétitions parfaites, puis repos complet avant la suite.'],
         'mass' => ['icon' => '🧱', 'label' => 'MASSE', 'pct' => null, 'cue' => 'Contrôle la descente, tension continue.'],

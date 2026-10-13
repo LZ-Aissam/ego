@@ -73,8 +73,9 @@ return [
             ['vertical_push', 'explosive', 4, 3, 3, 150, ['push-press', 'dumbbell-shoulder-press', 'pike-push-up']],
             ['vertical_push', 'top', 1, 1, 2, 300, $press],
             ['vertical_push', 'max', 4, 2, 3, 240, ['@same']],
-            ['horizontal_pull', 'max', 5, 3, 5, 180, $row],
-            ['triceps', 'max', 4, 3, 5, 180, ['dips']],
+            // Rowing et dips sont lourds le lendemain (Haut du corps · VITESSE) : ici, du volume modéré.
+            ['horizontal_pull', 'mass', 3, 6, 8, 120, ['chest-supported-row', 'dumbbell-row', 'inverted-row']],
+            ['triceps', 'mass', 3, 8, 10, 90, ['skull-crusher', 'overhead-dumbbell-extension', 'diamond-push-up']],
             ['core', 'mass', 3, 8, 12, 60, ['hanging-leg-raise', 'crunch']],
         ]],
         'bench_b' => ['Couché · LOURD B', [

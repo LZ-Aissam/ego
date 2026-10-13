@@ -9,7 +9,7 @@ it('décrit chaque intention', function () {
     expect(Intent::KEYS)->toBe(['speed', 'max', 'explosive', 'top', 'mass'])
         ->and(Intent::badge('speed'))->toBe('⚡ VITESSE')
         ->and(Intent::badge(null))->toBe('')
-        ->and(Intent::cue('max'))->toBe('Lourd : 1 à 3 répétitions parfaites, repos complet.')
+        ->and(Intent::cue('max'))->toBe('Lourd : peu de répétitions, toutes parfaites, repos complet.')
         ->and(Intent::META['speed']['pct'])->toBe(0.575);
 });
 

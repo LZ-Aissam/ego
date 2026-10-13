@@ -102,3 +102,9 @@ it('monte de 2,5 kg sans ressenti ou en dur, comme avant', function (?string $ef
 
     expect(($this->heavy)())->toBe(90.0);
 })->with([null, 'hard']);
+
+it('repart de la vraie charge quand la série record est faite plus lourde que prévu', function () {
+    $this->prescriber->progress($this->user, effortSets($this->user, [[97.5, 2]]));
+
+    expect(($this->top)())->toBe(100.0);
+});

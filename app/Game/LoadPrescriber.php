@@ -178,7 +178,8 @@ final class LoadPrescriber
             return null;
         }
 
-        $next = $topKg + $this->step($top->exercise);
+        // Faite plus lourde que prévu : on repart de la vraie charge.
+        $next = max($topKg, floor($done->max('weight_kg') / 2.5) * 2.5) + $this->step($top->exercise);
         // Arrondi au dixième supérieur : 92,5 % du 1RM stocké retombe bien sur la charge visée.
         $e1rm = ceil($next / Intent::META['top']['pct'] * 10) / 10;
         $current = $user->exerciseMaxes()->where('exercise_id', $top->exercise_id)->first();
@@ -271,6 +272,9 @@ final class LoadPrescriber
         // Charges des séries record d'avant la séance : la hausse ne doit pas changer le tri des séries lourdes.
         $topKgs = $topLines->map(fn (ProgramExercise $top) => $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max));
         $bySets = $workout->sets->groupBy('exercise_id');
+        // Intentions de la quête du jour par exercice : une séance de vitesse ne juge pas la charge lourde.
+        $quest = $user->quests()->where('type', 'training')->whereDate('date', $workout->finished_at->toDateString())->first();
+        $todayIntents = $quest ? collect($quest->objectives)->groupBy('exercise_id')->map(fn (Collection $o) => $o->pluck('intent')->all()) : null;
 
         foreach ($topLines as $exerciseId => $top) {
             if (isset($bySets[$exerciseId]) && $topKgs[$exerciseId] !== null && $note = $this->progressTop($user, $top, $topKgs[$exerciseId], $bySets[$exerciseId])) {
@@ -306,8 +310,12 @@ final class LoadPrescriber
                 continue;
             }
 
-            // Séance de vitesse (charges légères) d'un exercice aussi travaillé lourd : elle ne juge pas la charge lourde.
-            if (in_array((int) $exerciseId, $fastIds, true) && $sets->max('weight_kg') < $load->target_kg * 0.75) {
+            // Séance de vitesse d'un exercice aussi travaillé lourd : elle ne juge pas la charge lourde. La quête du jour
+            // le dit ; sans quête, les charges légères le trahissent (pas au poids du corps, où le lest peut être à 0).
+            $fastToday = $todayIntents !== null && isset($todayIntents[$exerciseId])
+                ? array_intersect($todayIntents[$exerciseId], [null, 'mass', 'max']) === []
+                : in_array((int) $exerciseId, $fastIds, true) && $sets->max('weight_kg') < $load->target_kg * 0.75;
+            if ($fastToday) {
                 continue;
             }
 
@@ -335,9 +343,12 @@ final class LoadPrescriber
                     if ($kept->isEmpty()) {
                         $target = min($target, floor($sets->max('weight_kg') / $step) * $step);
                     }
+                    $before = (float) $load->target_kg;
                     $load->target_kg = max($line->exercise->is_bodyweight ? 0.0 : $step, $target);
                     $load->fail_streak = 0;
-                    $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
+                    if ((float) $load->target_kg < $before) {
+                        $notes[] = \App\Support\SystemMessage::deload($line->exercise->name, $load->target_kg);
+                    }
                 }
             } elseif ($kept->count() >= $line->sets && $kept->every(fn (WorkoutSet $s) => $s->reps >= $line->reps_max)) {
                 // Ressenti : une série « limite » garde la charge, tout « facile » double la hausse.

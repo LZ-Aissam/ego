@@ -85,3 +85,26 @@ it('fait les tractions explosives sans lest, même après une séance lestée', 
     expect($this->prescriber->prescriptionFor($this->user->fresh(), $this->pullUp, 'explosive', 3))->toBe(0.0)
         ->and($this->prescriber->prescriptionFor($this->user->fresh(), Exercise::firstWhere('slug', 'hanging-leg-raise'), 'mass', 12))->toBeNull();
 });
+
+it('ne juge pas le lest sur les tractions explosives du jour de vitesse, même à 0 kg de lest', function () {
+    $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-15 08:00'));      // jeudi : Épaules & tractions · VITESSE
+    calibrateWith($this->user, $this->pullUp, 77.0);                             // lest 0
+    app(\App\Game\QuestScheduler::class)->sync($this->user->fresh(), now());
+    expect(\App\Models\Quest::whereDate('date', '2026-10-15')->where('type', 'training')->value('title'))->toBe('Épaules & tractions · VITESSE');
+
+    $this->prescriber->progress($this->user->fresh(), bodyweightSets($this->user, $this->pullUp, array_fill(0, 5, [0.0, 3])));
+
+    expect((float) ($this->lest)($this->pullUp))->toBe(0.0);
+});
+
+it('ne décharge pas un lest déjà à 0 kg : aucun message', function () {
+    calibrateWith($this->user, $this->pullUp, 77.0);
+
+    $notes = [];
+    foreach ([1, 2] as $_) {
+        array_push($notes, ...$this->prescriber->progress($this->user->fresh(), bodyweightSets($this->user, $this->pullUp, array_fill(0, 5, [0.0, 1]))));
+    }
+
+    expect(collect($notes)->pluck('type')->all())->not->toContain('deload')
+        ->and((float) ($this->lest)($this->pullUp))->toBe(0.0);
+});

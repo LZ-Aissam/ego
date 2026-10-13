@@ -32,10 +32,11 @@ final class PowerProgram
 
             foreach ($lines as [$slot, $intent, $sets, $min, $max, $rest, $preferred]) {
                 $pick = $preferred === ['@same'] ? $previous : $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used);
+                // Ligne sans exercice : la suivante « @same » ne doit pas reprendre celui d'une ligne plus haut.
+                $previous = $pick;
                 if (! $pick) {
                     continue;
                 }
-                $previous = $pick;
                 $used[] = $pick->id;
 
                 // Série record : pas pour un débutant, ni sans charge à mesurer. Ses séries lourdes (@same) restent.
