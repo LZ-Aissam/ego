@@ -37,7 +37,8 @@ final class CalibrationPlan
 
             foreach ($slots as $slot) {
                 // Un exercice chargé du programme d'abord (il fixe les charges), sinon un au poids du corps.
-                $inSlot = $lines->where('slot', $slot);
+                // Les mouvements principaux d'abord (🏆, 🔥, ⚡ : les gros mouvements, même faits légers), avant le volume.
+                $inSlot = $lines->where('slot', $slot)->sortBy(fn ($line) => in_array($line->intent, ['top', 'max', 'speed'], true) ? 0 : 1);
                 $exercise = ($inSlot->first(fn ($line) => ! $line->exercise->is_bodyweight) ?? $inSlot->first())?->exercise
                     ?? $this->generator->candidates($slot, $equipment, $library)->first();
                 if ($exercise && ! $picked->contains('id', $exercise->id)) {
@@ -45,6 +46,15 @@ final class CalibrationPlan
                     $picked->push($exercise);
                     break;
                 }
+            }
+        }
+
+        // Chaque mouvement à série record (🏆) est mesuré : sa charge part de 92,5 % du vrai maximum, pas d'une estimation.
+        foreach ($lines->where('intent', 'top') as $line) {
+            if (! $picked->contains('id', $line->exercise_id) && ! $line->exercise->is_bodyweight) {
+                $exercise = $line->exercise;
+                $exercise->setAttribute('test_slot', $line->slot);
+                $picked->push($exercise);
             }
         }
 

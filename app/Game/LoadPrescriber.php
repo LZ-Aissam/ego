@@ -194,6 +194,10 @@ final class LoadPrescriber
     private function percentLoad(User $user, Exercise $exercise, string $intent, int $repsMax): ?float
     {
         $pct = \App\Game\Intent::META[$intent]['pct'];
+        // Force max en 3 à 5 répétitions : 87,5 % serait presque un maximum, la double progression ne passerait jamais.
+        if ($intent === 'max') {
+            $pct = min($pct, 1 / (1 + ($repsMax + 1) / 30));
+        }
 
         $best = $this->bestE1rm($user, $exercise, $repsMax);
         if ($best === null) {

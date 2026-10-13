@@ -79,6 +79,29 @@ final class QuestScheduler
         });
     }
 
+    /**
+     * Programme refait ou copié : les séances du jour et à venir encore vierges (et les repos) sont retirées ;
+     * la prochaine synchronisation (chaque page) les recrée d'après le nouveau programme. Une séance commencée ou finie est gardée.
+     */
+    public function programChanged(User $user, CarbonInterface $today): void
+    {
+        $today = Carbon::parse($today->toDateString());
+
+        DB::transaction(function () use ($user, $today) {
+            User::whereKey($user->id)->lockForUpdate()->first();
+
+            $quests = $user->quests()->where('date', '>=', $today->toDateString())->whereIn('type', ['training', 'calibration', 'rest'])->get();
+            foreach ($quests as $quest) {
+                $untouched = $quest->type === 'rest'
+                    ? $quest->status === 'done'
+                    : $quest->status === 'pending' && array_sum($this->evaluator->progress($quest->objectives, $this->setsOn($user, Carbon::parse($quest->date->toDateString())))) === 0;
+                if ($untouched) {
+                    $quest->delete();
+                }
+            }
+        });
+    }
+
     /** À appeler sous le verrou du joueur (GameEvents). @return list<array> */
     public function onWorkout(User $user, Workout $workout): array
     {
@@ -299,7 +322,7 @@ final class QuestScheduler
                 // Lendemain en pause : la pénalité existe mais est annulée (la série reste gelée, pas cassée).
                 $user->quests()->firstOrCreate(
                     ['date' => $next->toDateString(), 'type' => 'penalty'],
-                    ['title' => 'Pénalité', 'objectives' => $this->penalties->for($user->level), 'status' => $paused($next) ? 'cancelled' : 'pending'],
+                    ['title' => 'Pénalité', 'objectives' => $this->penalties->for($user->level, (bool) ($user->activeProgram()->value('params->upper_only') ?? false)), 'status' => $paused($next) ? 'cancelled' : 'pending'],
                 );
             } elseif ($quest->type === 'penalty') {
                 $notes[] = SystemMessage::penaltyFailed();

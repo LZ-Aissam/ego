@@ -74,7 +74,7 @@
                             <p class="sys-num mt-1 text-xs font-bold uppercase tracking-wider text-amber" x-show="current.intentBadge" x-text="current.intentBadge"></p>
                             <p class="mt-0.5 text-sm text-mist" x-show="current.intentCue" x-text="current.intentCue"></p>
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.prescribedKg"
-                               x-text="current.prescribedKg ? 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '') : ''"></p>
+                               x-text="!current.prescribedKg ? '' : current.isBodyweight ? 'Lest prescrit par TON EGO · +' + formatKg(current.prescribedKg) : 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '')"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>
                         </div>
 

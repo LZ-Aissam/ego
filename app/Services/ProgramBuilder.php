@@ -30,7 +30,7 @@ final class ProgramBuilder
 
         $goalChanged = $user->goal !== $params['goal'];
 
-        return DB::transaction(function () use ($user, $params, $weekdays, $generated, $goalChanged) {
+        $built = DB::transaction(function () use ($user, $params, $weekdays, $generated, $goalChanged) {
             $program = $user->programs()->create([
                 'name' => 'Programme '.self::GOALS[$params['goal']].($params['upper_only'] ? ' · haut du corps' : '').' · '.count($weekdays).' j',
                 'split' => $generated['split'],
@@ -60,6 +60,10 @@ final class ProgramBuilder
 
             return $program->load('days.exercises.exercise');
         });
+
+        app(\App\Game\QuestScheduler::class)->programChanged($user, today());
+
+        return $built;
     }
 
     /**
@@ -73,7 +77,7 @@ final class ProgramBuilder
         $source->loadMissing('days.exercises', 'user');
         $weekdays = collect($weekdays)->map(fn ($d) => (int) $d)->unique()->sort()->values()->all();
 
-        return DB::transaction(function () use ($user, $source, $weekdays) {
+        $copied = DB::transaction(function () use ($user, $source, $weekdays) {
             $program = $user->programs()->create([
                 'name' => 'Programme de '.$source->user->first_name.' · '.$source->days->count().' j',
                 'split' => $source->split,
@@ -101,5 +105,9 @@ final class ProgramBuilder
 
             return $program->load('days.exercises.exercise');
         });
+
+        app(\App\Game\QuestScheduler::class)->programChanged($user, today());
+
+        return $copied;
     }
 }
