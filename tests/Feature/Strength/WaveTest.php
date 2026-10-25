@@ -104,7 +104,8 @@ it('montre sur la page Programme les séries de la vague de la semaine en cours'
 });
 
 it('fait la série de la vague au maximum de répétitions propres', function () {
-    expect(Intent::cue('wave'))->toContain('maximum de répétitions propres');
+    expect(Intent::cue('wave'))->toContain('maximum de répétitions propres')
+        ->toContain('sans rebond')->toContain('pas d')->toContain('ralentit');
 });
 
 it('relève le max dès la séance quand la série de la vague dépasse largement l\'objectif', function () {

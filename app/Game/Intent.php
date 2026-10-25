@@ -11,7 +11,7 @@ final class Intent
         'explosive' => ['icon' => '💥', 'label' => 'EXPLOSIF', 'pct' => 0.40, 'cue' => 'Explosion maximale, repos complet entre les séries : la qualité avant la fatigue.'],
         'top' => ['icon' => '🏆', 'label' => 'RECORD', 'pct' => 0.925, 'cue' => 'Une seule série très lourde : 1 à 2 répétitions parfaites, puis repos complet avant la suite.'],
         // Vague 5/3/1 : charge fixée par la semaine du cycle (Cycle::WAVE), sur 90 % de la base 1RM.
-        'wave' => ['icon' => '🌊', 'label' => 'VAGUE', 'pct' => null, 'cue' => 'Série de la vague : le maximum de répétitions propres, au moins l\'objectif du jour. Plus tu en fais, plus ton max monte. Si elle est Limite, fais une série de moins derrière.'],
+        'wave' => ['icon' => '🌊', 'label' => 'VAGUE', 'pct' => null, 'cue' => 'Série de la vague : le maximum de répétitions propres, au moins l\'objectif du jour. Propre = descente en 1 à 2 s, barre posée sur la poitrine sans rebond (marque une demi-seconde d\'arrêt), pas d\'élan des jambes au militaire ; arrête quand la barre ralentit franchement et ne compte que les répétitions propres. Plus tu en fais, plus ton max monte. Si elle est Limite, fais une série de moins derrière.'],
         'backoff' => ['icon' => '🔁', 'label' => 'SUITE', 'pct' => null, 'cue' => 'Même mouvement un peu plus léger : répétitions propres et rapides, sans aller à l\'échec.'],
         'volume' => ['icon' => '📦', 'label' => 'VOLUME', 'pct' => 0.70, 'cue' => 'Charge moyenne, toutes les répétitions propres : la base de ta force, sans aller à l\'échec.'],
         'mass' => ['icon' => '🧱', 'label' => 'MASSE', 'pct' => null, 'cue' => 'Contrôle la descente, tension continue.'],
