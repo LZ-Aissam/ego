@@ -1,6 +1,8 @@
-// Lecteur Alpine des démonstrations : dessine la silhouette d'un exercice et l'anime au tempo réel.
+// Lecteur Alpine des démonstrations : dessin Everkinetic en fondu entre ses deux positions quand il existe,
+// sinon silhouette animée ; dans les deux cas au tempo réel de l'exercice.
 import { VIEWBOX, phaseAt, sceneAt } from './rig.js';
 import { sceneMarkup } from './markup.js';
+import { CREDIT, framesOf } from './illustrations.js';
 
 const DEEP = '#3d6bff';
 let uid = 0;
@@ -19,6 +21,17 @@ export function stageMarkup(glowId) {
         + `<line x1="${vx}" y1="1.5" x2="${vx + vw}" y2="1.5" stroke="${DEEP}" stroke-opacity=".5"/><g data-layer="scene"></g>`;
 }
 
+/** Les deux positions d'un dessin, superposées dans le cadre ; la seconde apparaît en fondu. */
+export function illustrationMarkup(frames) {
+    const [x, y, w, h] = VIEWBOX;
+    return frames.map((href, i) => `<image data-frame="${i}" href="${href}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" opacity="${i === 0 ? 1 : 0}"/>`).join('');
+}
+
+/** Opacités des deux positions pour l'avancement t du mouvement (0 : départ, 1 : autre bout). */
+export function crossfade(t) {
+    return [1 - t, t];
+}
+
 export default function exerciseDemo(initialSlug = null) {
     return {
         slug: initialSlug,
@@ -31,6 +44,8 @@ export default function exerciseDemo(initialSlug = null) {
         raf: null,
         layer: null,
         glowId: '',
+        credit: '',
+        frames: null,
 
         init() {
             this.paused = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -52,10 +67,20 @@ export default function exerciseDemo(initialSlug = null) {
             const svg = this.$refs.svg;
             if (!svg || !this.slug) return;
             frameSvg(svg);
-            this.glowId = `demo-glow-${++uid}`;
-            svg.innerHTML = stageMarkup(this.glowId);
-            this.layer = svg.querySelector('[data-layer="scene"]');
-            this.note = sceneAt(this.slug, 0).note;
+            const frames = framesOf(this.slug);
+            this.credit = frames ? CREDIT : '';
+            if (frames) {
+                svg.innerHTML = illustrationMarkup(frames);
+                this.frames = [...svg.querySelectorAll('[data-frame]')];
+                this.layer = null;
+                this.note = '';
+            } else {
+                this.frames = null;
+                this.glowId = `demo-glow-${++uid}`;
+                svg.innerHTML = stageMarkup(this.glowId);
+                this.layer = svg.querySelector('[data-layer="scene"]');
+                this.note = sceneAt(this.slug, 0).note;
+            }
             this.clock = 0;
             this.last = null;
             const frame = (now) => {
@@ -68,9 +93,13 @@ export default function exerciseDemo(initialSlug = null) {
         },
 
         draw() {
-            if (!this.layer) return;
+            if (!this.layer && !this.frames) return;
             const [t, label] = phaseAt(this.slug, this.clock);
             this.phase = label;
+            if (this.frames) {
+                crossfade(t).forEach((opacity, i) => this.frames[i].setAttribute('opacity', opacity.toFixed(3)));
+                return;
+            }
             this.layer.innerHTML = sceneMarkup(sceneAt(this.slug, t), this.glowId);
         },
     };

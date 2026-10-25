@@ -10,6 +10,7 @@
     <svg x-ref="svg" class="h-full w-full" role="img" aria-label="Démonstration animée : {{ $name }}"></svg>
 </div>
 <p class="sys-num mt-1 text-right text-[10px] text-mist" x-show="note" x-text="note"></p>
+<p class="mt-1 text-[10px] text-mist/70" x-show="credit" x-text="credit"></p>
 
 <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Vitesse de l'animation">
     <button type="button" class="sys-chip" :class="{ 'sys-chip--active': !paused && speed === 1 }" @click="setSpeed(1)">Vitesse réelle</button>
