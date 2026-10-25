@@ -62,6 +62,17 @@ export const MOTIONS = {
     'dumbbell-calf-raise': same('standing-calf-raise'),
     'bodyweight-calf-raise': same('standing-calf-raise'),
     'box-jump': same('box-jump'),
+    // Variantes proches : le geste est le même, la note dit ce qui change.
+    'incline-bench-press': near('smith-machine-incline-press', 'Ici à la Smith machine : fais-le avec une barre libre, même banc incliné.'),
+    'machine-chest-press': near('standing-cable-chest-press', 'Ici debout à la poulie : même poussée devant toi, assis sur la machine.'),
+    'push-up': near('incline-push-up', 'Pompes : mains au sol (pas sur un support), corps gainé de la tête aux pieds.'),
+    'diamond-push-up': near('incline-push-up', 'Pompes diamant : mains au sol, rapprochées sous la poitrine (pouces et index en losange), coudes le long du corps.'),
+    'clap-push-up': near('incline-push-up', 'Pompes claquées : mains au sol, pousse fort pour décoller les mains, claque, et réceptionne-toi bras souples.'),
+    'bench-dips': near('dip', 'Dips sur banc : mains sur un banc derrière toi, pieds au sol devant, descends en pliant les coudes.'),
+    'reverse-curl': near('barbell-curl', 'Curl inversé : paumes vers le bas pendant toute la montée.'),
+    'skull-crusher': near('lying-dumbbell-triceps-extension', 'Barre au front : même geste, avec une barre (de préférence une barre EZ) au lieu des haltères.'),
+    'broad-jump': near('box-jump', 'Saut en longueur : sans box, saute le plus loin possible vers l’avant et réceptionne-toi genoux fléchis.'),
+    'jump-squat': near('box-jump', 'Squat sauté : sans box, descends en quart de squat et saute le plus haut possible, sur place.'),
 };
 
 /**

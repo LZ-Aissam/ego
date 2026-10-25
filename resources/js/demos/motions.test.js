@@ -23,9 +23,8 @@ describe('animations workout-motion', () => {
             expect(demoSource(slug).kind, slug).toBe('motion');
         }
         expect(demoSource('wrist-curl').kind).toBe('rig');
-        expect(demoSource('reverse-curl').kind).toBe('frames');
         // Animation continue indisponible : le dessin, puis la silhouette.
-        expect(demoSource('bench-press', false).kind).toBe('frames');
+        expect(demoSource('crunch', false).kind).toBe('frames');
         expect(demoSource('push-press', false).kind).toBe('rig');
     });
 
@@ -43,6 +42,21 @@ describe('animations workout-motion', () => {
     it('garde une silhouette pour chaque exercice, en dernier recours', () => {
         for (const slug of Object.keys(MOTIONS)) {
             expect(DEMOS[slug], slug).toBeDefined();
+        }
+    });
+});
+
+describe('animation continue partout où elle montre le geste', () => {
+    it('anime tous les exercices du catalogue sauf ceux qui n\'ont aucun équivalent', () => {
+        const slugs = [...catalog.matchAll(/^\s*\['([a-z0-9-]+)',/gm)].map((m) => m[1]);
+        const without = slugs.filter((slug) => demoSource(slug).kind !== 'motion').sort();
+
+        expect(without).toEqual(['cable-crunch', 'crunch', 'hanging-leg-raise', 'nordic-curl', 'sissy-squat', 'wrist-curl', 'wrist-extension']);
+    });
+
+    it('explique la différence quand l\'animation est une variante', () => {
+        for (const slug of ['reverse-curl', 'skull-crusher', 'push-up', 'diamond-push-up', 'bench-dips', 'incline-bench-press', 'clap-push-up', 'broad-jump', 'jump-squat']) {
+            expect(demoSource(slug).note, slug).not.toBe('');
         }
     });
 });
