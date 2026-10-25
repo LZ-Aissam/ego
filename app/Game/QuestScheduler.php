@@ -268,7 +268,7 @@ final class QuestScheduler
     }
 
     /** Séance du jour, allégée la 4e semaine du cycle. */
-    private function objectivesOn(User $user, ProgramDay $programDay, Carbon $day): array
+    public function objectivesOn(User $user, ProgramDay $programDay, Carbon $day): array
     {
         $objectives = Cycle::shape($programDay->objectives(), Cycle::week($user, $day));
 
