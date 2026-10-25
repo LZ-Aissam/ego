@@ -3,16 +3,25 @@
 namespace App\Http\Controllers;
 
 use Database\Seeders\ExerciseSeeder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Mise à jour de la base en production, sans ligne de commande (hébergement sans SSH) :
  * migrations puis catalogue d'exercices, protégées par le code DEPLOY_TOKEN.
+ * Même code pour exporter les données de jeu (hébergement sans accès distant à la base).
  */
 class DeployUpdateController
 {
+    private const EXPORTED_TABLES = [
+        'users', 'exercises', 'programs', 'program_days', 'program_exercises', 'quests',
+        'workouts', 'workout_sets', 'exercise_maxes', 'working_loads', 'personal_records',
+        'xp_events', 'user_titles', 'system_notifications', 'crews', 'crew_user', 'challenges', 'challenge_user',
+    ];
+
     public function show(): Response
     {
         $this->ensureEnabled();
@@ -34,6 +43,20 @@ class DeployUpdateController
         $output .= Artisan::output();
 
         return $this->page('<p class="ok">BASE À JOUR</p><pre>'.e(trim($output)).'</pre>');
+    }
+
+    public function export(Request $request): Response|JsonResponse
+    {
+        $this->ensureEnabled();
+
+        if (! hash_equals((string) config('app.deploy_token'), (string) $request->input('token'))) {
+            return $this->page('<p class="err">Code invalide.</p>', 403);
+        }
+
+        $tables = collect(self::EXPORTED_TABLES)->mapWithKeys(fn (string $table) => [$table => DB::table($table)->get()]);
+        $tables['users'] = $tables['users']->map(fn (object $user) => collect($user)->except(['password', 'remember_token']));
+
+        return response()->json($tables);
     }
 
     private function ensureEnabled(): void
