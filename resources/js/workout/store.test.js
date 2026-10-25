@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-    addExercise, addRest, adjustDraft, allTargetsDone, createStore, finishWorkout, goTo, hasSets,
+    addExercise, addRest, adjustDraft, allTargetsDone, closeStale, createStore, finishWorkout, goTo, hasSets,
     effortPending, isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
 } from './store';
 
@@ -59,6 +59,18 @@ describe('séance', () => {
 
         s = addExercise(s, pullUp, { restSeconds: 90 });
         expect(s.exercises[2].target).toBeNull();
+    });
+
+    it('ramène les répétitions de la dernière fois dans la plage visée', () => {
+        // Échauffement du calibrage à 8 répétitions : la force max en 2-3 ne doit pas proposer 8.
+        let s = addExercise(newWorkout('id', 't'), bench, { lastTime: [{ weightKg: 35, reps: 8 }], restSeconds: 240, target: { sets: 4, repsMin: 2, repsMax: 3 } });
+        expect(s.exercises[0].draft.reps).toBe(3);
+
+        s = addExercise(s, bench, { lastTime: [{ weightKg: 60, reps: 5 }], restSeconds: 60, target: { sets: 3, repsMin: 12, repsMax: 15 } });
+        expect(s.exercises[1].draft.reps).toBe(12);
+
+        s = addExercise(s, bench, { lastTime: [{ weightKg: 60, reps: 8 }], restSeconds: 90 });
+        expect(s.exercises[2].draft.reps).toBe(8);
     });
 
     it('pré-remplit la charge prescrite avant la dernière fois et la suggestion', () => {
@@ -170,6 +182,44 @@ describe('stockage', () => {
         expect(store.pending()).toHaveLength(1);
         expect(store.loadActive()).toBeNull();
         store.removePending('abc');
+        expect(store.pending()).toEqual([]);
+    });
+});
+
+describe('séance oubliée', () => {
+    const HOUR = 3600 * 1000;
+    const started = (store, lastSetAt) => {
+        let s = addExercise(newWorkout('vieille', '2026-10-14T21:11:17.000Z'), bench, { restSeconds: 90 });
+        s = logSet(s, Date.parse(lastSetAt));
+        store.saveActive(s);
+        return s;
+    };
+
+    it("termine à l'heure de sa dernière série une séance sans nouvelle série depuis plus de 6 h", () => {
+        const store = createStore(memoryStorage());
+        started(store, '2026-10-14T21:35:43.000Z');
+
+        const payload = closeStale(store, Date.parse('2026-10-19T20:20:00.000Z'));
+
+        expect(payload.finished_at).toBe('2026-10-14T21:35:43.000Z');
+        expect(store.loadActive()).toBeNull();
+        expect(store.pending()).toHaveLength(1);
+    });
+
+    it('garde une séance en cours, même passée minuit', () => {
+        const store = createStore(memoryStorage());
+        started(store, '2026-10-14T21:58:00.000Z');
+
+        expect(closeStale(store, Date.parse('2026-10-14T22:05:00.000Z') + HOUR)).toBeNull();
+        expect(store.loadActive()).not.toBeNull();
+    });
+
+    it("oublie sans l'envoyer une vieille séance sans aucune série", () => {
+        const store = createStore(memoryStorage());
+        store.saveActive(addExercise(newWorkout('vide', '2026-10-14T21:11:17.000Z'), bench, { restSeconds: 90 }));
+
+        expect(closeStale(store, Date.parse('2026-10-19T20:20:00.000Z'))).toBeNull();
+        expect(store.loadActive()).toBeNull();
         expect(store.pending()).toEqual([]);
     });
 });

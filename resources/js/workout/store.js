@@ -23,6 +23,8 @@ export function newWorkout(clientId, startedAtIso) {
     return { clientId, startedAt: startedAtIso, currentIndex: 0, restEndsAt: null, restTotalMs: null, exercises: [] };
 }
 
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
 export function addExercise(state, exercise, { lastTime = null, suggestedKg = null, prescribedKg = null, restSeconds, target = null }) {
     const first = lastTime?.[0];
     state.exercises.push({
@@ -37,7 +39,11 @@ export function addExercise(state, exercise, { lastTime = null, suggestedKg = nu
         lastTime,
         target,
         prescribedKg,
-        draft: { weightKg: prescribedKg ?? first?.weightKg ?? suggestedKg ?? 0, reps: first?.reps ?? target?.repsMin ?? 10 },
+        // Répétitions de la dernière fois ramenées dans la plage visée : un échauffement à 8 ne fait pas proposer 8 en force max.
+        draft: {
+            weightKg: prescribedKg ?? first?.weightKg ?? suggestedKg ?? 0,
+            reps: target ? clamp(first?.reps ?? target.repsMin, target.repsMin, target.repsMax) : first?.reps ?? 10,
+        },
         sets: [],
     });
     state.currentIndex = state.exercises.length - 1;
@@ -199,6 +205,26 @@ export function createStore(storage, userId = null) {
             storage.setItem(pendingKey, JSON.stringify(this.pending().filter((p) => p.client_id !== clientId)));
         },
     };
+}
+
+/** Plus de 6 h sans nouvelle série : la séance a été oubliée, pas mise en pause. */
+export const STALE_AFTER_MS = 6 * 3600 * 1000;
+
+/**
+ * Séance oubliée ouverte : terminée à l'heure de sa dernière série, pour compter le jour où elle a été faite
+ * (sans série, elle est simplement oubliée). @return payload mis en file d'attente, ou null
+ */
+export function closeStale(store, nowMs) {
+    const state = store.loadActive();
+    if (!state) return null;
+    const doneAts = state.exercises.flatMap((ex) => ex.sets.map((set) => Date.parse(set.doneAt)));
+    const lastActivity = doneAts.length ? Math.max(...doneAts) : Date.parse(state.startedAt);
+    if (!(nowMs - lastActivity > STALE_AFTER_MS)) return null;
+    if (!doneAts.length) {
+        store.clearActive();
+        return null;
+    }
+    return finishWorkout(store, state, new Date(lastActivity).toISOString());
 }
 
 export function finishWorkout(store, state, finishedAtIso) {

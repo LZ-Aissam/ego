@@ -152,7 +152,7 @@ final class QuestScheduler
                 array_push($notes, ...$this->ensureQuest($user, $program, $day));
             }
             if ($day->lt($upTo)) {
-                array_push($notes, ...$this->expire($user, $day, $paused));
+                array_push($notes, ...$this->expire($user, $day, $paused, $upTo));
             }
         }
 
@@ -309,9 +309,10 @@ final class QuestScheduler
     }
 
     /** @return list<array> */
-    private function expire(User $user, Carbon $day, \Closure $paused): array
+    private function expire(User $user, Carbon $day, \Closure $paused, Carbon $today): array
     {
         $notes = [];
+        $upperOnly = (bool) ($user->activeProgram()->first()?->params['upper_only'] ?? false);
 
         foreach ($user->quests()->where('date', $day->toDateString())->where('status', 'pending')->orderBy('id')->get() as $quest) {
             $quest->update(['status' => 'failed']);
@@ -319,10 +320,15 @@ final class QuestScheduler
             if (in_array($quest->type, ['training', 'calibration'], true)) {
                 $notes[] = SystemMessage::questFailed($quest);
                 $next = $day->copy()->addDay();
+                // Lendemain déjà passé (retour après plusieurs jours) : une pénalité qu'on ne peut plus faire n'a pas de sens.
+                // En pause, elle est gardée annulée : c'est elle qui gèle la série au lieu de la casser.
+                if ($next->lt($today) && ! $paused($next)) {
+                    continue;
+                }
                 // Lendemain en pause : la pénalité existe mais est annulée (la série reste gelée, pas cassée).
                 $user->quests()->firstOrCreate(
                     ['date' => $next->toDateString(), 'type' => 'penalty'],
-                    ['title' => 'Pénalité', 'objectives' => $this->penalties->for($user->level, (bool) ($user->activeProgram()->value('params->upper_only') ?? false)), 'status' => $paused($next) ? 'cancelled' : 'pending'],
+                    ['title' => 'Pénalité', 'objectives' => $this->penalties->for($user->level, $upperOnly), 'status' => $paused($next) ? 'cancelled' : 'pending'],
                 );
             } elseif ($quest->type === 'penalty') {
                 $notes[] = SystemMessage::penaltyFailed();

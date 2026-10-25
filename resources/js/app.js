@@ -9,7 +9,7 @@ import workout from './workout/component';
 import sysNotifications from './ui/notifications';
 import exerciseDemo from './demos/player';
 import { initCountUps } from './ui/count-up';
-import { createStore } from './workout/store';
+import { closeStale, createStore } from './workout/store';
 import { collectNotifications, flushPending, sendWorkout } from './workout/sync';
 
 window.Alpine = Alpine;
@@ -53,6 +53,16 @@ function syncPending() {
     });
 }
 
+// Séance oubliée ouverte depuis plus de 6 h : terminée à sa dernière série, puis envoyée avec les autres.
+function closeStaleWorkout() {
+    if (!userId()) return;
+    try {
+        closeStale(userStore(), Date.now());
+    } catch {
+        // Stockage indisponible : rien à clore.
+    }
+}
+
 function showResumeBanner() {
     const banner = document.getElementById('resume-banner');
     if (banner && userId() && userStore().loadActive()) banner.hidden = false;
@@ -71,6 +81,7 @@ window.addEventListener('offline', updateOfflineBanner);
 document.addEventListener('DOMContentLoaded', () => {
     initCountUps();
     updateOfflineBanner();
+    closeStaleWorkout();
     showResumeBanner();
     if (!document.getElementById('workout-boot')) syncPending();
 });

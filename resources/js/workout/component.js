@@ -1,5 +1,5 @@
 import {
-    addExercise, addRest, adjustDraft, allTargetsDone, createStore, effortPending, finishWorkout, goTo, hasSets,
+    addExercise, addRest, adjustDraft, allTargetsDone, closeStale, createStore, effortPending, finishWorkout, goTo, hasSets,
     isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
@@ -34,6 +34,8 @@ export default function workout() {
             this.boot = JSON.parse(document.getElementById('workout-boot').textContent);
             this.signals = loadSettings(window.localStorage);
             this.store = createStore(window.localStorage, document.body.dataset.userId);
+            // Séance oubliée ouverte : envoyée pour son jour, et la quête d'aujourd'hui démarre à neuf.
+            if (closeStale(this.store, Date.now())) this.sendPending();
             const stored = this.store.loadActive();
             this.state = stored ?? newWorkout(uuid(), new Date().toISOString());
             // Séance de quête : exercices, séries et repos du programme, sauf si une séance est déjà en cours.
@@ -194,6 +196,12 @@ export default function workout() {
             if (this.resting) return;
             logSet(this.state, this.now);
             this.restExpanded = true;
+        },
+
+        async sendPending() {
+            const result = await flushPending(this.store, (p) => sendWorkout(p, { token: csrfToken() }));
+            const notifications = collectNotifications(result);
+            if (notifications.length) window.dispatchEvent(new CustomEvent('sys-notify', { detail: notifications }));
         },
 
         async finish() {

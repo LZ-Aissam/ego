@@ -70,17 +70,17 @@ it('passe au jour suivant du programme après une quête accomplie, répète apr
     expect(Quest::where('date', '2026-10-09')->value('title'))->toBe('Full body B');
 });
 
-it('rattrape une absence de plusieurs jours dans l\'ordre, sans pénalité en cascade', function () {
+it('rattrape une absence de plusieurs jours dans l\'ordre, sans pénalité pour des jours déjà passés', function () {
     programOn($this->user);
     $this->scheduler->sync($this->user, day('2026-10-05'));
 
     $notes = $this->scheduler->sync($this->user, day('2026-10-09'));
 
-    expect(collect($notes)->pluck('title')->all())->toBe(['QUÊTE ÉCHOUÉE', 'PÉNALITÉ ÉCHOUÉE', 'QUÊTE ÉCHOUÉE', 'PÉNALITÉ ÉCHOUÉE'])
-        ->and(Quest::where('type', 'penalty')->count())->toBe(2)
+    expect(collect($notes)->pluck('title')->all())->toBe(['QUÊTE ÉCHOUÉE', 'QUÊTE ÉCHOUÉE'])
+        ->and(Quest::where('type', 'penalty')->count())->toBe(0)
         ->and(Quest::where('date', '2026-10-09')->where('type', 'training')->value('status'))->toBe('pending')
         ->and(Quest::where('date', '2026-10-09')->where('type', 'penalty')->exists())->toBeFalse()
-        ->and($this->user->fresh()->streak_days)->toBe(0);
+        ->and($this->user->fresh()->streak_days)->toBe(1);                       // le repos du 8 : la série repart après le dernier jour raté
 });
 
 it('ne crée ni quête ni pénalité pendant une pause, et la lève automatiquement', function () {

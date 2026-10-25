@@ -46,7 +46,8 @@ it('accomplit la quête par le calibrage, puis reprend au premier jour du progra
 it('punit un calibrage raté comme une quête d\'entraînement et le repropose', function () {
     app(QuestScheduler::class)->sync($this->user, now());
 
-    $notes = app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-07'));
+    $notes = app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-06'));
+    app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-07'));
 
     expect(collect($notes)->pluck('title'))->toContain('QUÊTE ÉCHOUÉE')
         ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->exists())->toBeTrue()

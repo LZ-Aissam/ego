@@ -16,6 +16,9 @@ final class LoadPrescriber
     /** Isolation sous ce seuil : la charge monte de 1 kg, pas de 2,5 kg. */
     public const SMALL_LOAD_KG = 20.0;
 
+    /** Force max : autant de répétitions au-delà du haut de la plage, et la charge est clairement trop légère. */
+    public const EXCEEDED_REPS = 3;
+
     public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
 
     /** Au poids du corps, deux prises d'un même mouvement : la mesure de l'une sert à l'autre tant qu'elle n'a pas la sienne. */
@@ -213,18 +216,25 @@ final class LoadPrescriber
     /** Charge d'une intention à pourcentage du meilleur 1RM (force max arrondie vers le bas). */
     private function percentLoad(User $user, Exercise $exercise, string $intent, int $repsMax): ?float
     {
-        $pct = \App\Game\Intent::META[$intent]['pct'];
-        // Force max en 3 à 5 répétitions : 87,5 % serait presque un maximum, la double progression ne passerait jamais.
-        if ($intent === 'max') {
-            $pct = min($pct, 1 / (1 + ($repsMax + 1) / 30));
-        }
+        $pct = $intent === 'max' ? $this->maxPct($repsMax) : \App\Game\Intent::META[$intent]['pct'];
 
         $best = $this->bestE1rm($user, $exercise, $repsMax);
         if ($best === null) {
             return null;
         }
 
-        $value = $best * $pct;
+        return $this->loadAt($user, $exercise, $intent, $best * $pct);
+    }
+
+    /** Force max en 3 à 5 répétitions : 87,5 % serait presque un maximum, la double progression ne passerait jamais. */
+    private function maxPct(int $repsMax): float
+    {
+        return min(\App\Game\Intent::META['max']['pct'], 1 / (1 + ($repsMax + 1) / 30));
+    }
+
+    /** Charge à mettre sur la barre pour une valeur visée (lest au poids du corps). */
+    private function loadAt(User $user, Exercise $exercise, string $intent, float $value): ?float
+    {
         // Au poids du corps, le 1RM compte le corps : la charge à prescrire est le lest, jamais négatif.
         if ($exercise->is_bodyweight) {
             return $user->weight_kg ? max(0.0, floor(($value - $user->weight_kg) / 2.5) * 2.5) : null;
@@ -356,6 +366,22 @@ final class LoadPrescriber
 
             $small = $line->exercise->kind === 'isolation' && $load->target_kg < self::SMALL_LOAD_KG;
             $kept = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $load->target_kg);
+
+            // Force max faite bien au-delà des répétitions visées : la charge repart de la meilleure série du jour,
+            // et les dernières séries qui lâchent (fatigue de ces séries trop longues) ne comptent pas comme un échec.
+            if ($line->intent === 'max' && $kept->contains(fn (WorkoutSet $s) => $s->reps >= $line->reps_max + self::EXCEEDED_REPS)) {
+                $bodyweight = $line->exercise->is_bodyweight ? (float) $user->weight_kg : 0.0;
+                $e1rm = $kept->max(fn (WorkoutSet $s) => ($s->weight_kg + $bodyweight) * (1 + $s->reps / 30));
+                $raised = $this->loadAt($user, $line->exercise, 'max', $e1rm * $this->maxPct($line->reps_max));
+                $load->fail_streak = 0;
+                if ($raised !== null && $raised > (float) $load->target_kg) {
+                    $load->target_kg = $raised;
+                    $notes[] = \App\Support\SystemMessage::loadUp($line->exercise->name, $load->target_kg);
+                }
+                $load->save();
+
+                continue;
+            }
             // Tout fait plus léger que la cible : la charge est trop lourde, cela compte comme un échec.
             $failed = $kept->isEmpty() || $kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min);
 
