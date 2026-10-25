@@ -270,7 +270,9 @@ final class QuestScheduler
     /** Séance du jour, allégée la 4e semaine du cycle. */
     private function objectivesOn(User $user, ProgramDay $programDay, Carbon $day): array
     {
-        return Cycle::isDeload($user, $day) ? Cycle::lighten($programDay->objectives()) : $programDay->objectives();
+        $objectives = Cycle::shape($programDay->objectives(), Cycle::week($user, $day));
+
+        return Cycle::isDeload($user, $day) ? Cycle::lighten($objectives) : $objectives;
     }
 
     private function setsOn(User $user, Carbon $day): Collection

@@ -45,6 +45,10 @@ final class PowerProgram
                 if ($intent === 'top' && ($params['level'] === 'beginner' || $pick->is_bodyweight)) {
                     continue;
                 }
+                // Séries de suite : sans charge à alléger, la série de la vague en répétitions suffit.
+                if ($intent === 'backoff' && $pick->is_bodyweight) {
+                    continue;
+                }
                 $item = $this->adapt(['exercise_id' => $pick->id, 'slot' => $slot, 'intent' => $intent, 'sets' => $sets, 'reps_min' => $min, 'reps_max' => $max, 'rest_seconds' => $rest], $pick, $params['level'], $params['equipment']);
                 $slot === 'core' ? $core[] = $item : $main[] = $item;
             }
@@ -56,7 +60,7 @@ final class PowerProgram
     }
 
     /** Premier slug préféré disponible, sinon le premier exercice de l'emplacement pour ce matériel. */
-    private function pick(string $slot, string $intent, array $preferred, string $equipment, Collection $exercises, array $used, bool $loadable = false): ?Exercise
+    private function pick(string $slot, ?string $intent, array $preferred, string $equipment, Collection $exercises, array $used, bool $loadable = false): ?Exercise
     {
         // Une salle complète a tout : barre de traction, barres parallèles et sol pour le poids du corps.
         $owned = $equipment === 'gym' ? ['gym', 'bodyweight'] : [$equipment];
@@ -72,7 +76,7 @@ final class PowerProgram
         }
 
         // En repli, lourd, rapide ou explosif seulement sur un poly-articulaire : jamais un pull-over à 87,5 %.
-        return $exercises->filter(fn (Exercise $e) => in_array($slot, $e->slots, true) && $fits($e) && ($intent === 'mass' || $e->kind === 'compound'))
+        return $exercises->filter(fn (Exercise $e) => in_array($slot, $e->slots, true) && $fits($e) && (in_array($intent, ['mass', null], true) || $e->kind === 'compound'))
             ->sortBy('id')->first();
     }
 
@@ -83,6 +87,9 @@ final class PowerProgram
             $item = match ($item['intent']) {
                 'max' => [...$item, 'intent' => 'mass', 'reps_min' => 5, 'reps_max' => 8],
                 'speed' => [...$item, 'intent' => 'explosive'],
+                // Vague, suite et volume se règlent en charge : au poids du corps, des séries en répétitions.
+                'wave' => [...$item, 'intent' => 'mass', 'reps_min' => 5, 'reps_max' => 8],
+                'backoff', 'volume' => [...$item, 'intent' => 'mass'],
                 default => $item,
             };
         }

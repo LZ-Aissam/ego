@@ -120,7 +120,8 @@
                             @if ($line->intent)<p class="sys-label !text-amber">{{ \App\Game\Intent::badge($line->intent) }}</p>@endif
                             <p class="font-semibold">{{ $line->exercise->name }}</p>
                             <x-exercise-demo :slug="$line->exercise->slug" :name="$line->exercise->name" wire:key="demo-{{ $line->id }}" />
-                            <p class="sys-num text-xs text-mist">{{ $line->sets }} × {{ $line->reps_min }}–{{ $line->reps_max }}@php $lineLoad = $line->intent ? ($intentLoads[$line->id] ?? null) : ($loads[$line->exercise_id] ?? null); @endphp@if ($lineLoad) · <span class="text-ice">{{ $line->exercise->is_bodyweight ? '+' : '' }}{{ \App\Support\Format::kg((float) $lineLoad) }}{{ $line->exercise->is_bodyweight ? ' de lest' : '' }}{{ $line->exercise->isPerDumbbell() ? ' par haltère' : '' }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
+                            @php $shape = $shapes[$line->id] ?? ['sets' => $line->sets, 'reps_min' => $line->reps_min, 'reps_max' => $line->reps_max]; @endphp
+                            <p class="sys-num text-xs text-mist">{{ $shape['sets'] }} × {{ $shape['reps_min'] }}–{{ $shape['reps_max'] }}@php $lineLoad = $line->intent ? ($intentLoads[$line->id] ?? null) : ($loads[$line->exercise_id] ?? null); @endphp@if ($lineLoad) · <span class="text-ice">{{ $line->exercise->is_bodyweight ? '+' : '' }}{{ \App\Support\Format::kg((float) $lineLoad) }}{{ $line->exercise->is_bodyweight ? ' de lest' : '' }}{{ $line->exercise->isPerDumbbell() ? ' par haltère' : '' }}</span>@endif · repos {{ $line->rest_seconds }} s</p>
                         </div>
                         <button type="button" class="sys-label shrink-0" wire:click="$set('replacing', {{ $replacing === $line->id ? 'null' : $line->id }})">Remplacer</button>
                     </div>

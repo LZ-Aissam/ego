@@ -92,18 +92,18 @@ it('sans jambes, aucun exercice de jambes quel que soit le nombre de jours et le
     }
 })->with(['gym', 'dumbbells', 'bodyweight']);
 
-it('sans jambes sur 5 jours, couché un jour sur deux et militaire 2 fois', function () {
+it('sans jambes sur 5 jours : semaine vague, un seul jour très lourd par mouvement', function () {
     expect(array_column(($this->pure)(['upper_only' => true, 'days' => 5])['days'], 'name'))
-        ->toBe(['Couché · LOURD', 'Développé militaire · LOURD', 'Haut du corps · VITESSE', 'Épaules & tractions · VITESSE', 'Couché · LOURD B']);
+        ->toBe(['Couché · LOURD', 'Militaire · LOURD', 'Couché · VOLUME', 'Épaules & tirage · VITESSE', 'Couché · VITESSE + bras']);
 });
 
-it('ne met jamais deux fois le même exercice dans une séance, hors série record suivie de ses séries lourdes', function (string $equipment, bool $upper) {
+it('ne met jamais deux fois le même exercice dans une séance, hors série record ou vague suivie de ses séries', function (string $equipment, bool $upper) {
     foreach ([2, 3, 4, 5, 6] as $days) {
         foreach (($this->pure)(['equipment' => $equipment, 'days' => $days, 'upper_only' => $upper])['days'] as $day) {
             $ids = array_column($day['exercises'], 'exercise_id');
             expect($ids)->not->toBeEmpty();
             foreach (array_diff_assoc($ids, array_unique($ids)) as $i => $id) {
-                expect($day['exercises'][$i - 1]['intent'] ?? null)->toBe('top', $day['name'].' : '.$this->byId[$id]->slug.' en double');
+                expect($day['exercises'][$i - 1]['intent'] ?? null)->toBeIn(['top', 'wave'], $day['name'].' : '.$this->byId[$id]->slug.' en double');
             }
         }
     }
@@ -115,8 +115,7 @@ it('sans ceinture de lest, charge la force max du tirage et des triceps sur la p
     $explosive = collect($program['days'][3]['exercises'])->where('slot', 'vertical_pull')->map(fn ($l) => [$this->byId[$l['exercise_id']]->slug, $l['intent']])->values()->all();
 
     expect($max(0, 'vertical_pull'))->toBe(['lat-pulldown'])
-        ->and($max(2, 'triceps'))->toBe(['close-grip-bench-press'])
-        ->and($max(4, 'vertical_pull'))->toBe(['lat-pulldown'])
+        ->and($max(4, 'triceps'))->toBe(['close-grip-bench-press'])
         ->and($explosive)->toBe([['pull-up', 'explosive']])
         ->and(collect(($this->pure)(['days' => 5, 'upper_only' => true, 'no_belt' => true, 'equipment' => 'bodyweight'])['days'][0]['exercises'])->where('slot', 'vertical_pull')->map(fn ($l) => $this->byId[$l['exercise_id']]->slug)->values()->all())->toBe(['pull-up'])
         // Avec une ceinture : tractions lestées, comme avant.

@@ -9,6 +9,7 @@ use App\Models\Workout;
 use App\Models\WorkoutSet;
 use App\Services\StartingLoad;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 final class LoadPrescriber
@@ -108,7 +109,7 @@ final class LoadPrescriber
     public function bestE1rm(User $user, Exercise $exercise, int $repsMax): ?float
     {
         $max = $user->exerciseMaxes()->where('exercise_id', $exercise->id)->first(['e1rm_kg', 'source']);
-        if ($max?->source === 'top') {
+        if (in_array($max?->source, ['top', 'wave'], true)) {
             return round((float) $max->e1rm_kg, 1);
         }
         $calibrated = (float) $max?->e1rm_kg;
@@ -134,6 +135,9 @@ final class LoadPrescriber
      */
     public function prescriptionFor(User $user, Exercise $exercise, ?string $intent, int $repsMax, ?CarbonInterface $on = null): ?float
     {
+        if (in_array($intent, ['wave', 'backoff'], true)) {
+            return $this->waveLoad($user, $exercise, $intent, $on ?? now());
+        }
         $load = $this->basePrescription($user, $exercise, $intent, $repsMax);
         if ($load === null || $intent !== 'max' || ! Cycle::isDeload($user, $on ?? now())) {
             return $load;
@@ -161,6 +165,54 @@ final class LoadPrescriber
         }
 
         return $this->percentLoad($user, $exercise, $intent, $repsMax);
+    }
+
+    /** Vague 5/3/1 : part du max d'entraînement (90 % de la base) selon la semaine ; séries de suite à 93 %. */
+    private function waveLoad(User $user, Exercise $exercise, string $intent, CarbonInterface $on): ?float
+    {
+        if ($exercise->is_bodyweight) {
+            return null;
+        }
+        $base = $this->bestE1rm($user, $exercise, 5);
+        if ($base === null) {
+            return null;
+        }
+        $wave = max(2.5, floor($base * Cycle::TRAINING_MAX * Cycle::WAVE[Cycle::week($user, $on) ?? 1][0] / 2.5) * 2.5);
+
+        return $intent === 'wave' ? $wave : max(2.5, floor($wave * Cycle::BACKOFF_FACTOR / 2.5) * 2.5);
+    }
+
+    /**
+     * Fin de vague (semaine 3 réussie) : le max d'entraînement monte d'un cran, une fois par cycle.
+     * Série de la vague ratée à la limite : la base redescend de 5 %.
+     */
+    private function progressWave(User $user, ProgramExercise $line, Collection $sets, CarbonInterface $day): ?array
+    {
+        $week = Cycle::week($user, $day) ?? 1;
+        $kg = $this->waveLoad($user, $line->exercise, 'wave', $day);
+        if ($kg === null) {
+            return null;
+        }
+        [, $min] = Cycle::WAVE[$week];
+        $done = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $kg);
+        $missed = $done->contains(fn (WorkoutSet $s) => $s->reps < $min && $s->effort === Effort::LIMIT);
+        $raised = ! $missed && $week === 3 && $done->contains(fn (WorkoutSet $s) => $s->reps >= $min);
+        if (! $missed && ! $raised) {
+            return null;
+        }
+
+        $current = $user->exerciseMaxes()->where('exercise_id', $line->exercise_id)->first();
+        if ($raised && $current?->source === 'wave' && $current->measured_at && $current->measured_at->gte(Carbon::parse($day)->startOfWeek())) {
+            return null;
+        }
+        $base = (float) $this->bestE1rm($user, $line->exercise, 5);
+        $base = $raised ? $base + $this->step($line->exercise) / Cycle::TRAINING_MAX : $base * 0.95;
+        $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $line->exercise_id], ['e1rm_kg' => round($base, 1), 'source' => 'wave', 'measured_at' => $day]);
+
+        // Message : la série de la vague à venir (semaine 1 du prochain cycle après une hausse, la même sinon).
+        $next = $this->waveLoad($user, $line->exercise, 'wave', $raised ? Carbon::parse($day)->addWeeks(2) : $day);
+
+        return $raised ? \App\Support\SystemMessage::topUp($line->exercise->name, $next) : \App\Support\SystemMessage::topDown($line->exercise->name, $next);
     }
 
     /** Série record : 92,5 % du meilleur 1RM, et toujours au-dessus des séries lourdes. */
@@ -255,8 +307,11 @@ final class LoadPrescriber
         return $program->days->flatMap->exercises
             ->filter(fn (ProgramExercise $l) => in_array($l->intent, [null, 'mass', 'max'], true))
             ->groupBy('exercise_id')->map(function (Collection $occurrences) {
-                $first = clone $occurrences->first();
-                $first->reps_max = $occurrences->min('reps_max');
+                // Un exercice lourd (🔥) un jour et accessoire un autre (dips) : la ligne lourde mène sa charge et son lest.
+                $heavy = $occurrences->where('intent', 'max');
+                $lead = $heavy->isNotEmpty() ? $heavy : $occurrences;
+                $first = clone $lead->first();
+                $first->reps_max = $lead->min('reps_max');
 
                 return $first;
             });
@@ -309,6 +364,12 @@ final class LoadPrescriber
         // Intentions de la quête du jour par exercice : une séance de vitesse ne juge pas la charge lourde.
         $quest = $user->quests()->where('type', 'training')->whereDate('date', $workout->finished_at->toDateString())->first();
         $todayIntents = $quest ? collect($quest->objectives)->groupBy('exercise_id')->map(fn (Collection $o) => $o->pluck('intent')->all()) : null;
+
+        foreach ($lines->where('intent', 'wave')->keyBy('exercise_id') as $exerciseId => $wave) {
+            if (isset($bySets[$exerciseId]) && $note = $this->progressWave($user, $wave, $bySets[$exerciseId], $workout->finished_at)) {
+                $notes[] = $note;
+            }
+        }
 
         foreach ($topLines as $exerciseId => $top) {
             if (isset($bySets[$exerciseId]) && $topKgs[$exerciseId] !== null && $note = $this->progressTop($user, $top, $topKgs[$exerciseId], $bySets[$exerciseId])) {

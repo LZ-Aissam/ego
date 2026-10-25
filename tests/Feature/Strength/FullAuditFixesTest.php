@@ -31,7 +31,7 @@ it('remplace la séance du jour quand le programme est refait', function () {
     app(QuestScheduler::class)->sync($this->user->fresh(), now());               // la page suivante resynchronise
 
     $quest = ($this->todayTraining)();
-    expect($quest->title)->toBe('Développé militaire · LOURD')
+    expect($quest->title)->toBe('Militaire · LOURD')
         ->and($quest->status)->toBe('pending')
         ->and(collect($quest->objectives)->pluck('name'))->not->toContain('Squat (barre)');
 });

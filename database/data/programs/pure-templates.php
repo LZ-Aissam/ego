@@ -86,6 +86,43 @@ return [
             ['shoulder_iso', 'mass', 3, 12, 15, 60, ['rear-delt-fly', 'face-pull']],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
+        // Semaine vague (sans jambes, 5 jours) : un seul jour très lourd par mouvement (5/3/1 + séries de suite),
+        // du volume à 75 % et de la vitesse les autres jours. « null » : accessoire sans intention (double progression).
+        'wave_bench' => ['Couché · LOURD', [
+            ['horizontal_push', 'wave', 1, 5, 5, 300, $bench],
+            ['horizontal_push', 'backoff', 3, 5, 5, 180, ['@same']],
+            ['vertical_pull', 'max', 5, 3, 3, 180, ['pull-up', 'chin-up', 'inverted-row']],
+            ['biceps', null, 4, 5, 6, 120, ['barbell-curl', 'dumbbell-curl']],
+        ]],
+        'wave_press' => ['Militaire · LOURD', [
+            ['vertical_push', 'wave', 1, 5, 5, 300, $press],
+            ['vertical_push', 'backoff', 3, 5, 5, 180, ['@same']],
+            ['horizontal_pull', 'max', 5, 3, 5, 180, $row],
+            ['biceps', null, 3, 6, 8, 90, ['hammer-curl', 'dumbbell-curl']],
+            ['forearms', null, 3, 10, 12, 60, ['wrist-curl']],
+            ['shoulder_iso', null, 3, 10, 12, 60, ['lateral-raise', 'cable-lateral-raise']],
+        ]],
+        'wave_volume' => ['Couché · VOLUME', [
+            ['horizontal_push', 'volume', 5, 5, 5, 150, $bench],
+            ['vertical_pull', null, 4, 5, 5, 120, ['chin-up', 'pull-up', 'inverted-row']],
+            ['triceps', null, 4, 5, 5, 120, ['dips', 'bench-dips']],
+            ['forearms', null, 3, 8, 8, 60, ['reverse-curl']],
+        ]],
+        'wave_speed_press' => ['Épaules & tirage · VITESSE', [
+            ['vertical_push', 'explosive', 5, 3, 3, 150, ['push-press', 'dumbbell-shoulder-press', 'pike-push-up']],
+            ['vertical_push', 'speed', 8, 3, 3, 90, $press],
+            ['vertical_pull', 'explosive', 5, 3, 3, 120, ['pull-up', 'chin-up']],
+            ['shoulder_iso', null, 3, 12, 15, 60, ['face-pull', 'rear-delt-fly']],
+            ['triceps', null, 3, 6, 8, 90, ['skull-crusher', 'overhead-dumbbell-extension', 'diamond-push-up']],
+        ]],
+        'wave_speed_bench' => ['Couché · VITESSE + bras', [
+            ['horizontal_push', 'speed', 8, 3, 3, 60, ['bench-press', 'dumbbell-bench-press', 'clap-push-up']],
+            ['triceps', 'max', 4, 3, 5, 180, ['dips']],
+            ['horizontal_pull', null, 4, 6, 6, 120, ['chest-supported-row', 'dumbbell-row', 'inverted-row']],
+            ['biceps', null, 3, 6, 8, 90, ['hammer-curl', 'dumbbell-curl']],
+            ['forearms', null, 3, 12, 12, 60, ['wrist-extension']],
+            ['shoulder_iso', null, 3, 10, 12, 60, ['lateral-raise', 'cable-lateral-raise']],
+        ]],
     ],
     'substitutes' => [],
     'weeks' => [
@@ -99,7 +136,7 @@ return [
         2 => ['bench', 'press'],
         3 => ['bench', 'press', 'upper_speed'],
         4 => ['bench', 'press', 'upper_speed', 'bench_b'],
-        5 => ['bench', 'press', 'upper_speed', 'shoulders_speed', 'bench_b'],
+        5 => ['wave_bench', 'wave_press', 'wave_volume', 'wave_speed_press', 'wave_speed_bench'],
         6 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed', 'upper_speed'],
     ],
 ];

@@ -14,7 +14,7 @@ Max d'entraînement (TM) = 90 % de la base 1RM de l'exercice. Base = 1RM stocké
 |---|---|---|---|
 | `wave` | 🌊 VAGUE | TM × 85 % · 90 % · 95 % · 60 %, arrondi vers le bas à 2,5 kg | 1×5 · 1×3 · 1×1–2 · 1×5 |
 | `backoff` | 🔁 SUITE | charge `wave` du jour × 93 %, vers le bas | 3×5 · 3×3 · 2×2 · moitié des séries (allégée) |
-| `volume` | 📦 VOLUME | base × 75 %, arrondi | séries du programme (5×5), moitié en semaine allégée |
+| `volume` | 📦 VOLUME | base × 70 %, arrondi (toujours sous la série de la vague, même en semaine 1) | séries du programme (5×5), moitié en semaine allégée |
 
 Les séries et répétitions de `wave` et `backoff` sont réécrites dans la quête du jour et sur la page Programme selon la semaine. Au poids du corps (matériel `bodyweight`), `wave`, `backoff` et `volume` deviennent 🧱 (5–8 répétitions pour `wave`).
 

@@ -19,6 +19,18 @@ final class Cycle
 
     private const GOALS = ['power', 'pure'];
 
+    /** Vague 5/3/1 par semaine du cycle : [part du max d'entraînement, reps min, reps max]. */
+    public const WAVE = [1 => [0.85, 5, 5], 2 => [0.90, 3, 3], 3 => [0.95, 1, 2], 4 => [0.60, 5, 5]];
+
+    /** Séries de suite par semaine : [séries, reps min, reps max] (moitié des séries en semaine allégée). */
+    public const BACKOFF = [1 => [3, 5, 5], 2 => [3, 3, 3], 3 => [2, 2, 2], 4 => [3, 5, 5]];
+
+    /** Max d'entraînement : 90 % de la base 1RM. */
+    public const TRAINING_MAX = 0.9;
+
+    /** Séries de suite : 93 % de la série de la vague. */
+    public const BACKOFF_FACTOR = 0.93;
+
     /** Semaine du cycle (1 à 4), ou null pour un programme sans cycle. */
     public static function week(User $user, CarbonInterface $day): ?int
     {
@@ -39,6 +51,18 @@ final class Cycle
     public static function isDeload(User $user, CarbonInterface $day): bool
     {
         return self::week($user, $day) === self::LENGTH;
+    }
+
+    /** Séries et répétitions de la vague et des séries de suite selon la semaine du cycle. */
+    public static function shape(array $objectives, ?int $week): array
+    {
+        $week ??= 1;
+
+        return array_map(fn (array $o) => match ($o['intent'] ?? null) {
+            'wave' => [...$o, 'sets' => 1, 'reps_min' => self::WAVE[$week][1], 'reps_max' => self::WAVE[$week][2]],
+            'backoff' => [...$o, 'sets' => self::BACKOFF[$week][0], 'reps_min' => self::BACKOFF[$week][1], 'reps_max' => self::BACKOFF[$week][2]],
+            default => $o,
+        }, $objectives);
     }
 
     /** Séance de la semaine allégée : sans série record, moitié des séries. */

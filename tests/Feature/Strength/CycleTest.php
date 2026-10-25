@@ -19,7 +19,8 @@ beforeEach(function () {
     $this->bench = Exercise::firstWhere('slug', 'bench-press');
     $this->user->exerciseMaxes()->create(['exercise_id' => $this->bench->id, 'e1rm_kg' => 100, 'source' => 'calibration', 'measured_at' => now()]);
     $this->user->forceFill(['calibrated_at' => now(), 'power_factor' => 1.0])->save();
-    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'pure', 'weekdays' => [1, 2, 3, 4, 5], 'equipment' => 'gym', 'upper_only' => true]);
+    // Sans jambes sur 4 jours : série record et séries lourdes au couché (la semaine de 5 jours suit la vague, voir WaveTest).
+    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'pure', 'weekdays' => [1, 2, 3, 4], 'equipment' => 'gym', 'upper_only' => true]);
     $this->user = $this->user->fresh();
     $this->prescriber = app(LoadPrescriber::class);
 });

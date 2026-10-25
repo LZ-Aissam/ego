@@ -12,12 +12,13 @@ use Database\Seeders\ExerciseSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-// Cas réels de la production (Aïssam, Force pure · haut du corps · 5 j, octobre 2026).
+// Cas réels de la production (Aïssam, Force pure · haut du corps, octobre 2026), rejoués sur la semaine
+// à série record et séries lourdes (4 jours, mêmes séances lundi à mercredi) : la semaine de 5 jours suit désormais la vague.
 beforeEach(function () {
     $this->seed(ExerciseSeeder::class);
     $this->travelTo(Carbon::parse('2026-10-13 22:26'));                          // mardi
     $this->user = User::factory()->withMorphology(weightKg: 70.0, level: 'advanced')->create();
-    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'pure', 'weekdays' => [1, 2, 3, 4, 5], 'equipment' => 'gym', 'upper_only' => true]);
+    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'pure', 'weekdays' => [1, 2, 3, 4], 'equipment' => 'gym', 'upper_only' => true]);
     $this->bench = Exercise::firstWhere('slug', 'bench-press');
     $this->user->exerciseMaxes()->create(['exercise_id' => $this->bench->id, 'e1rm_kg' => 66.7, 'source' => 'calibration', 'measured_at' => now()]);
     $this->user->forceFill(['calibrated_at' => now(), 'power_factor' => 1.0])->save();

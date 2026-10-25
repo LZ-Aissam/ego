@@ -182,6 +182,10 @@ class ProgramPage extends Component
             'alternatives' => $alternatives,
             'loads' => auth()->user()->workingLoads()->pluck('target_kg', 'exercise_id'),
             'cycleWeek' => \App\Game\Cycle::week($user, now()),
+            // Vague et séries de suite : séries et répétitions de la semaine en cours.
+            'shapes' => $program ? collect(\App\Game\Cycle::shape($program->days->flatMap->exercises
+                ->map(fn ($l) => ['id' => $l->id, 'intent' => $l->intent, 'sets' => $l->sets, 'reps_min' => $l->reps_min, 'reps_max' => $l->reps_max])->all(),
+                \App\Game\Cycle::week($user, now())))->keyBy('id') : collect(),
             'hasIntents' => (bool) $program?->days->flatMap->exercises->contains(fn ($l) => $l->intent !== null),
             'intentLoads' => $program ? $program->days->flatMap->exercises->filter(fn ($l) => $l->intent !== null)
                 ->mapWithKeys(fn ($l) => [$l->id => app(\App\Game\LoadPrescriber::class)->prescriptionFor(auth()->user(), $l->exercise, $l->intent, $l->reps_max)]) : collect(),
