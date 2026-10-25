@@ -38,6 +38,7 @@ class Home extends Component
                 : app(\App\Game\LoadPrescriber::class)->prescriptionFor($user, \App\Models\Exercise::find($o['exercise_id']), $o['intent'], $o['reps_max'])]),
             'perDumbbell' => \App\Models\Exercise::all()->filter->isPerDumbbell()->modelKeys(),
             'lastWorkout' => $user->workouts()->with('sets.exercise')->latest('finished_at')->first(),
+            'homeBoard' => app(\App\Game\HomeGame::class)->board($user),
             'recentRecords' => $user->personalRecords()->with('exercise')->latest('achieved_at')->limit(3)->get(),
         ]);
     }

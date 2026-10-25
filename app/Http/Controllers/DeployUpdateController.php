@@ -19,7 +19,7 @@ class DeployUpdateController
     private const EXPORTED_TABLES = [
         'users', 'exercises', 'programs', 'program_days', 'program_exercises', 'quests',
         'workouts', 'workout_sets', 'exercise_maxes', 'working_loads', 'personal_records',
-        'xp_events', 'user_titles', 'system_notifications', 'crews', 'crew_user', 'challenges', 'challenge_user',
+        'xp_events', 'user_titles', 'system_notifications', 'crews', 'crew_user', 'challenges', 'challenge_user', 'home_attempts',
     ];
 
     public function show(): Response

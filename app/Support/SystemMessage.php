@@ -85,6 +85,16 @@ final class SystemMessage
         return self::make('load_up', 'CHARGE AUGMENTÉE', [$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta progression.'], highlight: '+');
     }
 
+    public static function homeBeat(string $game, int $value, int $xp): array
+    {
+        return self::make('home_beat', 'JEU MAISON', ['🏠 '.$game.' : '.$value, 'Mieux qu\'hier. +'.$xp.' XP.'], highlight: '+');
+    }
+
+    public static function homeRecord(string $game, int $value, int $xp): array
+    {
+        return self::make('home_record', 'RECORD MAISON', ['🏠 '.$game.' : '.$value, 'Nouveau record. +'.$xp.' XP.'], highlight: '+');
+    }
+
     public static function topUp(string $exercise, float $kg): array
     {
         return self::make('top_up', 'RECORD RELEVÉ', ['🏆 '.$exercise.' → '.Format::kg($kg), 'TON EGO a vu ta série record. On monte.'], highlight: '+');

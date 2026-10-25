@@ -33,6 +33,7 @@ final class AccountReset
             $user->quests()->delete();
             $user->programs()->delete();
             $user->xpEvents()->delete();
+            $user->homeAttempts()->delete();
             $user->titles()->delete();
             SystemNotification::where('user_id', $user->id)->delete();
         });

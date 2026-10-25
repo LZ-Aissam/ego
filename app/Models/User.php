@@ -41,7 +41,13 @@ class User extends Authenticatable
             'calibrated_at' => 'datetime',
             'calibration_snoozed_until' => 'date',
             'power_factor' => 'float',
+            'home_games' => 'array',
         ];
+    }
+
+    public function homeAttempts(): HasMany
+    {
+        return $this->hasMany(HomeAttempt::class);
     }
 
     public function programs(): HasMany

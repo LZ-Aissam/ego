@@ -14,6 +14,7 @@ use App\Livewire\CalibrationPage;
 use App\Livewire\Auth\Register;
 use App\Livewire\History;
 use App\Livewire\Home;
+use App\Livewire\HomeGamesPage;
 use App\Livewire\Profile;
 use App\Livewire\ProgramPage;
 use App\Livewire\Progress;
@@ -42,6 +43,7 @@ Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/history', History::class)->name('history');
     Route::get('/history/{workout}', WorkoutShow::class)->name('history.show');
     Route::get('/records', Records::class)->name('records');
+    Route::get('/maison', HomeGamesPage::class)->name('home-games');
     Route::get('/progress/{exercise}', Progress::class)->name('progress');
     Route::get('/profile', Profile::class)->name('profile');
     Route::post('/workouts/sync', WorkoutSyncController::class)->name('workouts.sync');

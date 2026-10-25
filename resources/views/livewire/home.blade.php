@@ -119,6 +119,23 @@
         </a>
     @endif
 
+    <a href="{{ route('home-games') }}" class="block">
+        <x-sys.window title="JEU MAISON" :index="3">
+            @forelse ($homeBoard as $card)
+                <div class="sys-row">
+                    <span>🏠 {{ $card['label'] }}</span>
+                    <span class="sys-num text-sm">
+                        @if ($card['today'] !== null)<span class="font-bold text-ice">{{ $card['today'] }}</span> aujourd'hui
+                        @elseif ($card['target'] !== null)à battre : <span class="font-bold text-ice">{{ $card['target'] }}</span>
+                        @else à toi de lancer @endif
+                    </span>
+                </div>
+            @empty
+                <p class="text-sm text-mist">Ton max de pompes, de tractions… chaque jour, quand tu veux. Choisis tes défis <span class="text-ice">→</span></p>
+            @endforelse
+        </x-sys.window>
+    </a>
+
     <x-sys.window title="DERNIERS RECORDS" :index="3">
         @forelse ($recentRecords as $record)
             <div class="sys-row">
