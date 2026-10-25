@@ -100,5 +100,32 @@ it('montre sur la page Programme les séries de la vague de la semaine en cours'
     $this->travelTo(Carbon::parse('2026-11-02 08:00'));
 
     $this->actingAs($this->user->fresh())->get('/program')
-        ->assertSeeText('🌊 VAGUE')->assertSeeText('1 × 3–3 · 80 kg')->assertSeeText('3 × 3–3 · 72,5 kg');
+        ->assertSeeText('🌊 VAGUE')->assertSeeText('1 × 3+ · 80 kg')->assertSeeText('3 × 3–3 · 72,5 kg');
+});
+
+it('fait la série de la vague au maximum de répétitions propres', function () {
+    expect(Intent::cue('wave'))->toContain('maximum de répétitions propres');
+});
+
+it('relève le max dès la séance quand la série de la vague dépasse largement l\'objectif', function () {
+    $this->travelTo(Carbon::parse('2026-10-26 18:00'));                         // semaine 1 : 75 kg × 5+
+    $notes = $this->prescriber->progress($this->user, waveBench($this->user, '2026-10-26', [[80, 10]]));
+
+    // 80 kg × 10 ≈ 106,7 kg de 1RM : max d'entraînement 96 kg, semaine 2 à 90 % → 86,4.
+    expect(collect($notes)->pluck('title')->all())->toContain('RECORD RELEVÉ')
+        ->and(($this->kg)('wave', '2026-11-02'))->toBe(85.0);
+});
+
+it('ne fait pas baisser le max quand la série de la vague colle juste à l\'objectif', function () {
+    $this->travelTo(Carbon::parse('2026-10-26 18:00'));
+    $notes = $this->prescriber->progress($this->user, waveBench($this->user, '2026-10-26', [[75, 5]]));
+
+    expect($notes)->toBe([])->and(($this->kg)('wave', '2026-11-02'))->toBe(80.0);
+});
+
+it('compte au plus 10 répétitions pour estimer le max', function () {
+    $this->travelTo(Carbon::parse('2026-10-26 18:00'));
+    $this->prescriber->progress($this->user, waveBench($this->user, '2026-10-26', [[75, 25]]));
+
+    expect(($this->kg)('wave', '2026-11-02'))->toBe(80.0);                         // 75 × (1 + 10/30) = 100 : inchangé
 });

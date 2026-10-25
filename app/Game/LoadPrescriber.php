@@ -20,6 +20,9 @@ final class LoadPrescriber
     /** Force max : autant de répétitions au-delà du haut de la plage, et la charge est clairement trop légère. */
     public const EXCEEDED_REPS = 3;
 
+    /** Répétitions comptées au plus pour estimer un max (au-delà, l'endurance fausse l'estimation). */
+    public const WAVE_REPS_CAP = 10;
+
     public const LOWER_BODY_SLOTS = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
 
     /** Au poids du corps, deux prises d'un même mouvement : la mesure de l'une sert à l'autre tant qu'elle n'a pas la sienne. */
@@ -168,12 +171,12 @@ final class LoadPrescriber
     }
 
     /** Vague 5/3/1 : part du max d'entraînement (90 % de la base) selon la semaine ; séries de suite à 93 %. */
-    private function waveLoad(User $user, Exercise $exercise, string $intent, CarbonInterface $on): ?float
+    private function waveLoad(User $user, Exercise $exercise, string $intent, CarbonInterface $on, ?int $exceptWorkout = null): ?float
     {
         if ($exercise->is_bodyweight) {
             return null;
         }
-        $base = $this->bestE1rm($user, $exercise, 5);
+        $base = $this->waveBase($user, $exercise, $exceptWorkout);
         if ($base === null) {
             return null;
         }
@@ -183,36 +186,81 @@ final class LoadPrescriber
     }
 
     /**
-     * Fin de vague (semaine 3 réussie) : le max d'entraînement monte d'un cran, une fois par cycle.
-     * Série de la vague ratée à la limite : la base redescend de 5 %.
+     * Base 1RM de la vague : celle réglée par la vague (ou la série record) ; sinon le calibrage et les meilleures séries,
+     * estimées avec au plus 10 répétitions (75 kg × 25 ne fait pas un max de 137 kg) ; sinon la charge déduite.
      */
-    private function progressWave(User $user, ProgramExercise $line, Collection $sets, CarbonInterface $day): ?array
+    private function waveBase(User $user, Exercise $exercise, ?int $exceptWorkout = null): ?float
     {
+        $max = $user->exerciseMaxes()->where('exercise_id', $exercise->id)->first(['e1rm_kg', 'source']);
+        if (in_array($max?->source, ['top', 'wave'], true)) {
+            return round((float) $max->e1rm_kg, 1);
+        }
+        $sets = WorkoutSet::query()->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+            ->where('workouts.user_id', $user->id)->where('workout_sets.exercise_id', $exercise->id)
+            ->when($exceptWorkout, fn ($q) => $q->where('workouts.id', '!=', $exceptWorkout))
+            ->get(['workout_sets.weight_kg', 'workout_sets.reps']);
+        $base = max((float) $max?->e1rm_kg, $this->cappedE1rm($sets));
+
+        return $base > 0 ? round($base, 1) : $this->bestE1rm($user, $exercise, 5);
+    }
+
+    /** Meilleur 1RM estimé (Epley) d'un groupe de séries, au plus 10 répétitions comptées. */
+    private function cappedE1rm(Collection $sets): float
+    {
+        return (float) $sets->max(fn ($s) => $s->weight_kg * (1 + min($s->reps, self::WAVE_REPS_CAP) / 30));
+    }
+
+    /**
+     * Série de la vague au maximum de répétitions (5+, 3+, 1+) : le max monte dès la séance si elle dépasse l'objectif.
+     * Fin de vague (semaine 3 réussie) : un cran de plus, une fois par cycle. Ratée à la limite : la base redescend de 5 %.
+     */
+    private function progressWave(User $user, ProgramExercise $line, Collection $sets, Workout $workout): ?array
+    {
+        $day = $workout->finished_at;
         $week = Cycle::week($user, $day) ?? 1;
-        $kg = $this->waveLoad($user, $line->exercise, 'wave', $day);
-        if ($kg === null) {
+        $kg = $this->waveLoad($user, $line->exercise, 'wave', $day, $workout->id);
+        $before = $this->waveBase($user, $line->exercise, $workout->id);
+        if ($kg === null || $before === null) {
             return null;
         }
         [, $min] = Cycle::WAVE[$week];
         $done = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $kg);
-        $missed = $done->contains(fn (WorkoutSet $s) => $s->reps < $min && $s->effort === Effort::LIMIT);
-        $raised = ! $missed && $week === 3 && $done->contains(fn (WorkoutSet $s) => $s->reps >= $min);
-        if (! $missed && ! $raised) {
-            return null;
+
+        if ($done->contains(fn (WorkoutSet $s) => $s->reps < $min && $s->effort === Effort::LIMIT)) {
+            $this->storeWaveBase($user, $line, $before * 0.95, $day);
+
+            return \App\Support\SystemMessage::topDown($line->exercise->name, $this->waveLoad($user, $line->exercise, 'wave', $day));
         }
 
-        $current = $user->exerciseMaxes()->where('exercise_id', $line->exercise_id)->first();
-        if ($raised && $current?->source === 'wave' && $current->measured_at && $current->measured_at->gte(Carbon::parse($day)->startOfWeek())) {
+        $base = max($before, $this->cappedE1rm($done));
+        $endOfWave = $week === 3 && $done->contains(fn (WorkoutSet $s) => $s->reps >= $min) && ! $this->waveDoneEarlier($user, $line, $kg, $min, $workout);
+        if ($endOfWave) {
+            $base += $this->step($line->exercise) / Cycle::TRAINING_MAX;
+        }
+        if ($base <= $before + 0.05) {
             return null;
         }
-        $base = (float) $this->bestE1rm($user, $line->exercise, 5);
-        $base = $raised ? $base + $this->step($line->exercise) / Cycle::TRAINING_MAX : $base * 0.95;
+        $this->storeWaveBase($user, $line, $base, $day);
+
+        // Message : la prochaine série de la vague (semaine 1 du cycle suivant après la semaine 3).
+        $next = $this->waveLoad($user, $line->exercise, 'wave', Carbon::parse($day)->addWeeks($week === 3 ? 2 : 1));
+
+        return \App\Support\SystemMessage::topUp($line->exercise->name, $next);
+    }
+
+    private function storeWaveBase(User $user, ProgramExercise $line, float $base, CarbonInterface $day): void
+    {
         $user->exerciseMaxes()->updateOrCreate(['exercise_id' => $line->exercise_id], ['e1rm_kg' => round($base, 1), 'source' => 'wave', 'measured_at' => $day]);
+    }
 
-        // Message : la série de la vague à venir (semaine 1 du prochain cycle après une hausse, la même sinon).
-        $next = $this->waveLoad($user, $line->exercise, 'wave', $raised ? Carbon::parse($day)->addWeeks(2) : $day);
-
-        return $raised ? \App\Support\SystemMessage::topUp($line->exercise->name, $next) : \App\Support\SystemMessage::topDown($line->exercise->name, $next);
+    /** Série de la vague déjà réussie plus tôt dans la semaine (séance envoyée deux fois) : le cran du cycle est déjà pris. */
+    private function waveDoneEarlier(User $user, ProgramExercise $line, float $kg, int $min, Workout $workout): bool
+    {
+        return WorkoutSet::query()->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+            ->where('workouts.user_id', $user->id)->where('workouts.id', '!=', $workout->id)
+            ->whereBetween('workouts.finished_at', [Carbon::parse($workout->finished_at)->startOfWeek(), $workout->finished_at])
+            ->where('workout_sets.exercise_id', $line->exercise_id)->where('workout_sets.weight_kg', '>=', $kg - 0.001)
+            ->where('workout_sets.reps', '>=', $min)->exists();
     }
 
     /** Série record : 92,5 % du meilleur 1RM, et toujours au-dessus des séries lourdes. */
@@ -270,7 +318,8 @@ final class LoadPrescriber
     {
         $pct = $intent === 'max' ? $this->maxPct($repsMax) : \App\Game\Intent::META[$intent]['pct'];
 
-        $best = $this->bestE1rm($user, $exercise, $repsMax);
+        // Volume : même base que la vague, sans les séries trop longues qui gonflent le max.
+        $best = $intent === 'volume' ? $this->waveBase($user, $exercise) : $this->bestE1rm($user, $exercise, $repsMax);
         if ($best === null) {
             return null;
         }
@@ -366,7 +415,7 @@ final class LoadPrescriber
         $todayIntents = $quest ? collect($quest->objectives)->groupBy('exercise_id')->map(fn (Collection $o) => $o->pluck('intent')->all()) : null;
 
         foreach ($lines->where('intent', 'wave')->keyBy('exercise_id') as $exerciseId => $wave) {
-            if (isset($bySets[$exerciseId]) && $note = $this->progressWave($user, $wave, $bySets[$exerciseId], $workout->finished_at)) {
+            if (isset($bySets[$exerciseId]) && $note = $this->progressWave($user, $wave, $bySets[$exerciseId], $workout)) {
                 $notes[] = $note;
             }
         }
