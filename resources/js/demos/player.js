@@ -1,8 +1,8 @@
-// Lecteur Alpine des démonstrations : dessin Everkinetic en fondu entre ses deux positions quand il existe,
-// sinon silhouette animée ; dans les deux cas au tempo réel de l'exercice.
+// Lecteur Alpine des démonstrations : animation continue workout-motion quand elle existe (chargée à la demande),
+// sinon dessin Everkinetic en fondu entre ses deux positions, sinon silhouette animée au tempo réel de l'exercice.
 import { VIEWBOX, phaseAt, sceneAt } from './rig.js';
 import { sceneMarkup } from './markup.js';
-import { CREDIT, framesOf } from './illustrations.js';
+import { demoSource } from './motions.js';
 
 const DEEP = '#3d6bff';
 let uid = 0;
@@ -46,29 +46,47 @@ export default function exerciseDemo(initialSlug = null) {
         glowId: '',
         credit: '',
         frames: null,
+        /** Variante proche montrée par l'animation (ex. push press sur l'animation du militaire). */
+        motionNote: '',
+        isMotion: false,
+        motion: null,
 
         init() {
             this.paused = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
             if (this.slug) this.mount();
             this.$watch('slug', () => this.mount());
+            this.$watch('paused', (paused) => this.motion && (paused ? this.motion.pause() : this.motion.play()));
         },
 
         destroy() {
             cancelAnimationFrame(this.raf);
+            this.motion?.destroy();
         },
 
         setSpeed(value) {
             this.speed = value;
             this.paused = false;
+            this.motion?.setSpeed(value);
+            this.motion?.play();
         },
 
-        mount() {
+        mount(fallback = false) {
             cancelAnimationFrame(this.raf);
+            this.motion?.destroy();
+            this.motion = null;
             const svg = this.$refs.svg;
             if (!svg || !this.slug) return;
             frameSvg(svg);
-            const frames = framesOf(this.slug);
-            this.credit = frames ? CREDIT : '';
+            // Sans cadre pour l'animation continue, ou si elle n'a pas pu se charger : dessin, sinon silhouette.
+            const source = demoSource(this.slug, !fallback && Boolean(this.$refs.motion));
+            this.credit = source.credit;
+            this.motionNote = source.note;
+            this.isMotion = source.kind === 'motion';
+            if (this.isMotion) {
+                this.mountMotion(source.id);
+                return;
+            }
+            const frames = source.kind === 'frames' ? source.frames : null;
             if (frames) {
                 svg.innerHTML = illustrationMarkup(frames);
                 this.frames = [...svg.querySelectorAll('[data-frame]')];
@@ -90,6 +108,22 @@ export default function exerciseDemo(initialSlug = null) {
                 this.raf = requestAnimationFrame(frame);
             };
             this.raf = requestAnimationFrame(frame);
+        },
+
+        /** Animation continue : son propre lecteur, à son rythme d'origine ; en cas d'échec de chargement, dessin ou silhouette. */
+        mountMotion(id) {
+            const slug = this.slug;
+            this.phase = '';
+            this.note = '';
+            import('../vendor/workout-motion/h2.js')
+                .then(({ createPlayer }) => {
+                    if (this.slug !== slug || !this.$refs.motion) return;
+                    this.$refs.motion.innerHTML = '';
+                    this.motion = createPlayer(this.$refs.motion, id, { autoplay: !this.paused, speed: this.speed, respectReducedMotion: true });
+                })
+                .catch(() => {
+                    if (this.slug === slug) this.mount(true);
+                });
         },
 
         draw() {

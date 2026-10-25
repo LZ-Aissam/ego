@@ -7,9 +7,11 @@
     <span class="sys-num text-[11px] text-mist">{{ $guide['tempo'] }}</span>
 </div>
 <div class="relative mt-1 aspect-[240/215] border border-ice/15 [background:repeating-linear-gradient(0deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px),repeating-linear-gradient(90deg,rgba(90,216,255,.05)_0_1px,transparent_1px_22px)]">
-    <svg x-ref="svg" class="h-full w-full" role="img" aria-label="Démonstration animée : {{ $name }}"></svg>
+    <svg x-ref="svg" x-show="!isMotion" class="h-full w-full" role="img" aria-label="Démonstration animée : {{ $name }}"></svg>
+    <div x-ref="motion" x-show="isMotion" class="absolute inset-0 [&>svg]:h-full [&>svg]:w-full" style="--figure-ink:#5ad8ff;--figure-detail:#8fe6ff;--figure-muted:#3d6bff;--figure-paper:#08111d;background:#08111d"></div>
 </div>
 <p class="sys-num mt-1 text-right text-[10px] text-mist" x-show="note" x-text="note"></p>
+<p class="mt-1 text-xs text-amber" x-show="motionNote" x-text="motionNote"></p>
 <p class="mt-1 text-[10px] text-mist/70" x-show="credit" x-text="credit"></p>
 
 <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Vitesse de l'animation">
