@@ -45,6 +45,11 @@
                         <input type="checkbox" wire:model.live="upperOnly" class="sr-only">Sans jambes · 100 % haut du corps
                     </label>
                 @endif
+                @if (in_array($goal, ['power', 'pure'], true))
+                    <label @class(['sys-chip mt-3 flex cursor-pointer items-center justify-center gap-2 py-3', 'sys-chip--active' => $noBelt])>
+                        <input type="checkbox" wire:model.live="noBelt" class="sr-only">Pas de ceinture de lest · machines et barres
+                    </label>
+                @endif
                 @error('goal') <p class="sys-error">{{ $message }}</p> @enderror
             @elseif ($step === 4)
                 <p class="mb-3 text-sm text-mist">Coche les jours où tu t'entraînes (2 à 6). Les autres seront des jours de repos.</p>

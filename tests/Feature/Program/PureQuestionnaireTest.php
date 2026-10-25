@@ -70,3 +70,26 @@ it('ignore l\'option sans jambes hors force pure', function () {
     $program = $this->user->fresh()->activeProgram;
     expect($program->name)->toBe('Programme Force · 4 j')->and($program->params['upper_only'])->toBeFalse();
 });
+
+it('propose l\'option sans ceinture de lest pour les programmes à intentions et la garde au moment de refaire le programme', function () {
+    Livewire::test(ProgramPage::class)
+        ->call('next')->set('level', 'advanced')->call('next')
+        ->set('goal', 'strength')->assertDontSeeText('Pas de ceinture de lest')
+        ->set('goal', 'pure')->assertSeeText('Pas de ceinture de lest')
+        ->set('upperOnly', true)->set('noBelt', true)->call('next')
+        ->set('weekdays', [1, 2, 3, 4, 5])->call('next')
+        ->set('equipment', 'gym')
+        ->call('generate')->assertHasNoErrors();
+
+    $program = $this->user->fresh()->activeProgram()->with('days.exercises.exercise')->first();
+    expect($program->params['no_belt'])->toBeTrue()
+        ->and($program->days->flatMap->exercises->where('intent', 'max')->pluck('exercise.slug')->unique()->values()->all())->not->toContain('pull-up', 'chin-up', 'dips');
+
+    Livewire::test(ProgramPage::class)->assertSet('noBelt', true);
+});
+
+it('ignore l\'option sans ceinture de lest hors programmes à intentions', function () {
+    app(ProgramBuilder::class)->build($this->user, ['level' => 'advanced', 'goal' => 'strength', 'weekdays' => [1, 2, 4, 5], 'equipment' => 'gym', 'no_belt' => true]);
+
+    expect($this->user->fresh()->activeProgram->params['no_belt'])->toBeFalse();
+});

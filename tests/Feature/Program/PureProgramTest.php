@@ -108,3 +108,17 @@ it('ne met jamais deux fois le même exercice dans une séance, hors série reco
         }
     }
 })->with([['bodyweight', true], ['bodyweight', false], ['dumbbells', true], ['gym', true]]);
+
+it('sans ceinture de lest, charge la force max du tirage et des triceps sur la poulie et la barre', function () {
+    $program = ($this->pure)(['days' => 5, 'upper_only' => true, 'no_belt' => true]);
+    $max = fn (int $day, string $slot) => collect($program['days'][$day]['exercises'])->where('slot', $slot)->where('intent', 'max')->map(fn ($l) => $this->byId[$l['exercise_id']]->slug)->values()->all();
+    $explosive = collect($program['days'][3]['exercises'])->where('slot', 'vertical_pull')->map(fn ($l) => [$this->byId[$l['exercise_id']]->slug, $l['intent']])->values()->all();
+
+    expect($max(0, 'vertical_pull'))->toBe(['lat-pulldown'])
+        ->and($max(2, 'triceps'))->toBe(['close-grip-bench-press'])
+        ->and($max(4, 'vertical_pull'))->toBe(['lat-pulldown'])
+        ->and($explosive)->toBe([['pull-up', 'explosive']])
+        ->and(collect(($this->pure)(['days' => 5, 'upper_only' => true, 'no_belt' => true, 'equipment' => 'bodyweight'])['days'][0]['exercises'])->where('slot', 'vertical_pull')->map(fn ($l) => $this->byId[$l['exercise_id']]->slug)->values()->all())->toBe(['pull-up'])
+        // Avec une ceinture : tractions lestées, comme avant.
+        ->and(collect(($this->pure)(['days' => 5, 'upper_only' => true])['days'][0]['exercises'])->where('slot', 'vertical_pull')->map(fn ($l) => $this->byId[$l['exercise_id']]->slug)->values()->all())->toBe(['pull-up']);
+});

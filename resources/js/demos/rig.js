@@ -209,11 +209,14 @@ const FAMILIES = {
             }
             const shoulder = [0, -34];
             const hip = [48, -34];
-            const hand = lerpP([2, -84], [11, -48], t);
+            // Prise serrée : coudes le long du buste, la barre descend plus bas sur la poitrine.
+            const close = v === 'close-bar';
+            const [top, low] = close ? [[6, -84], [16, -46]] : [[2, -84], [11, -48]];
+            const hand = lerpP(top, low, t);
             return scene(
                 { torso: [shoulder, [24, -37], hip], leg: [hip, [76, -52], [80, 0]], foot: [[80, 0], [96, 0]], arm: arm(shoulder, hand, 1) },
                 [-17, -37], [db ? dumbbell(hand) : plate(hand, 12)], FLAT_BENCH,
-                db ? [] : [guide([2, -84], [11, -50], 'trajet de la barre')],
+                db ? [] : [guide(top, shift(low, 0, -2), close ? 'coudes le long du buste' : 'trajet de la barre')],
             );
         },
     },
@@ -693,6 +696,7 @@ export const DEMOS = {
     'bench-press': ['bench', 'flat-bar'],
     'dumbbell-bench-press': ['bench', 'flat-db'],
     'incline-bench-press': ['bench', 'incline-bar'],
+    'close-grip-bench-press': ['bench', 'close-bar'],
     'incline-dumbbell-press': ['bench', 'incline-db'],
     'machine-chest-press': ['seatedPress'],
     'push-up': ['pushup'],

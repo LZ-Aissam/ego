@@ -37,6 +37,17 @@ return [
         ],
         'mistake' => 'Banc trop incliné : l\'exercice devient un développé épaules.',
     ],
+    'close-grip-bench-press' => [
+        'muscles' => 'Triceps · pectoraux · épaules',
+        'tempo' => 'Descente 2 s · Poussée 1 s',
+        'steps' => [
+            'Allonge-toi les yeux sous la barre, pieds à plat au sol, omoplates serrées.',
+            'Prise à la largeur des épaules (pas plus serrée), poignets droits au-dessus des coudes.',
+            'Descends la barre en contrôle vers le bas des pectoraux, coudes le long du buste.',
+            'Pousse jusqu\'aux bras tendus en verrouillant fort avec les triceps.',
+        ],
+        'mistake' => 'Mains collées au centre de la barre : les poignets plient et souffrent.',
+    ],
     'incline-dumbbell-press' => [
         'muscles' => 'Haut des pectoraux · épaules · triceps',
         'tempo' => 'Descente 2 s · Poussée 1 s',

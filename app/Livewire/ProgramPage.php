@@ -34,6 +34,9 @@ class ProgramPage extends Component
     /** Force pure sans jambes : séances 100 % haut du corps. */
     public bool $upperOnly = false;
 
+    /** Programmes à intentions sans ceinture de lest : force max sur des charges réglables. */
+    public bool $noBelt = false;
+
     public array $weekdays = [];
 
     public ?string $equipment = null;
@@ -50,6 +53,7 @@ class ProgramPage extends Component
         $this->level = $user->level;
         $this->goal = $user->goal;
         $this->upperOnly = (bool) ($user->activeProgram()->first()?->params['upper_only'] ?? false);
+        $this->noBelt = (bool) ($user->activeProgram()->first()?->params['no_belt'] ?? false);
         $this->weekdays = $user->training_weekdays ?? [];
         $this->equipment = $user->equipment;
     }
@@ -87,7 +91,7 @@ class ProgramPage extends Component
         ])->save();
 
         $program = $builder->build($user, [
-            'level' => $this->level, 'goal' => $this->goal, 'upper_only' => $this->upperOnly, 'weekdays' => $this->weekdays, 'equipment' => $this->equipment,
+            'level' => $this->level, 'goal' => $this->goal, 'upper_only' => $this->upperOnly, 'no_belt' => $this->noBelt, 'weekdays' => $this->weekdays, 'equipment' => $this->equipment,
         ]);
 
         $notifier->push($user, SystemMessage::programForged($program->name));

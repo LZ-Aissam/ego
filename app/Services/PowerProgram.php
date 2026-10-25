@@ -31,7 +31,9 @@ final class PowerProgram
             $previous = null;
 
             foreach ($lines as [$slot, $intent, $sets, $min, $max, $rest, $preferred]) {
-                $pick = $preferred === ['@same'] ? $previous : $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used);
+                // Sans ceinture de lest, force max et série record sur une charge réglable : tirage vertical au lieu des tractions lestées.
+                $loadable = ($params['no_belt'] ?? false) && in_array($intent, ['max', 'top'], true);
+                $pick = $preferred === ['@same'] ? $previous : $this->pick($slot, $intent, $preferred, $params['equipment'], $exercises, $used, $loadable);
                 // Ligne sans exercice : la suivante « @same » ne doit pas reprendre celui d'une ligne plus haut.
                 $previous = $pick;
                 if (! $pick) {
@@ -54,11 +56,13 @@ final class PowerProgram
     }
 
     /** Premier slug préféré disponible, sinon le premier exercice de l'emplacement pour ce matériel. */
-    private function pick(string $slot, string $intent, array $preferred, string $equipment, Collection $exercises, array $used): ?Exercise
+    private function pick(string $slot, string $intent, array $preferred, string $equipment, Collection $exercises, array $used, bool $loadable = false): ?Exercise
     {
         // Une salle complète a tout : barre de traction, barres parallèles et sol pour le poids du corps.
         $owned = $equipment === 'gym' ? ['gym', 'bodyweight'] : [$equipment];
-        $fits = fn (Exercise $e) => array_intersect($owned, $e->equipment) !== [] && ! in_array($e->id, $used, true);
+        // Sans matériel, le poids du corps reste la seule charge : l'adaptation en fait des séries en répétitions.
+        $loadable = $loadable && $equipment !== 'bodyweight';
+        $fits = fn (Exercise $e) => array_intersect($owned, $e->equipment) !== [] && ! in_array($e->id, $used, true) && ! ($loadable && $e->is_bodyweight);
 
         foreach ($preferred as $slug) {
             $exercise = $exercises->firstWhere('slug', $slug);

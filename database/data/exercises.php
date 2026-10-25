@@ -89,4 +89,6 @@ return [
     ['wrist-curl', 'Curl poignets', ['avant-bras'], ['gym', 'dumbbells'], 'isolation', ['forearms'], 0.06],
     ['wrist-extension', 'Extension des poignets', ['avant-bras'], ['gym', 'dumbbells'], 'isolation', ['forearms'], 0.04],
     ['reverse-curl', 'Curl inversé', ['avant-bras', 'biceps'], ['gym', 'dumbbells'], 'isolation', ['forearms', 'biceps'], 0.06],
+    // Force max des triceps sans ceinture de lest (à la place des dips lestés)
+    ['close-grip-bench-press', 'Développé couché prise serrée', ['triceps', 'pectoraux', 'épaules'], ['gym'], 'compound', ['triceps', 'horizontal_push'], 0.45],
 ];
