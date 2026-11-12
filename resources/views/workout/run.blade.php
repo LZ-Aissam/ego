@@ -17,12 +17,13 @@
         {{-- Réglages des signaux du chrono, retenus sur ce téléphone --}}
         <div class="sys-window mb-3 space-y-1 !p-3" x-show="showSettings" x-transition x-cloak>
             <p class="sys-label mb-1">Signaux du chrono</p>
-            <template x-for="[key, label] in [['sound', 'Son (bips)'], ['vibration', 'Vibration'], ['countdown', 'Compte à rebours 3-2-1']]" :key="key">
+            <template x-for="[key, label] in [['sound', 'Son (bips)'], ['vibration', 'Vibration'], ['countdown', 'Compte à rebours 3-2-1'], ['notify', 'Notification hors de l’appli']]" :key="key">
                 <button type="button" class="sys-row w-full text-left text-sm" @click="toggleSignal(key)" role="switch" :aria-checked="signals[key]">
                     <span x-text="label"></span>
                     <span class="sys-label" :class="{ '!text-ice': signals[key] }" x-text="signals[key] ? 'Activé' : 'Coupé'"></span>
                 </button>
             </template>
+            <p class="mt-1 text-xs text-mist" x-show="signals.notify && notifyBlocked">Notifications refusées pour EGO : autorise-les dans les réglages du téléphone pour être prévenu hors de l’appli.</p>
         </div>
 
         {{-- Fin de séance --}}

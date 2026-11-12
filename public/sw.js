@@ -1,4 +1,4 @@
-const CACHE = 'ego-v2';
+const CACHE = 'ego-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -44,4 +44,13 @@ self.addEventListener('fetch', (event) => {
             return response;
         }).catch(() => caches.match(request).then((hit) => hit || caches.match('/workout'))));
     }
+});
+
+// Notification de fin de repos touchée : retour sur la séance ouverte, sinon on l'ouvre.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const open = list.find((client) => 'focus' in client);
+        return open ? open.focus() : self.clients.openWindow('/workout');
+    }));
 });

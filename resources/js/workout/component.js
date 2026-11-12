@@ -3,13 +3,25 @@ import {
     isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
-import { countdownCue, loadSettings, saveSettings, subtractRest } from './signals';
+import { alertPlan, countdownCue, loadSettings, restEndDelay, saveSettings, subtractRest, wavDataUri } from './signals';
 import { matchExercises } from './search';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
 export function formatKg(kg) {
     return `${String(Math.round(kg * 100) / 100).replace('.', ',')} kg`;
+}
+
+/** Sons du chrono en petits fichiers WAV : un élément audio se joue même avec l'interrupteur silencieux d'un iPhone, contrairement au bip Web Audio. */
+function buildTones() {
+    if (typeof Audio === 'undefined') return null;
+    const make = (tones) => {
+        const audio = new Audio(wavDataUri(tones));
+        audio.preload = 'auto';
+        return audio;
+    };
+
+    return { tick: make([{ hz: 660, ms: 120 }]), alarm: make([{ hz: 880, ms: 200 }, { hz: 880, ms: 200 }]) };
 }
 
 export default function workout() {
@@ -25,7 +37,12 @@ export default function workout() {
         done: false,
         summary: null,
         audio: null,
-        signals: { sound: true, vibration: true, countdown: true },
+        tones: null,
+        tonesReady: false,
+        wakeLock: null,
+        restEndTimer: null,
+        askedNotify: false,
+        signals: { sound: true, vibration: true, countdown: true, notify: true },
         showSettings: false,
         restExpanded: true,
         lastRemainingMs: Infinity,
@@ -55,7 +72,92 @@ export default function workout() {
             this.persist();
             this.$watch('state', () => this.persist());
             setInterval(() => this.tick(), 250);
-            navigator.wakeLock?.request('screen').catch(() => {});
+            this.tones = buildTones();
+            this.keepAwake();
+            // Fin du repos programmée à la milliseconde : l'intervalle est ralenti quand l'appli passe en arrière-plan.
+            this.$watch('state.restEndsAt', (endsAt) => this.scheduleRestEnd(endsAt));
+            this.scheduleRestEnd(this.state.restEndsAt);
+            // Appli rouverte ou écran rallumé : le verrou d'écran est perdu, l'audio peut être suspendu, le temps a filé.
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) return;
+                this.keepAwake();
+                this.unlockAudio();
+                this.tick();
+            });
+            // Le son n'est permis qu'après un geste : débloqué au premier toucher, réveillé à chaque fois s'il a été suspendu.
+            ['pointerdown', 'touchend', 'keydown'].forEach((type) => document.addEventListener(type, () => this.unlockAudio(), { passive: true }));
+        },
+
+        scheduleRestEnd(endsAt) {
+            clearTimeout(this.restEndTimer);
+            if (!endsAt) return;
+            this.restEndTimer = setTimeout(() => this.tick(), restEndDelay(endsAt, Date.now()));
+        },
+
+        /** Garde l'écran allumé pendant la séance ; le verrou tombe dès qu'on quitte l'appli, on le reprend au retour. */
+        async keepAwake() {
+            if (!navigator.wakeLock || document.hidden || this.done) return;
+            try {
+                this.wakeLock = await navigator.wakeLock.request('screen');
+            } catch {
+                // Refusé (batterie faible, navigateur) : le chrono reste juste grâce à l'heure, l'alerte peut arriver écran éteint.
+            }
+        },
+
+        releaseWakeLock() {
+            this.wakeLock?.release().catch(() => {});
+            this.wakeLock = null;
+        },
+
+        /** À appeler dans un geste : crée ou réveille l'audio, et amorce les sons pour que le téléphone accepte de les jouer seul ensuite. */
+        unlockAudio() {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!this.audio && Ctx) this.audio = new Ctx();
+            if (this.audio?.state === 'suspended') this.audio.resume().catch(() => {});
+            if (!this.tones || this.tonesReady) return;
+            this.tonesReady = true;
+            Object.values(this.tones).forEach((tone) => {
+                // Lecture lancée puis arrêtée aussitôt (le fichier commence par du silence) : l'élément est désormais autorisé, iPhone compris.
+                const started = tone.play();
+                tone.pause();
+                tone.currentTime = 0;
+                started?.catch((error) => {
+                    if (error?.name === 'NotAllowedError') this.tonesReady = false;
+                });
+            });
+        },
+
+        /** Joue un son amorcé (audible même en mode silencieux sur iPhone), sinon le bip Web Audio. */
+        play(name, fallback) {
+            if (!this.signals.sound) return;
+            const tone = this.tones?.[name];
+            if (!tone || !this.tonesReady) return fallback();
+            tone.currentTime = 0;
+            tone.play().catch(fallback);
+        },
+
+        /** Dans un geste, une fois : permission de prévenir quand l'appli est en arrière-plan (vibrer y est interdit). */
+        askNotifications() {
+            if (!this.signals.notify || this.askedNotify || !('Notification' in window) || Notification.permission !== 'default') return;
+            this.askedNotify = true;
+            Notification.requestPermission().catch(() => {});
+        },
+
+        get notifyBlocked() {
+            return 'Notification' in window && Notification.permission === 'denied';
+        },
+
+        notifyOutside() {
+            const options = { body: 'Repos terminé. À toi.', tag: 'ego-rest', renotify: true, vibrate: [300, 100, 300], icon: '/icons/icon-192.png', badge: '/icons/icon-192.png' };
+            const fromPage = () => {
+                try {
+                    new Notification('EGO', options);
+                } catch {
+                    // iPhone : seulement via le service worker.
+                }
+            };
+            if (!navigator.serviceWorker) return fromPage();
+            navigator.serviceWorker.ready.then((registration) => registration.showNotification('EGO', options)).catch(fromPage);
         },
 
         persist() {
@@ -139,7 +241,7 @@ export default function workout() {
             const remaining = this.state.restEndsAt - this.now;
             const cue = countdownCue(this.lastRemainingMs, remaining);
             this.lastRemainingMs = remaining;
-            if (cue === 'tick' && this.signals.countdown) this.beep([0], 660, 0.12);
+            if (cue === 'tick' && this.signals.countdown) this.play('tick', () => this.beep([0], 660, 0.12));
             if (cue === 'end') {
                 skipRest(this.state);
                 this.lastRemainingMs = Infinity;
@@ -148,12 +250,16 @@ export default function workout() {
         },
 
         alarm() {
-            if (this.signals.vibration) navigator.vibrate?.([300, 100, 300]);
-            this.beep([0, 0.35], 880, 0.2);
+            const permission = 'Notification' in window ? Notification.permission : 'denied';
+            const plan = alertPlan({ hidden: document.hidden, permission, settings: this.signals });
+            if (plan.vibrate) navigator.vibrate?.([300, 100, 300]);
+            if (plan.sound) this.play('alarm', () => this.beep([0, 0.35], 880, 0.2));
+            if (plan.notification) this.notifyOutside();
         },
 
         beep(offsets, frequency, duration) {
             if (!this.signals.sound || !this.audio) return;
+            if (this.audio.state === 'suspended') this.audio.resume().catch(() => {});
             offsets.forEach((offset) => {
                 const osc = this.audio.createOscillator();
                 const gain = this.audio.createGain();
@@ -168,6 +274,11 @@ export default function workout() {
         toggleSignal(key) {
             this.signals[key] = !this.signals[key];
             saveSettings(window.localStorage, this.signals);
+            if (key === 'notify' && this.signals.notify) {
+                this.askedNotify = false;
+                this.askNotifications();
+            }
+            if (key === 'sound' && this.signals.sound) this.unlockAudio();
         },
 
         lessRest() { subtractRest(this.state, 15, Date.now()); },
@@ -190,8 +301,8 @@ export default function workout() {
         moreRest() { addRest(this.state, 30, Date.now()); },
 
         validateSet() {
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            if (!this.audio && Ctx) this.audio = new Ctx();
+            this.unlockAudio();
+            this.askNotifications();
             this.now = Date.now();
             if (this.resting) return;
             logSet(this.state, this.now);
@@ -208,6 +319,7 @@ export default function workout() {
             if (!this.canFinish || this.finishing) return;
             this.finishing = true;
             this.done = true;
+            this.releaseWakeLock();
             const payload = finishWorkout(this.store, this.state, new Date().toISOString());
             const result = await flushPending(this.store, (p) => sendWorkout(p, { token: csrfToken() }));
             const body = result.sent[payload.client_id];
@@ -228,6 +340,7 @@ export default function workout() {
                 return;
             }
             this.done = true;
+            this.releaseWakeLock();
             this.store.clearActive();
             window.location.href = '/';
         },
