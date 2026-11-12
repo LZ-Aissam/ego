@@ -32,7 +32,12 @@ final class QuestScheduler
         return (int) round(self::QUEST_XP * (1 + min($streak, 5) * 0.1));
     }
 
-    /** Crée les quêtes dues, constate les échecs, gère la pause. Idempotent. @return list<array> */
+    /**
+     * Crée les quêtes dues, constate les échecs, gère la pause. Idempotent.
+     * $today est un jour de jeu (GameDay::today()), jamais l'instant brut : la journée finit à 4 h du matin.
+     *
+     * @return list<array>
+     */
     public function sync(User $user, CarbonInterface $today): array
     {
         $today = Carbon::parse($today->toDateString());
@@ -103,7 +108,7 @@ final class QuestScheduler
     /** À appeler sous le verrou du joueur (GameEvents). @return list<array> */
     public function onWorkout(User $user, Workout $workout): array
     {
-        $day = Carbon::parse($workout->finished_at->toDateString());
+        $day = GameDay::of($workout->finished_at);
 
         // La séance peut arriver avant toute page ouverte ce jour-là (hors ligne) : on crée d'abord les quêtes dues.
         $notes = $this->process($user, $day);
@@ -116,7 +121,7 @@ final class QuestScheduler
             array_push($notes, ...$this->completeIfAccomplished($user, $quest, $sets));
         }
 
-        $this->streaks->refresh($user, now());
+        $this->streaks->refresh($user, GameDay::today());
 
         return $notes;
     }
@@ -266,11 +271,11 @@ final class QuestScheduler
 
     private function setsOn(User $user, Carbon $day): Collection
     {
-        return WorkoutSet::query()->with('exercise')
+        $sets = WorkoutSet::query()->with('exercise')
             ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
-            ->where('workouts.user_id', $user->id)
-            ->whereDate('workouts.finished_at', $day->toDateString())
-            ->get(['workout_sets.*']);
+            ->where('workouts.user_id', $user->id);
+
+        return GameDay::constrain($sets, $day)->get(['workout_sets.*']);
     }
 
     private function nextProgramDay(User $user, Program $program, Carbon $date): ProgramDay

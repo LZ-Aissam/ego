@@ -17,15 +17,15 @@ final class XpLedger
         return $setsCount < 3 ? 0 : 50 + 5 * min($setsCount, 30);
     }
 
+    /** Au plus deux séances récompensées par journée de jeu (elle finit à 4 h du matin). */
     public function isEligible(User $user, Workout $workout): bool
     {
-        $awardedThatDay = XpEvent::query()
+        $awarded = XpEvent::query()
             ->join('workouts', 'workouts.id', '=', 'xp_events.source_id')
             ->where('xp_events.user_id', $user->id)
             ->where('xp_events.source', 'workout')
-            ->where('workouts.id', '!=', $workout->id)
-            ->whereDate('workouts.finished_at', $workout->finished_at->toDateString())
-            ->count();
+            ->where('workouts.id', '!=', $workout->id);
+        $awardedThatDay = GameDay::constrain($awarded, GameDay::of($workout->finished_at))->count();
 
         return $awardedThatDay < self::DAILY_WORKOUTS;
     }

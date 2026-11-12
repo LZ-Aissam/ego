@@ -63,7 +63,7 @@ final class ProgramBuilder
             return $program->load('days.exercises.exercise');
         });
 
-        app(\App\Game\QuestScheduler::class)->programChanged($user, today());
+        app(\App\Game\QuestScheduler::class)->programChanged($user, \App\Game\GameDay::today());
 
         return $built;
     }
@@ -108,7 +108,7 @@ final class ProgramBuilder
             return $program->load('days.exercises.exercise');
         });
 
-        app(\App\Game\QuestScheduler::class)->programChanged($user, today());
+        app(\App\Game\QuestScheduler::class)->programChanged($user, \App\Game\GameDay::today());
 
         return $copied;
     }

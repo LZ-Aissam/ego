@@ -29,9 +29,10 @@ final class PlayerStats
 
     private function regularity(User $user): ?int
     {
+        $today = GameDay::today();
         $base = $user->quests()->whereIn('type', ['training', 'calibration', 'rest'])->whereIn('status', ['done', 'failed'])
-            ->where('date', '>=', now()->subDays(self::WINDOW_DAYS)->toDateString())
-            ->where('date', '<', now()->toDateString());
+            ->where('date', '>=', $today->copy()->subDays(self::WINDOW_DAYS)->toDateString())
+            ->where('date', '<', $today->toDateString());
 
         $total = (clone $base)->count();
 

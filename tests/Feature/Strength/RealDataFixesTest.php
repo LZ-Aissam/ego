@@ -73,3 +73,13 @@ it('marque échoués les jours déjà passés au retour, sans rien ajouter', fun
     expect(Quest::whereDate('date', '2026-10-15')->where('type', 'training')->value('status'))->toBe('failed')
         ->and(Quest::whereDate('date', '2026-10-15')->count())->toBe(1);
 });
+
+it('juge une séance de vitesse finie après minuit d\'après la quête de la veille, sans l\'avoir fait échouer', function () {
+    $this->travelTo(Carbon::parse('2026-10-15 00:20'));                          // mercredi 14 : vitesse, séance finie jeudi 0 h 20
+    $this->actingAs($this->user)->get('/');
+    ($this->play)('2026-10-15 00:20', array_fill(0, 6, [37.5, 2]));
+
+    expect(Quest::whereDate('date', '2026-10-14')->value('status'))->toBe('pending')
+        ->and(($this->heavy)())->toBe(57.5)
+        ->and($this->user->workingLoads()->where('exercise_id', $this->bench->id)->value('fail_streak'))->toBe(0);
+});

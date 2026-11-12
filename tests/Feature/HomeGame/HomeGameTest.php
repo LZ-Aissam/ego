@@ -101,3 +101,14 @@ it('efface les scores maison avec la remise à zéro des stats, et les exporte',
 
     expect($this->user->homeAttempts()->count())->toBe(0);
 });
+
+it('compte un essai fait après minuit pour la veille', function () {
+    ($this->play)('2026-10-26', 'push-ups', 30);
+    $this->travelTo(Carbon::parse('2026-10-27 00:30'));
+    $this->game->record($this->user->fresh(), 'push-ups', 32);
+
+    expect(($this->card)('push-ups'))->toMatchArray(['today' => 32, 'target' => null, 'record' => 32]);
+
+    $this->travelTo(Carbon::parse('2026-10-27 08:00'));
+    expect(($this->card)('push-ups'))->toMatchArray(['today' => null, 'target' => 33, 'record' => 32]);
+});

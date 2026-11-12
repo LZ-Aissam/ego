@@ -36,7 +36,7 @@ final class HomeGame
     /** @return list<array> messages du Système */
     public function record(User $user, string $game, int $value): array
     {
-        $today = today();
+        $today = GameDay::today();
         $previous = $this->dayBests($user, $game)->filter(fn ($best, $date) => $date < $today->toDateString());
         $lastDay = $previous->isEmpty() ? null : $previous->last();
         $recordBefore = (int) $user->homeAttempts()->where('game', $game)->max('value');
@@ -63,7 +63,7 @@ final class HomeGame
     /** Une carte par défi choisi : aujourd'hui, à battre, record, série et courbe. */
     public function board(User $user): array
     {
-        $today = today()->toDateString();
+        $today = GameDay::today()->toDateString();
 
         return collect($user->home_games ?? [])->filter(fn ($g) => isset(self::CATALOG[$g]))->values()->map(function (string $game) use ($user, $today) {
             [$label, $unit, $pull] = self::CATALOG[$game];
@@ -77,7 +77,7 @@ final class HomeGame
                 'record' => $bests->isEmpty() ? null : $bests->max(),
                 'streak' => $this->streak($bests),
                 'history' => collect(range(self::HISTORY_DAYS - 1, 0))->mapWithKeys(function ($ago) use ($bests) {
-                    $date = today()->subDays($ago)->toDateString();
+                    $date = GameDay::today()->subDays($ago)->toDateString();
 
                     return [$date => $bests[$date] ?? null];
                 })->all(),
@@ -98,7 +98,7 @@ final class HomeGame
     {
         $days = $bests->keys()->reverse()->values();
         // Ni hier ni aujourd'hui : la série est retombée.
-        if ($days->isEmpty() || $days[0] < today()->subDay()->toDateString()) {
+        if ($days->isEmpty() || $days[0] < GameDay::today()->subDay()->toDateString()) {
             return 0;
         }
         $streak = 1;

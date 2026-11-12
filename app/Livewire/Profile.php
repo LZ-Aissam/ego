@@ -67,8 +67,8 @@ class Profile extends Component
 
         $user = auth()->user();
         $until = $this->pauseUntil ? \Illuminate\Support\Carbon::parse($this->pauseUntil) : null;
-        $user->forceFill(['paused_at' => today(), 'paused_until' => $until])->save();
-        $user->quests()->where('status', 'pending')->where('date', '>=', today()->toDateString())->update(['status' => 'cancelled']);
+        $user->forceFill(['paused_at' => \App\Game\GameDay::today(), 'paused_until' => $until])->save();
+        $user->quests()->where('status', 'pending')->where('date', '>=', \App\Game\GameDay::today()->toDateString())->update(['status' => 'cancelled']);
         $notifier->push($user, \App\Support\SystemMessage::pauseOn($until));
 
         return $this->redirectRoute('profile');
@@ -78,7 +78,7 @@ class Profile extends Component
     {
         $notifier = app(\App\Support\SystemNotifier::class);
         $user = auth()->user();
-        app(\App\Game\QuestScheduler::class)->resume($user, today());
+        app(\App\Game\QuestScheduler::class)->resume($user, \App\Game\GameDay::today());
         $notifier->push($user, \App\Support\SystemMessage::pauseOff());
 
         return $this->redirectRoute('profile');

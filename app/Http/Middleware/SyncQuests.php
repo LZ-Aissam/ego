@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Game\GameDay;
 use App\Game\QuestScheduler;
 use App\Support\SystemNotifier;
 use Closure;
@@ -16,7 +17,7 @@ class SyncQuests
         $user = $request->user();
 
         if ($user && $request->isMethod('GET') && ! $request->expectsJson()) {
-            foreach ($this->quests->sync($user, now()) as $notification) {
+            foreach ($this->quests->sync($user, GameDay::today()) as $notification) {
                 $this->notifier->push($user, $notification);
             }
             $this->challenges->tick($user);

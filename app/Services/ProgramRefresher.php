@@ -59,12 +59,12 @@ final class ProgramRefresher
         $user = $program->user;
         $days = $program->days->keyBy('id');
         $quests = $user->quests()->where('type', 'training')->where('status', 'pending')
-            ->whereIn('program_day_id', $days->keys())->where('date', '>=', now()->toDateString())->get();
+            ->whereIn('program_day_id', $days->keys())->where('date', '>=', \App\Game\GameDay::today()->toDateString())->get();
 
         foreach ($quests as $quest) {
             $date = Carbon::parse($quest->date->toDateString());
-            $started = WorkoutSet::query()->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
-                ->where('workouts.user_id', $user->id)->whereDate('workouts.finished_at', $date->toDateString())->exists();
+            $started = \App\Game\GameDay::constrain(WorkoutSet::query()->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+                ->where('workouts.user_id', $user->id), $date)->exists();
             if ($started) {
                 continue;
             }

@@ -21,7 +21,7 @@ class WorkoutController extends Controller
             return redirect()->route('calibration.quest', $quest);
         }
 
-        if ($quest->status !== 'pending' || ! $quest->date->isToday()) {
+        if ($quest->status !== 'pending' || ! $quest->date->isSameDay(\App\Game\GameDay::today())) {
             return redirect()->route('home');
         }
 

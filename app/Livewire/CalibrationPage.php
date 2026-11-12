@@ -58,7 +58,7 @@ class CalibrationPage extends Component
 
         if ($quest && $quest->exists) {
             abort_unless($quest->user_id === $user->id, 403);
-            if ($quest->type !== 'calibration' || $quest->status !== 'pending' || ! $quest->date->isToday()) {
+            if ($quest->type !== 'calibration' || $quest->status !== 'pending' || ! $quest->date->isSameDay(\App\Game\GameDay::today())) {
                 return $this->redirectRoute('home');
             }
         }
@@ -73,7 +73,7 @@ class CalibrationPage extends Component
 
         // Page rechargée en plein calibrage : on reprend les mouvements déjà mesurés aujourd'hui.
         $saved = session($this->progressKey());
-        if (is_array($saved) && ($saved['date'] ?? null) === today()->toDateString()
+        if (is_array($saved) && ($saved['date'] ?? null) === \App\Game\GameDay::today()->toDateString()
             && ($saved['ids'] ?? null) === array_column($this->movements, 'exercise_id')) {
             [$this->results, $this->index, $this->clientId, $this->startedAt] = [$saved['results'], $saved['index'], $saved['clientId'], $saved['startedAt']];
         }
@@ -122,7 +122,7 @@ class CalibrationPage extends Component
             $this->index++;
             $this->prepare();
             session()->put($this->progressKey(), [
-                'date' => today()->toDateString(), 'ids' => array_column($this->movements, 'exercise_id'),
+                'date' => \App\Game\GameDay::today()->toDateString(), 'ids' => array_column($this->movements, 'exercise_id'),
                 'results' => $this->results, 'index' => $this->index, 'clientId' => $this->clientId, 'startedAt' => $this->startedAt,
             ]);
 

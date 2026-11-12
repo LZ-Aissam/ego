@@ -91,3 +91,31 @@ it('applique le bonus de série à la récompense', function () {
 
     expect($quest->fresh()->xp_awarded)->toBe(260);
 });
+
+it('compte pour la veille une séance finie après minuit : pas d\'échec à 0 h 01, quête accomplie à 0 h 05', function () {
+    $quest = Quest::where('date', '2026-10-05')->sole();
+    $this->travelTo(Carbon::parse('2026-10-06 00:01'));
+    $this->actingAs($this->user)->get('/');
+    expect($quest->fresh()->status)->toBe('pending')->and(Quest::count())->toBe(1);
+
+    $result = completeObjectives($this->user, $quest->objectives, '2026-10-06 00:05');
+
+    expect($quest->fresh()->status)->toBe('done')
+        ->and(collect($result['notifications'])->pluck('title'))->toContain('QUÊTE ACCOMPLIE')
+        ->and($this->user->fresh()->streak_days)->toBe(1);
+    $this->get('/')->assertSee('QUÊTE ACCOMPLIE');
+});
+
+it('montre à l\'accueil, avant 4 h, les séries faites après minuit sur la quête de la veille', function () {
+    $quest = Quest::where('date', '2026-10-05')->sole();
+    $first = $quest->objectives[0];
+    $first['sets'] = 1;
+    completeObjectives($this->user, [$first], '2026-10-06 00:10');
+
+    $this->travelTo(Carbon::parse('2026-10-06 00:30'));
+    $this->actingAs($this->user)->get('/')->assertSee('Full body A')->assertSee('1 / '.$quest->objectives[0]['sets'], false);
+
+    $this->travelTo(Carbon::parse('2026-10-06 04:00'));
+    $this->get('/')->assertSee('Repos');
+    expect($quest->fresh()->status)->toBe('failed');
+});

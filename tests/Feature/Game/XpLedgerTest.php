@@ -33,11 +33,12 @@ it('attribue une source une seule fois et tient le total à jour', function () {
         ->and($this->user->fresh()->xp_total)->toBe(65);
 });
 
-it('limite l\'XP à deux séances par jour calendaire de Paris', function () {
+it('limite l\'XP à deux séances par journée de jeu (jusqu\'à 4 h du matin, heure de Paris)', function () {
     $a = workoutAt($this->user, $this->bench->id, '2026-10-01T06:00:00Z');
     $b = workoutAt($this->user, $this->bench->id, '2026-10-01T12:00:00Z');
     $c = workoutAt($this->user, $this->bench->id, '2026-10-01T20:00:00Z');
-    $nextDay = workoutAt($this->user, $this->bench->id, '2026-10-01T22:30:00Z'); // 00:30 le 2 à Paris
+    $afterMidnight = workoutAt($this->user, $this->bench->id, '2026-10-01T22:30:00Z'); // 00:30 le 2 à Paris : même journée
+    $nextDay = workoutAt($this->user, $this->bench->id, '2026-10-02T03:00:00Z');       // 05:00 le 2 à Paris
 
     foreach ([$a, $b] as $w) {
         expect($this->ledger->isEligible($this->user, $w))->toBeTrue();
@@ -45,6 +46,7 @@ it('limite l\'XP à deux séances par jour calendaire de Paris', function () {
     }
 
     expect($this->ledger->isEligible($this->user, $c))->toBeFalse()
+        ->and($this->ledger->isEligible($this->user, $afterMidnight))->toBeFalse()
         ->and($this->ledger->isEligible($this->user, $nextDay))->toBeTrue();
 });
 

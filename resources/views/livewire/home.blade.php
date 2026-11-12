@@ -61,7 +61,7 @@
                     <span class="sys-num text-ice">{{ $done }} / {{ $objective['sets'] }}</span>
                 </div>
             @endforeach
-            <p class="sys-num mt-2 text-center text-xs text-mist">Récompense : +{{ $quest->status === 'done' ? $quest->xp_awarded : $reward }} XP · avant minuit</p>
+            <p class="sys-num mt-2 text-center text-xs text-mist">Récompense : +{{ $quest->status === 'done' ? $quest->xp_awarded : $reward }} XP · avant 4 h du matin</p>
             @if ($quest->status === 'pending')
                 <x-sys.button class="mt-3" :pulse="true" :href="$quest->type === 'calibration' ? route('calibration.quest', $quest) : route('workout.quest', $quest)">Accepter la quête</x-sys.button>
             @elseif ($quest->status === 'done')

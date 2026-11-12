@@ -139,10 +139,10 @@ final class LoadPrescriber
     public function prescriptionFor(User $user, Exercise $exercise, ?string $intent, int $repsMax, ?CarbonInterface $on = null): ?float
     {
         if (in_array($intent, ['wave', 'backoff'], true)) {
-            return $this->waveLoad($user, $exercise, $intent, $on ?? now());
+            return $this->waveLoad($user, $exercise, $intent, $on ?? GameDay::today());
         }
         $load = $this->basePrescription($user, $exercise, $intent, $repsMax);
-        if ($load === null || $intent !== 'max' || ! Cycle::isDeload($user, $on ?? now())) {
+        if ($load === null || $intent !== 'max' || ! Cycle::isDeload($user, $on ?? GameDay::today())) {
             return $load;
         }
 
@@ -216,7 +216,7 @@ final class LoadPrescriber
      */
     private function progressWave(User $user, ProgramExercise $line, Collection $sets, Workout $workout): ?array
     {
-        $day = $workout->finished_at;
+        $day = GameDay::of($workout->finished_at);                                // semaine du cycle d'après le jour de jeu
         $week = Cycle::week($user, $day) ?? 1;
         $kg = $this->waveLoad($user, $line->exercise, 'wave', $day, $workout->id);
         $before = $this->waveBase($user, $line->exercise, $workout->id);
@@ -227,7 +227,7 @@ final class LoadPrescriber
         $done = $sets->filter(fn (WorkoutSet $s) => $s->weight_kg + 0.001 >= $kg);
 
         if ($done->contains(fn (WorkoutSet $s) => $s->reps < $min && $s->effort === Effort::LIMIT)) {
-            $this->storeWaveBase($user, $line, $before * 0.95, $day);
+            $this->storeWaveBase($user, $line, $before * 0.95, $workout->finished_at);
 
             return \App\Support\SystemMessage::topDown($line->exercise->name, $this->waveLoad($user, $line->exercise, 'wave', $day));
         }
@@ -240,7 +240,7 @@ final class LoadPrescriber
         if ($base <= $before + 0.05) {
             return null;
         }
-        $this->storeWaveBase($user, $line, $base, $day);
+        $this->storeWaveBase($user, $line, $base, $workout->finished_at);
 
         // Message : la prochaine série de la vague (semaine 1 du cycle suivant après la semaine 3).
         $next = $this->waveLoad($user, $line->exercise, 'wave', Carbon::parse($day)->addWeeks($week === 3 ? 2 : 1));
@@ -258,7 +258,7 @@ final class LoadPrescriber
     {
         return WorkoutSet::query()->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
             ->where('workouts.user_id', $user->id)->where('workouts.id', '!=', $workout->id)
-            ->whereBetween('workouts.finished_at', [Carbon::parse($workout->finished_at)->startOfWeek(), $workout->finished_at])
+            ->whereBetween('workouts.finished_at', [GameDay::bounds(GameDay::of($workout->finished_at)->startOfWeek())[0], $workout->finished_at])
             ->where('workout_sets.exercise_id', $line->exercise_id)->where('workout_sets.weight_kg', '>=', $kg - 0.001)
             ->where('workout_sets.reps', '>=', $min)->exists();
     }
@@ -398,7 +398,7 @@ final class LoadPrescriber
     {
         $plan = $this->loadLines($user);
         // Semaine allégée : on recharge, les charges ne bougent pas.
-        if ($plan->isEmpty() || Cycle::isDeload($user, $workout->finished_at)) {
+        if ($plan->isEmpty() || Cycle::isDeload($user, GameDay::of($workout->finished_at))) {
             return [];
         }
 
@@ -411,7 +411,7 @@ final class LoadPrescriber
         $topKgs = $topLines->map(fn (ProgramExercise $top) => $this->prescriptionFor($user, $top->exercise, 'top', $top->reps_max));
         $bySets = $workout->sets->groupBy('exercise_id');
         // Intentions de la quête du jour par exercice : une séance de vitesse ne juge pas la charge lourde.
-        $quest = $user->quests()->where('type', 'training')->whereDate('date', $workout->finished_at->toDateString())->first();
+        $quest = $user->quests()->where('type', 'training')->where('date', GameDay::of($workout->finished_at)->toDateString())->first();
         $todayIntents = $quest ? collect($quest->objectives)->groupBy('exercise_id')->map(fn (Collection $o) => $o->pluck('intent')->all()) : null;
 
         foreach ($lines->where('intent', 'wave')->keyBy('exercise_id') as $exerciseId => $wave) {

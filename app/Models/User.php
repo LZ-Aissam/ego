@@ -77,7 +77,7 @@ class User extends Authenticatable
 
     public function isPaused(?CarbonInterface $day = null): bool
     {
-        $day = ($day ?? now())->copy()->startOfDay();
+        $day = ($day ?? \App\Game\GameDay::today())->copy()->startOfDay();
 
         return $this->paused_at !== null
             && $day->gte($this->paused_at)

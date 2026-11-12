@@ -62,3 +62,18 @@ it('ouvre la séance de quête préremplie, réservée à son propriétaire et a
     $quest->update(['status' => 'done']);
     $this->actingAs($this->user)->get(route('workout.quest', $quest))->assertRedirect(route('home'));
 });
+
+it('garde la quête de la veille jusqu\'à 4 h du matin, puis constate l\'échec', function () {
+    withProgram($this->user);
+    $this->get('/');
+    $quest = Quest::sole();
+
+    $this->travelTo(Carbon::parse('2026-10-06 00:30'));          // mardi juste après minuit : encore la journée de lundi
+    $this->get('/')->assertSee('QUÊTE DU JOUR')->assertSee('Full body A');
+    $this->get(route('workout.quest', $quest))->assertOk();
+    expect(Quest::count())->toBe(1)->and($quest->fresh()->status)->toBe('pending');
+
+    $this->travelTo(Carbon::parse('2026-10-06 04:00'));
+    $this->get('/')->assertSee('Repos');
+    expect($quest->fresh()->status)->toBe('failed')->and(Quest::count())->toBe(2);
+});

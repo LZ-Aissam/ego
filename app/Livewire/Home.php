@@ -11,10 +11,11 @@ class Home extends Component
     public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board, \App\Crew\ChallengeBoard $challengeBoard)
     {
         $user = auth()->user();
-        $todayQuests = $user->quests()->where('date', today()->toDateString())->get()->keyBy('type');
-        $todaySets = \App\Models\WorkoutSet::query()->with('exercise')
+        $today = \App\Game\GameDay::today();
+        $todayQuests = $user->quests()->where('date', $today->toDateString())->get()->keyBy('type');
+        $todaySets = \App\Game\GameDay::constrain(\App\Models\WorkoutSet::query()->with('exercise')
             ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
-            ->where('workouts.user_id', $user->id)->whereDate('workouts.finished_at', today())
+            ->where('workouts.user_id', $user->id), $today)
             ->get(['workout_sets.*']);
         $questProgress = fn ($quest) => $quest ? $evaluator->progress($quest->objectives, $todaySets) : [];
 
