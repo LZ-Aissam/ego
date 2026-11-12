@@ -103,7 +103,7 @@
             </p>
             <x-sys.button class="mt-3" wire:click="resume">Reprendre les quêtes</x-sys.button>
         @else
-            <p class="mb-3 text-sm text-mist">Blessure, vacances ? Suspends tes quêtes : aucune pénalité, ta série est gelée.</p>
+            <p class="mb-3 text-sm text-mist">Blessure, vacances ? Suspends tes quêtes : aucun jour raté, ta série est gelée.</p>
             <x-sys.field name="pauseUntil" label="Jusqu'au (facultatif)" type="date" wire:model="pauseUntil" />
             <x-sys.button variant="ghost" class="mt-3" wire:click="pause">Suspendre les quêtes</x-sys.button>
         @endif

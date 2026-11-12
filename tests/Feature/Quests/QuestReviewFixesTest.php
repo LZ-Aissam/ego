@@ -84,34 +84,26 @@ it('ne punit pas les jours de pause quand on reprend à la main', function () {
 
     expect(collect($notes)->pluck('title'))->not->toContain('QUÊTE ÉCHOUÉE')
         ->and(Quest::where('status', 'failed')->count())->toBe(0)
-        ->and(Quest::where('type', 'penalty')->count())->toBe(0)
         ->and($this->user->fresh()->streak_days)->toBe(4);
 });
 
-it('compte une veille ratée comme sauvée tant que la pénalité du jour est en cours', function () {
+it('casse la série dès la veille ratée, même avec une pause le lendemain', function () {
     q2($this->user, '2026-10-05', 'rest', 'done');
     q2($this->user, '2026-10-06', 'training', 'failed');
-    q2($this->user, '2026-10-07', 'penalty', 'pending');
 
-    expect(app(StreakCalculator::class)->compute($this->user, Carbon::parse('2026-10-06')))->toBe(1);
+    expect(app(StreakCalculator::class)->compute($this->user, Carbon::parse('2026-10-06')))->toBe(0)
+        ->and(app(StreakCalculator::class)->compute($this->user, Carbon::parse('2026-10-08')))->toBe(0);
 });
 
-it('gèle la série quand la pause annule la pénalité', function () {
-    q2($this->user, '2026-10-05', 'rest', 'done');
-    q2($this->user, '2026-10-06', 'training', 'failed');
-    q2($this->user, '2026-10-07', 'penalty', 'cancelled');
-
-    expect(app(StreakCalculator::class)->compute($this->user, Carbon::parse('2026-10-07')))->toBe(1);
-});
-
-it('crée une pénalité annulée quand le lendemain est en pause', function () {
+it('ne crée aucune quête le lendemain d\'un échec quand il est en pause', function () {
     buildProgram($this->user, [1, 3, 5], '2026-10-05 08:00');
     app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-05'));
     $this->user->forceFill(['paused_at' => '2026-10-06', 'paused_until' => '2026-10-07'])->save();
 
     app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-08'));
 
-    expect(Quest::where('date', '2026-10-06')->where('type', 'penalty')->value('status'))->toBe('cancelled');
+    expect(Quest::where('date', '2026-10-05')->value('status'))->toBe('failed')
+        ->and(Quest::whereIn('date', ['2026-10-06', '2026-10-07'])->count())->toBe(0);
 });
 
 it('clôt sans bruit les quêtes en attente trop anciennes', function () {

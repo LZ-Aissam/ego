@@ -23,9 +23,7 @@ class Home extends Component
             'player' => \App\Game\Leveling::progress((int) $user->xp_total),
             'stats' => $stats->for($user),
             'quest' => $todayQuests['training'] ?? $todayQuests['calibration'] ?? $todayQuests['rest'] ?? null,
-            'penalty' => $todayQuests['penalty'] ?? null,
             'questProgress' => $questProgress($todayQuests['training'] ?? $todayQuests['calibration'] ?? null),
-            'penaltyProgress' => $questProgress($todayQuests['penalty'] ?? null),
             'needsCalibration' => $user->calibrated_at === null && $user->active_program_id !== null
                 && ($todayQuests['calibration'] ?? null)?->status !== 'pending',
             'myChallenges' => $user->challenges()->with('crew')->where('status', 'active')->get()

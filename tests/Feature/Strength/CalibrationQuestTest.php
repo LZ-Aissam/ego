@@ -50,6 +50,5 @@ it('punit un calibrage raté comme une quête d\'entraînement et le repropose',
     app(QuestScheduler::class)->sync($this->user, Carbon::parse('2026-10-07'));
 
     expect(collect($notes)->pluck('title'))->toContain('QUÊTE ÉCHOUÉE')
-        ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->exists())->toBeTrue()
         ->and(Quest::where('date', '2026-10-07')->value('type'))->toBe('calibration');
 });

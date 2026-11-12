@@ -46,23 +46,6 @@
         </a>
     @endforeach
 
-    @if ($penalty && $penalty->status !== 'cancelled')
-        <x-sys.window title="PÉNALITÉ" variant="alert" :index="1">
-            <p class="mb-2 text-sm text-mist">Quête d'hier non accomplie. Termine ce circuit avant minuit pour sauver ta série.</p>
-            @foreach ($penalty->objectives as $i => $objective)
-                <div class="sys-row text-sm">
-                    <span>{{ $objective['name'] }} · {{ $objective['sets'] }} × {{ $objective['reps_min'] }}</span>
-                    <span class="sys-num text-mist">{{ min($penaltyProgress[$i] ?? 0, $objective['sets']) }} / {{ $objective['sets'] }}</span>
-                </div>
-            @endforeach
-            @if ($penalty->status === 'pending')
-                <x-sys.button class="mt-3" :href="route('workout.quest', $penalty)">Accepter la pénalité</x-sys.button>
-            @else
-                <p class="mt-3 text-center text-sm text-ice">PÉNALITÉ ACCOMPLIE ✓</p>
-            @endif
-        </x-sys.window>
-    @endif
-
     @if ($user->isPaused())
         <x-sys.window title="QUÊTES SUSPENDUES" :index="2">
             <p class="text-sm text-mist">TON EGO attend ton retour. Ta série ({{ $user->streak_days }} j) est gelée.</p>

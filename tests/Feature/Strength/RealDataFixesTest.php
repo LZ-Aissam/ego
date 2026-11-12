@@ -58,19 +58,18 @@ it('ne juge pas comme lourde une séance de vitesse envoyée en retard pour son 
         ->and($this->user->workingLoads()->where('exercise_id', $this->bench->id)->value('fail_streak'))->toBe(0);
 });
 
-it('ne met pas de squats dans la pénalité du programme sans jambes', function () {
+it('ne propose aucune pénalité le lendemain d\'un jour manqué', function () {
     $this->travelTo(Carbon::parse('2026-10-15 09:00'));                          // mercredi 14 manqué
     app(QuestScheduler::class)->sync($this->user->fresh(), now());
 
-    $penalty = Quest::where('type', 'penalty')->whereDate('date', '2026-10-15')->firstOrFail();
-    expect(array_column($penalty->objectives, 'name'))->not->toContain('Squat au poids du corps')
-        ->and(array_column($penalty->objectives, 'slot'))->toContain('triceps');
+    expect(Quest::whereDate('date', '2026-10-15')->pluck('type')->all())->toBe(['training'])
+        ->and(Quest::whereDate('date', '2026-10-14')->value('status'))->toBe('failed');
 });
 
-it('ne crée pas après coup de pénalités pour des jours déjà passés', function () {
+it('marque échoués les jours déjà passés au retour, sans rien ajouter', function () {
     $this->travelTo(Carbon::parse('2026-10-19 22:20'));                          // de retour lundi après mer., jeu., ven. manqués
     app(QuestScheduler::class)->sync($this->user->fresh(), now());
 
-    expect(Quest::where('type', 'penalty')->count())->toBe(0)
-        ->and(Quest::whereDate('date', '2026-10-15')->where('type', 'training')->value('status'))->toBe('failed');
+    expect(Quest::whereDate('date', '2026-10-15')->where('type', 'training')->value('status'))->toBe('failed')
+        ->and(Quest::whereDate('date', '2026-10-15')->count())->toBe(1);
 });

@@ -39,12 +39,12 @@ it('affiche la quête d\'entraînement du jour avec ses objectifs et sa récompe
         ->assertSee(route('workout.quest', $quest));
 });
 
-it('affiche un jour de repos et la pénalité', function () {
+it('affiche un jour de repos sans pénalité après une quête ratée', function () {
     withProgram($this->user);
     $this->get('/');
-    $this->travelTo(Carbon::parse('2026-10-06 10:00'));          // mardi : repos + pénalité
+    $this->travelTo(Carbon::parse('2026-10-06 10:00'));          // mardi : repos, lundi raté
 
-    $this->get('/')->assertSee('Repos')->assertSee('PÉNALITÉ')->assertSee('Pompes');
+    $this->get('/')->assertSee('Repos')->assertDontSee('PÉNALITÉ')->assertDontSee('Pompes');
 });
 
 it('ouvre la séance de quête préremplie, réservée à son propriétaire et au jour même', function () {

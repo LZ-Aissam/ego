@@ -29,19 +29,14 @@ it('ne casse pas la série pour une quête du jour encore en cours', function ()
     expect($this->streaks->compute($this->user, Carbon::parse('2026-10-06')))->toBe(1);
 });
 
-it('sauve la série si la pénalité du lendemain est réussie ou encore en cours, la casse sinon', function () {
+it('casse la série sur une quête ratée et la fait repartir au jour suivant', function () {
     quest($this->user, '2026-10-05', 'rest', 'done');
     quest($this->user, '2026-10-06', 'training', 'failed');
+
+    expect($this->streaks->compute($this->user, Carbon::parse('2026-10-06')))->toBe(0);
+
     quest($this->user, '2026-10-07', 'rest', 'done');
-    quest($this->user, '2026-10-07', 'penalty', 'done');
-
-    expect($this->streaks->compute($this->user, Carbon::parse('2026-10-07')))->toBe(2);
-
-    $this->user->quests()->where('type', 'penalty')->update(['status' => 'pending']);
-    expect($this->streaks->compute($this->user, Carbon::parse('2026-10-07')))->toBe(2);
-
-    $this->user->quests()->where('type', 'penalty')->update(['status' => 'failed']);
-    expect($this->streaks->compute($this->user, Carbon::parse('2026-10-07')))->toBe(0);
+    expect($this->streaks->compute($this->user, Carbon::parse('2026-10-07')))->toBe(1);
 });
 
 it('ignore les jours sans quête (pause) et les quêtes annulées', function () {
@@ -57,9 +52,7 @@ it('mémorise la série et la meilleure série', function () {
     quest($this->user, '2026-10-06', 'rest', 'done');
     $this->streaks->refresh($this->user, Carbon::parse('2026-10-06'));
     quest($this->user, '2026-10-07', 'training', 'failed');
-    quest($this->user, '2026-10-08', 'penalty', 'failed');
-    quest($this->user, '2026-10-08', 'rest', 'done');
-    $this->streaks->refresh($this->user, Carbon::parse('2026-10-08'));
+    $this->streaks->refresh($this->user, Carbon::parse('2026-10-07'));
 
     expect($this->user->fresh()->streak_days)->toBe(0)->and($this->user->fresh()->best_streak)->toBe(2);
 });

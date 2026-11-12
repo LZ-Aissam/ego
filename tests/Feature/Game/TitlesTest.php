@@ -64,6 +64,6 @@ it('débloque les titres de rang selon le niveau', function () {
 
 it('expose un catalogue complet avec les titres des quêtes', function () {
     expect(array_keys(Titles::CATALOG))->toBe([
-        'awakened', 'record_breaker', 'centurion', 'titan', 'steady', 'unstoppable', 'revenant', 'rank_c', 'rank_b', 'rank_a', 'monarch',
+        'awakened', 'record_breaker', 'centurion', 'titan', 'steady', 'unstoppable', 'rank_c', 'rank_b', 'rank_a', 'monarch',
     ]);
 });

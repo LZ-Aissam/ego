@@ -17,13 +17,11 @@ use Illuminate\Support\Facades\DB;
 final class QuestScheduler
 {
     public const QUEST_XP = 200;
-    public const PENALTY_XP = 50;
     public const MAX_CATCH_UP_DAYS = 60;
 
     public function __construct(
         private Titles $titles,
         private StreakCalculator $streaks,
-        private PenaltyCircuit $penalties,
         private XpLedger $ledger,
         private QuestEvaluator $evaluator,
         private CalibrationPlan $calibrationPlan,
@@ -110,7 +108,7 @@ final class QuestScheduler
         // La séance peut arriver avant toute page ouverte ce jour-là (hors ligne) : on crée d'abord les quêtes dues.
         $notes = $this->process($user, $day);
 
-        $quests = $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'calibration', 'penalty'])
+        $quests = $user->quests()->where('date', $day->toDateString())->whereIn('type', ['training', 'calibration'])
             ->whereIn('status', ['pending', 'failed'])->orderBy('id')->get();
         $sets = $this->setsOn($user, $day);
 
@@ -129,7 +127,7 @@ final class QuestScheduler
         $notes = [];
 
         // Période de pause mémorisée AVANT une éventuelle levée automatique : les jours passés
-        // en pause doivent rester sans quête ni pénalité pendant le rattrapage.
+        // en pause doivent rester sans quête pendant le rattrapage.
         [$pausedFrom, $pausedUntil] = [$user->paused_at, $user->paused_until];
         $paused = fn (Carbon $d) => $pausedFrom !== null && $d->gte($pausedFrom) && ($pausedUntil === null || $d->lte($pausedUntil));
 
@@ -152,7 +150,7 @@ final class QuestScheduler
                 array_push($notes, ...$this->ensureQuest($user, $program, $day));
             }
             if ($day->lt($upTo)) {
-                array_push($notes, ...$this->expire($user, $day, $paused, $upTo));
+                array_push($notes, ...$this->expire($user, $day));
             }
         }
 
@@ -223,23 +221,14 @@ final class QuestScheduler
 
         $day = Carbon::parse($quest->date->toDateString());
 
-        if ($quest->type === 'penalty') {
-            $this->ledger->award($user, 'penalty', $quest->id, self::PENALTY_XP, at: now());
-            $quest->update(['status' => 'done', 'completed_at' => now(), 'xp_awarded' => self::PENALTY_XP]);
-
-            return [SystemMessage::penaltyDone()];
-        }
-
         $wasFailed = $quest->status === 'failed';
         $xp = $this->rewardFor($this->streaks->compute($user, $day->copy()->subDay()));
         $this->ledger->award($user, 'quest', $quest->id, $xp, at: now());
         $quest->update(['status' => 'done', 'completed_at' => now(), 'xp_awarded' => $xp]);
 
         if ($wasFailed) {
-            // Quête réparée par une séance envoyée en retard : la pénalité du lendemain tombe,
-            // et les quêtes suivantes encore vierges passent au jour de programme suivant.
-            $user->quests()->where('type', 'penalty')->where('status', 'pending')
-                ->where('date', $day->copy()->addDay()->toDateString())->update(['status' => 'cancelled']);
+            // Quête réparée par une séance envoyée en retard : les quêtes suivantes encore vierges
+            // passent au jour de programme suivant.
             $this->repointLaterQuests($user, $day);
         }
 
@@ -310,30 +299,16 @@ final class QuestScheduler
         return $days[($index + 1) % $days->count()];
     }
 
-    /** @return list<array> */
-    private function expire(User $user, Carbon $day, \Closure $paused, Carbon $today): array
+    /** Une quête restée en attente un jour passé est ratée : la série retombe à 0 (sauf séance envoyée en retard). @return list<array> */
+    private function expire(User $user, Carbon $day): array
     {
         $notes = [];
-        $upperOnly = (bool) ($user->activeProgram()->first()?->params['upper_only'] ?? false);
 
         foreach ($user->quests()->where('date', $day->toDateString())->where('status', 'pending')->orderBy('id')->get() as $quest) {
             $quest->update(['status' => 'failed']);
 
             if (in_array($quest->type, ['training', 'calibration'], true)) {
                 $notes[] = SystemMessage::questFailed($quest);
-                $next = $day->copy()->addDay();
-                // Lendemain déjà passé (retour après plusieurs jours) : une pénalité qu'on ne peut plus faire n'a pas de sens.
-                // En pause, elle est gardée annulée : c'est elle qui gèle la série au lieu de la casser.
-                if ($next->lt($today) && ! $paused($next)) {
-                    continue;
-                }
-                // Lendemain en pause : la pénalité existe mais est annulée (la série reste gelée, pas cassée).
-                $user->quests()->firstOrCreate(
-                    ['date' => $next->toDateString(), 'type' => 'penalty'],
-                    ['title' => 'Pénalité', 'objectives' => $this->penalties->for($user->level, $upperOnly), 'status' => $paused($next) ? 'cancelled' : 'pending'],
-                );
-            } elseif ($quest->type === 'penalty') {
-                $notes[] = SystemMessage::penaltyFailed();
             }
         }
 

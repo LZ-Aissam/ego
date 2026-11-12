@@ -44,7 +44,7 @@ it('assigne la séance du jour un jour d\'entraînement', function () {
         ->and($quest->objectives[0])->toHaveKeys(['exercise_id', 'name', 'slot', 'sets', 'reps_min', 'reps_max', 'rest_seconds']);
 });
 
-it('constate l\'échec de la veille, crée la pénalité et le repos du jour, une seule fois', function () {
+it('constate l\'échec de la veille et crée le repos du jour, une seule fois', function () {
     programOn($this->user);
     $this->scheduler->sync($this->user, day('2026-10-05'));
 
@@ -55,7 +55,8 @@ it('constate l\'échec de la veille, crée la pénalité et le repos du jour, un
         ->and($again)->toBe([])
         ->and(Quest::where('date', '2026-10-05')->value('status'))->toBe('failed')
         ->and(Quest::where('date', '2026-10-06')->where('type', 'rest')->value('status'))->toBe('done')
-        ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->first()->objectives)->toHaveCount(3);
+        ->and(Quest::where('date', '2026-10-06')->count())->toBe(1)
+        ->and($this->user->fresh()->streak_days)->toBe(1);                       // le repos du 6 : la série repart après le jour raté
 });
 
 it('passe au jour suivant du programme après une quête accomplie, répète après un échec', function () {
@@ -70,20 +71,19 @@ it('passe au jour suivant du programme après une quête accomplie, répète apr
     expect(Quest::where('date', '2026-10-09')->value('title'))->toBe('Full body B');
 });
 
-it('rattrape une absence de plusieurs jours dans l\'ordre, sans pénalité pour des jours déjà passés', function () {
+it('rattrape une absence de plusieurs jours dans l\'ordre', function () {
     programOn($this->user);
     $this->scheduler->sync($this->user, day('2026-10-05'));
 
     $notes = $this->scheduler->sync($this->user, day('2026-10-09'));
 
     expect(collect($notes)->pluck('title')->all())->toBe(['QUÊTE ÉCHOUÉE', 'QUÊTE ÉCHOUÉE'])
-        ->and(Quest::where('type', 'penalty')->count())->toBe(0)
         ->and(Quest::where('date', '2026-10-09')->where('type', 'training')->value('status'))->toBe('pending')
-        ->and(Quest::where('date', '2026-10-09')->where('type', 'penalty')->exists())->toBeFalse()
-        ->and($this->user->fresh()->streak_days)->toBe(1);                       // le repos du 8 : la série repart après le dernier jour raté
+        ->and(Quest::count())->toBe(5)
+        ->and($this->user->fresh()->streak_days)->toBe(1);                      // le repos du 8 : la série repart après le dernier jour raté
 });
 
-it('ne crée ni quête ni pénalité pendant une pause, et la lève automatiquement', function () {
+it('ne crée aucune quête pendant une pause, et la lève automatiquement', function () {
     programOn($this->user);
     $this->scheduler->sync($this->user, day('2026-10-05'));
     $this->user->forceFill(['paused_at' => '2026-10-06', 'paused_until' => '2026-10-07'])->save();
@@ -91,8 +91,7 @@ it('ne crée ni quête ni pénalité pendant une pause, et la lève automatiquem
     $notes = $this->scheduler->sync($this->user, day('2026-10-08'));
 
     expect(collect($notes)->pluck('title')->all())->toBe(['RETOUR DE TON EGO', 'QUÊTE ÉCHOUÉE'])
-        ->and(Quest::whereIn('date', ['2026-10-06', '2026-10-07'])->whereIn('type', ['training', 'rest'])->count())->toBe(0)
-        ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->value('status'))->toBe('cancelled')
+        ->and(Quest::whereIn('date', ['2026-10-06', '2026-10-07'])->count())->toBe(0)
         ->and(Quest::where('date', '2026-10-08')->value('type'))->toBe('rest')
         ->and($this->user->fresh()->paused_at)->toBeNull();
 });

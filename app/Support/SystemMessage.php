@@ -57,17 +57,7 @@ final class SystemMessage
 
     public static function questFailed(Quest $quest): array
     {
-        return self::make('quest_failed', 'QUÊTE ÉCHOUÉE', [$quest->title.' — '.$quest->date->translatedFormat('l j F'), 'TON EGO t\'impose une quête de pénalité le lendemain.'], 'alert');
-    }
-
-    public static function penaltyDone(): array
-    {
-        return self::make('penalty_done', 'PÉNALITÉ ACCOMPLIE', ['Ta série est sauvée.', '+50 XP']);
-    }
-
-    public static function penaltyFailed(): array
-    {
-        return self::make('penalty_failed', 'PÉNALITÉ ÉCHOUÉE', ['Ta série retombe à 0.', 'TON EGO attend mieux de toi.'], 'alert');
+        return self::make('quest_failed', 'QUÊTE ÉCHOUÉE', [$quest->title.' — '.$quest->date->translatedFormat('l j F'), 'Ta série retombe à 0.'], 'alert');
     }
 
     public static function pauseOn(?CarbonInterface $until): array

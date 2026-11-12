@@ -58,32 +58,27 @@ it('ne valide pas une séance incomplète', function () {
     expect($quest->fresh()->status)->toBe('pending');
 });
 
-it('répare une quête ratée par une séance d\'hier envoyée aujourd\'hui et annule la pénalité', function () {
+it('répare une quête ratée par une séance d\'hier envoyée aujourd\'hui', function () {
     $monday = Quest::where('date', '2026-10-05')->sole();
     $this->travelTo(Carbon::parse('2026-10-06 09:00'));
     app(QuestScheduler::class)->sync($this->user, now());
-    expect($monday->fresh()->status)->toBe('failed');
+    expect($monday->fresh()->status)->toBe('failed')
+        ->and($this->user->fresh()->streak_days)->toBe(1);                      // le repos du mardi seul : la série est repartie de 0
 
     completeObjectives($this->user, $monday->objectives, '2026-10-05 19:00');
 
     expect($monday->fresh()->status)->toBe('done')
-        ->and(Quest::where('date', '2026-10-06')->where('type', 'penalty')->value('status'))->toBe('cancelled')
         ->and($this->user->fresh()->streak_days)->toBe(2);
 });
 
-it('sauve la série avec la pénalité, +50 XP et le titre Revenant', function () {
+it('remet la série à 0 sur une quête ratée, sans quête de pénalité le lendemain', function () {
     $this->travelTo(Carbon::parse('2026-10-06 09:00'));
-    app(QuestScheduler::class)->sync($this->user, now());
-    $penalty = Quest::where('date', '2026-10-06')->where('type', 'penalty')->sole();
+    $notes = app(QuestScheduler::class)->sync($this->user, now());
 
-    $result = completeObjectives($this->user, $penalty->objectives, '2026-10-06 12:00');
-
-    $titles = collect($result['notifications'])->pluck('title');
-    expect($penalty->fresh()->status)->toBe('done')
-        ->and(XpEvent::where('source', 'penalty')->value('amount'))->toBe(50)
-        ->and($titles)->toContain('PÉNALITÉ ACCOMPLIE')
-        ->and(collect($result['notifications'])->pluck('lines.0'))->toContain('Revenant')
-        ->and($this->user->fresh()->streak_days)->toBe(1);
+    expect(collect($notes)->pluck('title')->all())->toBe(['QUÊTE ÉCHOUÉE'])
+        ->and($notes[0]['lines'][1])->toBe('Ta série retombe à 0.')
+        ->and(Quest::where('date', '2026-10-06')->pluck('type')->all())->toBe(['rest'])
+        ->and($this->user->fresh()->streak_days)->toBe(1);                      // le repos du mardi seul : la série est repartie de 0
 });
 
 it('applique le bonus de série à la récompense', function () {

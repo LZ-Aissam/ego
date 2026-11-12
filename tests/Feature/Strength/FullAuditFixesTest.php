@@ -2,7 +2,6 @@
 
 use App\Game\CalibrationPlan;
 use App\Game\LoadPrescriber;
-use App\Game\PenaltyCircuit;
 use App\Game\QuestScheduler;
 use App\Models\Exercise;
 use App\Models\Quest;
@@ -88,13 +87,6 @@ it('affiche le lest sur l\'accueil, pas une charge', function () {
     $this->user->workingLoads()->updateOrCreate(['exercise_id' => $dips->id], ['target_kg' => 10, 'fail_streak' => 0]);
 
     $this->actingAs($this->user)->get('/')->assertSeeText('+10 kg de lest');
-});
-
-it('ne met pas de squats dans la pénalité d\'un programme sans jambes', function () {
-    $legs = Exercise::whereIn('slug', ['bodyweight-squat'])->pluck('id')->all();
-
-    expect(array_column(app(PenaltyCircuit::class)->for('advanced', upperOnly: true), 'exercise_id'))->not->toContain($legs[0])
-        ->and(array_column(app(PenaltyCircuit::class)->for('advanced'), 'exercise_id'))->toContain($legs[0]);
 });
 
 it('teste aussi au calibrage les tractions et les dips lestés, une seule traction pour les deux prises', function () {
