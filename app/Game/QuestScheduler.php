@@ -126,6 +126,39 @@ final class QuestScheduler
         return $notes;
     }
 
+    /**
+     * Correction ponctuelle au passage à la journée de jeu (fin à 4 h) : une quête ratée dont une séance s'est finie
+     * entre minuit et 4 h le lendemain est réévaluée avec les nouvelles bornes, et accomplie si les séries suffisent.
+     *
+     * @return list<array>
+     */
+    public function repairFailedBeforeCutoff(User $user, CarbonInterface $today): array
+    {
+        $today = Carbon::parse($today->toDateString());
+
+        return DB::transaction(function () use ($user, $today) {
+            User::whereKey($user->id)->lockForUpdate()->first();
+            $user->refresh();
+
+            $notes = [];
+            $quests = $user->quests()->whereIn('type', ['training', 'calibration'])->where('status', 'failed')
+                ->where('date', '>=', $today->copy()->subDays(self::MAX_CATCH_UP_DAYS)->toDateString())->orderBy('date')->get();
+
+            foreach ($quests as $quest) {
+                $day = Carbon::parse($quest->date->toDateString());
+                [, $cutoff] = GameDay::bounds($day);                                   // lendemain 4 h
+                $afterMidnight = $user->workouts()->where('finished_at', '>=', $day->copy()->addDay())->where('finished_at', '<', $cutoff)->exists();
+                if ($afterMidnight) {
+                    array_push($notes, ...$this->completeIfAccomplished($user, $quest, $this->setsOn($user, $day)));
+                }
+            }
+
+            $this->streaks->refresh($user, $today);
+
+            return $notes;
+        });
+    }
+
     /** Rattrapage jusqu'à $upTo inclus (sans verrou : l'appelant le tient). @return list<array> */
     private function process(User $user, Carbon $upTo): array
     {

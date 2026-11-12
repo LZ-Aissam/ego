@@ -119,3 +119,40 @@ it('montre à l\'accueil, avant 4 h, les séries faites après minuit sur la qu�
     $this->get('/')->assertSee('Repos');
     expect($quest->fresh()->status)->toBe('failed');
 });
+
+/** État historique : la quête est tombée en échec à minuit et la séance finie à $at a été rattachée au lendemain. */
+function failedThenPlayedAt(User $user, Quest $quest, string $at): void
+{
+    $quest->update(['status' => 'failed']);
+    $iso = Carbon::parse($at, 'Europe/Paris')->toIso8601String();
+    $sets = [];
+    foreach ($quest->objectives as $objective) {
+        foreach (range(1, $objective['sets']) as $i) {
+            $sets[] = ['exercise_id' => $objective['exercise_id'], 'weight_kg' => 20, 'reps' => $objective['reps_min'], 'done_at' => $iso];
+        }
+    }
+    app(WorkoutSync::class)->sync($user, ['client_id' => (string) Str::uuid(), 'started_at' => $iso, 'finished_at' => $iso, 'sets' => $sets]);
+}
+
+it('répare après coup une quête ratée dont la séance s\'est finie entre minuit et 4 h', function () {
+    $quest = Quest::where('date', '2026-10-05')->sole();
+    failedThenPlayedAt($this->user, $quest, '2026-10-06 00:05');
+    $this->travelTo(Carbon::parse('2026-10-07 12:00'));
+
+    $notes = app(QuestScheduler::class)->repairFailedBeforeCutoff($this->user, \App\Game\GameDay::today());
+
+    expect(collect($notes)->pluck('title'))->toContain('QUÊTE ACCOMPLIE')
+        ->and($quest->fresh()->status)->toBe('done')
+        ->and($quest->fresh()->xp_awarded)->toBe(200)
+        ->and($this->user->fresh()->streak_days)->toBe(1);
+});
+
+it('ne répare pas une quête ratée dont la séance s\'est finie après 4 h', function () {
+    $quest = Quest::where('date', '2026-10-05')->sole();
+    failedThenPlayedAt($this->user, $quest, '2026-10-06 05:00');
+    $this->travelTo(Carbon::parse('2026-10-07 12:00'));
+
+    $notes = app(QuestScheduler::class)->repairFailedBeforeCutoff($this->user, \App\Game\GameDay::today());
+
+    expect($notes)->toBe([])->and($quest->fresh()->status)->toBe('failed');
+});
