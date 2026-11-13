@@ -463,6 +463,13 @@ final class LoadPrescriber
                 continue;
             }
 
+            // Jour accessoire : un exercice mené en force max (🔥) un autre jour, fait ici sans l'intention max
+            // (volume, sans intention), ne juge pas sa charge lourde. La quête du jour donne l'intention réelle.
+            if ($line->intent === 'max' && $todayIntents !== null && isset($todayIntents[$exerciseId])
+                && ! in_array('max', $todayIntents[$exerciseId], true)) {
+                continue;
+            }
+
             // Série record (🏆) : faite à sa propre charge, plus lourde, elle ne juge pas la charge lourde (🔥).
             if (isset($topLines[$exerciseId])) {
                 $topKg = $topKgs[$exerciseId];
@@ -492,8 +499,15 @@ final class LoadPrescriber
 
                 continue;
             }
+            // Tout fait plus léger que la cible, mais la meilleure série (réestimée, reps plafonnées) vaut au moins
+            // la cible à reps_min : la forme est là, ce n'est pas un échec, la charge tient sans décharger.
+            $bodyweight = $line->exercise->is_bodyweight ? (float) $user->weight_kg : 0.0;
+            $bestE1rm = (float) $sets->max(fn (WorkoutSet $s) => ($s->weight_kg + $bodyweight) * (1 + min($s->reps, self::WAVE_REPS_CAP) / 30));
+            $targetMinE1rm = ((float) $load->target_kg + $bodyweight) * (1 + $line->reps_min / 30);
+            $strongEnough = $kept->isEmpty() && $bestE1rm + 0.01 >= $targetMinE1rm;
+
             // Tout fait plus léger que la cible : la charge est trop lourde, cela compte comme un échec.
-            $failed = $kept->isEmpty() || $kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min);
+            $failed = ($kept->isEmpty() || $kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min)) && ! $strongEnough;
 
             if ($failed) {
                 $load->fail_streak += 1;
