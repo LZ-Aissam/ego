@@ -105,6 +105,26 @@ class Profile extends Component
         return $this->redirectRoute('program');
     }
 
+    /** Choisit comment le programme avance : « calendar » (séance collée au jour de la semaine) ou « sequential » (file à faire dans l'ordre). */
+    public function setSequencing(string $mode)
+    {
+        if (! in_array($mode, ['calendar', 'sequential'], true)) {
+            return null;
+        }
+
+        $user = auth()->user();
+        $program = $user->activeProgram()->first();
+        if (! $program) {
+            return null;
+        }
+
+        $program->update(['params' => [...$program->params, 'sequencing' => $mode]]);
+        // On repart propre : les séances en attente encore vierges sont effacées, la prochaine page recrée celle du nouveau mode.
+        app(\App\Game\QuestScheduler::class)->discardPendingSessions($user);
+
+        return $this->redirectRoute('profile');
+    }
+
     public function equipTitle(string $key): void
     {
         $user = auth()->user();
@@ -125,6 +145,7 @@ class Profile extends Component
             'user' => $user,
             'player' => \App\Game\Leveling::progress((int) $user->xp_total),
             'stats' => $stats->for($user),
+            'program' => $user->activeProgram()->first(),
             'unlocked' => $user->titles()->pluck('title_key')->all(),
             'maxes' => $user->exerciseMaxes()->with('exercise')->orderByDesc('e1rm_kg')->get(),
             'weeks' => $weeks,

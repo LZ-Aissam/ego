@@ -105,6 +105,26 @@ final class QuestScheduler
         });
     }
 
+    /**
+     * Changement de mode d'enchaînement : on efface les séances encore en attente et vierges (aucune série envoyée
+     * ce jour-là), pour que le nouveau mode reparte proprement à la rotation après la dernière séance faite. Les
+     * séances faites ou commencées sont gardées.
+     */
+    public function discardPendingSessions(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            User::whereKey($user->id)->lockForUpdate()->first();
+
+            foreach ($user->quests()->whereIn('type', ['training', 'calibration', 'rest'])->where('status', 'pending')->get() as $quest) {
+                $untouched = $quest->type === 'rest'
+                    || array_sum($this->evaluator->progress($quest->objectives, $this->setsOn($user, Carbon::parse($quest->date->toDateString())))) === 0;
+                if ($untouched) {
+                    $quest->delete();
+                }
+            }
+        });
+    }
+
     /** À appeler sous le verrou du joueur (GameEvents). @return list<array> */
     public function onWorkout(User $user, Workout $workout): array
     {
@@ -179,6 +199,14 @@ final class QuestScheduler
             return $notes;
         }
 
+        if ($program->isSequential()) {
+            if (! $paused($upTo)) {
+                array_push($notes, ...$this->syncSequential($user, $program, $upTo));
+            }
+
+            return $notes;
+        }
+
         // Au-delà de la fenêtre de rattrapage, les quêtes restées en attente sont closes sans bruit.
         $floor = $upTo->copy()->subDays(self::MAX_CATCH_UP_DAYS);
         $user->quests()->where('status', 'pending')->where('date', '<', $floor->toDateString())->update(['status' => 'failed']);
@@ -212,6 +240,49 @@ final class QuestScheduler
         }
 
         return $start->lt($floor) ? $floor : $start;
+    }
+
+    /**
+     * Mode séquentiel : une seule séance active (entraînement ou calibrage) à la fois. Elle suit le jour courant
+     * tant qu'elle n'est pas faite, ne tombe jamais en échec, et la suivante n'apparaît qu'un autre jour une fois
+     * la précédente accomplie. Un jour sans séance est neutre : ni quête de repos, ni échec.
+     *
+     * @return list<array>
+     */
+    private function syncSequential(User $user, Program $program, Carbon $today): array
+    {
+        $pending = $user->quests()->whereIn('type', ['training', 'calibration'])->where('status', 'pending')
+            ->orderBy('date')->first();
+
+        if ($pending) {
+            // La séance active suit le jour courant, sauf si ce jour porte déjà une séance (une faite plus tôt le même jour).
+            $takenToday = $user->quests()->whereIn('type', ['training', 'calibration'])
+                ->where('date', $today->toDateString())->where('id', '!=', $pending->id)->exists();
+            if ($pending->date->toDateString() !== $today->toDateString() && ! $takenToday) {
+                $pending->update(['date' => $today->toDateString()]);
+            }
+
+            return [];
+        }
+
+        // Pas de séance active : si le jour courant porte déjà une séance (déjà faite aujourd'hui), on attend le lendemain.
+        if ($user->quests()->whereIn('type', ['training', 'calibration'])->where('date', $today->toDateString())->exists()) {
+            return [];
+        }
+
+        $calibrating = $user->calibrated_at === null;
+        $programDay = $this->nextProgramDay($user, $program, $today);
+        $quest = $user->quests()->create([
+            'date' => $today->toDateString(),
+            'type' => $calibrating ? 'calibration' : 'training',
+            'program_day_id' => $programDay->id,
+            'title' => $calibrating ? 'Calibrage' : $programDay->name,
+            'objectives' => $calibrating ? $this->calibrationPlan->objectives($user) : $this->objectivesOn($user, $programDay, $today),
+            'status' => 'pending',
+        ]);
+
+        // Des séances de ce jour ont pu être envoyées avant la création de la quête.
+        return $this->completeIfAccomplished($user, $quest, $this->setsOn($user, $today));
     }
 
     /** @return list<array> */
@@ -316,8 +387,9 @@ final class QuestScheduler
         $days = $program->days;
 
         // Programme personnalisé, Force × Vitesse ou Force pure, une journée par jour d'entraînement : chaque journée garde son jour de la semaine.
+        // En mode séquentiel, on ignore ce calage : la rotation suit la dernière séance faite.
         $weekdays = collect($user->training_weekdays ?? [])->sort()->values();
-        $attached = ($program->params['custom'] ?? false) || in_array($program->params['goal'] ?? null, ['power', 'pure'], true);
+        $attached = ! $program->isSequential() && (($program->params['custom'] ?? false) || in_array($program->params['goal'] ?? null, ['power', 'pure'], true));
         if ($attached && $weekdays->count() === $days->count()) {
             $index = $weekdays->search($date->isoWeekday());
             if ($index !== false) {

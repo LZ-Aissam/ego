@@ -39,6 +39,18 @@ final class Cycle
             return null;
         }
 
+        // Mode séquentiel : le cycle avance au rythme des séances faites (une rotation complète = une semaine de cycle),
+        // d'après les séances accomplies AVANT le jour évalué (cohérent, que la séance du jour soit déjà cochée ou non).
+        if ($program->isSequential()) {
+            $perWeek = max(1, $program->days()->count());
+            $done = $user->quests()->where('type', 'training')->where('status', 'done')
+                ->where('date', '<', Carbon::parse($day)->toDateString())
+                ->whereIn('program_day_id', $program->days()->pluck('id'))
+                ->count();
+
+            return intdiv($done, $perWeek) % self::LENGTH + 1;
+        }
+
         $start = Carbon::parse($program->created_at);
         if ($user->calibrated_at && $user->calibrated_at->gt($start)) {
             $start = Carbon::parse($user->calibrated_at);

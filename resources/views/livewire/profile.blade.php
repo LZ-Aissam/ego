@@ -109,6 +109,29 @@
         @endif
     </x-sys.window>
 
+    @if ($program)
+        <x-sys.window title="ENCHAÎNEMENT" :index="1">
+            <p class="mb-3 text-sm text-mist">Comment ton programme passe d'une séance à l'autre.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button type="button" wire:click="setSequencing('calendar')" @class(['sys-chip px-2 py-3 text-center', 'sys-chip--active' => ! $program->isSequential()])>
+                    <span class="block text-sm font-bold text-ice">Calendaire</span>
+                    <span class="sys-label block whitespace-normal !tracking-normal leading-tight">par date</span>
+                </button>
+                <button type="button" wire:click="setSequencing('sequential')" @class(['sys-chip px-2 py-3 text-center', 'sys-chip--active' => $program->isSequential()])>
+                    <span class="block text-sm font-bold text-ice">Séquentiel</span>
+                    <span class="sys-label block whitespace-normal !tracking-normal leading-tight">dans l'ordre</span>
+                </button>
+            </div>
+            <p class="sys-num mt-3 text-xs text-steel">
+                @if ($program->isSequential())
+                    La séance reste affichée tant que tu ne l'as pas faite. Un jour sans séance ne casse rien : tu avances en accomplissant, chaque muscle à son tour.
+                @else
+                    La séance du jour suit le calendrier. Non faite dans la journée, elle échoue et la série retombe à 0.
+                @endif
+            </p>
+        </x-sys.window>
+    @endif
+
     <x-sys.window title="TITRES" :index="2">
         @foreach (\App\Game\Titles::CATALOG as $key => $title)
             @if (in_array($key, $unlocked, true))
