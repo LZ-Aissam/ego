@@ -35,6 +35,7 @@ export function addExercise(state, exercise, { lastTime = null, suggestedKg = nu
         intent: exercise.intent ?? null,
         intentBadge: exercise.intentBadge ?? '',
         intentCue: exercise.intentCue ?? null,
+        resume: exercise.resume ?? false,                                           // exercice passé la dernière fois, à reprendre
         restSeconds,
         lastTime,
         target,
@@ -71,20 +72,33 @@ export function isResting(state, nowMs) {
 
 const targetDone = (ex) => ex.target !== null && ex.target !== undefined && ex.sets.length >= ex.target.sets;
 
-// Prochain exercice de la quête pas encore terminé : d'abord ceux qui suivent, puis ceux laissés en arrière.
+// Prochain exercice de la quête pas encore terminé ni passé : d'abord ceux qui suivent, puis ceux laissés en arrière.
 function nextUnfinished(state) {
     const n = state.exercises.length;
     for (let step = 1; step < n; step++) {
         const i = (state.currentIndex + step) % n;
         const ex = state.exercises[i];
-        if (ex.target && !targetDone(ex)) return i;
+        if (ex.target && !targetDone(ex) && !ex.skipped) return i;
     }
     return null;
 }
 
+// Un exercice passé (sauté faute de temps) compte comme réglé pour terminer la séance, mais reste « à reprendre ».
+export function skipExercise(state) {
+    const ex = current(state);
+    if (!ex) return state;
+    ex.skipped = true;
+    const next = nextUnfinished(state);
+    if (next !== null) {
+        state.currentIndex = next;
+        state.justAdvanced = true;
+    }
+    return state;
+}
+
 export function allTargetsDone(state) {
     const planned = state.exercises.filter((ex) => ex.target);
-    return planned.length > 0 && planned.every(targetDone);
+    return planned.length > 0 && planned.every((ex) => targetDone(ex) || ex.skipped);
 }
 
 // Séries lourdes dont le ressenti (facile · dur · limite) règle la hausse de charge.
@@ -93,6 +107,7 @@ export const RATED_INTENTS = ['top', 'max'];
 export function logSet(state, nowMs) {
     const ex = current(state);
     if (!ex || isResting(state, nowMs)) return state;
+    ex.skipped = false;                                                           // une série posée sur un exercice passé le réactive
     state.lastLogged = RATED_INTENTS.includes(ex.intent) ? { exercise: state.currentIndex, set: ex.sets.length } : null;
     ex.sets.push({
         weightKg: Math.max(0, round2(toNumber(ex.draft.weightKg))),
@@ -152,7 +167,10 @@ export function restProgress(state, nowMs) {
 }
 
 export function goTo(state, index) {
-    if (index >= 0 && index < state.exercises.length) state.currentIndex = index;
+    if (index >= 0 && index < state.exercises.length) {
+        state.exercises[index].skipped = false;                                   // ouvrir un exercice passé le réactive
+        state.currentIndex = index;
+    }
     return state;
 }
 
@@ -165,6 +183,8 @@ export function toPayload(state, finishedAtIso) {
         client_id: state.clientId,
         started_at: state.startedAt,
         finished_at: finishedAtIso,
+        // Exercices passés (aucune série) : à reprendre, remontés par le serveur à la prochaine séance.
+        skipped: state.exercises.filter((ex) => ex.skipped && ex.target && ex.sets.length === 0).map((ex) => ex.exerciseId),
         sets: state.exercises.flatMap((ex) => ex.sets.map((set) => ({
             exercise_id: ex.exerciseId,
             weight_kg: set.weightKg,

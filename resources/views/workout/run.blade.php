@@ -56,8 +56,8 @@
             <section class="mt-2 flex flex-1 flex-col gap-4">
                 <nav class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" x-show="state.exercises.length">
                     <template x-for="(ex, i) in state.exercises" :key="i">
-                        <button type="button" @click="go(i)" class="sys-chip" :class="i === state.currentIndex && 'sys-chip--active'">
-                            <span x-text="ex.name"></span><span class="ml-1" x-text="ex.sets.length ? '(' + ex.sets.length + ')' : ''"></span>
+                        <button type="button" @click="go(i)" class="sys-chip" :class="{ 'sys-chip--active': i === state.currentIndex, 'opacity-60': ex.skipped }">
+                            <span x-text="ex.name"></span><span class="ml-1 sys-num" x-text="ex.skipped ? '· passé' : (ex.sets.length ? '(' + ex.sets.length + ')' : '')"></span>
                         </button>
                     </template>
                 </nav>
@@ -74,6 +74,7 @@
                                x-text="current.target ? 'Objectif · ' + current.target.sets + ' × ' + current.target.repsMin + '–' + current.target.repsMax + ' · série ' + Math.min(current.sets.length + 1, current.target.sets) + '/' + current.target.sets : ''"></p>
                             <p class="sys-num mt-1 text-xs font-bold uppercase tracking-wider text-amber" x-show="current.intentBadge" x-text="current.intentBadge"></p>
                             <p class="mt-0.5 text-sm text-mist" x-show="current.intentCue" x-text="current.intentCue"></p>
+                            <p class="sys-num mt-1 text-xs font-bold uppercase tracking-wider text-steel" x-show="current.resume">À reprendre · passé la dernière fois</p>
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.prescribedKg"
                                x-text="!current.prescribedKg ? '' : current.isBodyweight ? 'Lest prescrit par TON EGO · +' + formatKg(current.prescribedKg) : 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '')"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>
@@ -114,6 +115,7 @@
                         <button type="button" class="sys-btn py-4 text-lg" :class="{ 'sys-btn--pulse': !resting, 'opacity-50': resting }" :disabled="resting" @click="validateSet()"
                                 x-text="resting ? 'Repos en cours · ' + clock(restRemaining) : 'VALIDER LA SÉRIE'">VALIDER LA SÉRIE</button>
                         <button type="button" class="sys-label w-full text-center" x-show="current.sets.length" @click="undoSet()">Annuler la dernière série</button>
+                        <button type="button" class="sys-label w-full text-center !text-steel" x-show="current.target && !current.sets.length && !resting" @click="skip()">Passer cet exercice · à reprendre</button>
                     </div>
                 </template>
 

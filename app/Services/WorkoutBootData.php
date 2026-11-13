@@ -55,9 +55,76 @@ final class WorkoutBootData
             'repsMin' => $o['reps_min'],
             'repsMax' => $o['reps_max'],
             'restSeconds' => $o['rest_seconds'],
+            'resume' => false,
         ], $quest->objectives);
 
+        // Exercices passés à la dernière séance et plus réentraînés : remontés en fin de séance, à reprendre.
+        $planned = array_column($boot['plan'], 'id');
+        foreach (array_diff($this->resumeDebt($user), $planned) as $id) {
+            $lib = $library[$id] ?? null;
+            if ($lib === null) {
+                continue;
+            }
+            $boot['plan'][] = [
+                'id' => $id,
+                'name' => $lib['name'],
+                'isBodyweight' => $lib['isBodyweight'],
+                'suggestedKg' => $lib['suggestedKg'],
+                'intent' => null,
+                'intentBadge' => \App\Game\Intent::badge(null),
+                'intentCue' => \App\Game\Intent::cue(null),
+                'prescribedKg' => $lib['prescribedKg'] ?? null,
+                'perDumbbell' => $lib['perDumbbell'],
+                'sets' => 3,
+                'repsMin' => 6,
+                'repsMax' => 10,
+                'restSeconds' => self::REST_SECONDS,
+                'resume' => true,
+            ];
+        }
+
         return $boot;
+    }
+
+    /**
+     * Exercices passés faute de temps dont la dernière occurrence reste un saut (jamais réentraînés depuis) : à reprendre.
+     *
+     * @return list<int>
+     */
+    private function resumeDebt(User $user): array
+    {
+        $workouts = $user->workouts()->whereNotNull('skipped_exercise_ids')->whereNotNull('finished_at')
+            ->get(['finished_at', 'skipped_exercise_ids']);
+
+        $lastSkip = [];
+        foreach ($workouts as $workout) {
+            foreach ($workout->skipped_exercise_ids ?? [] as $id) {
+                if (! isset($lastSkip[$id]) || $workout->finished_at->gt($lastSkip[$id])) {
+                    $lastSkip[$id] = $workout->finished_at;
+                }
+            }
+        }
+        if ($lastSkip === []) {
+            return [];
+        }
+
+        $lastTrain = WorkoutSet::query()
+            ->join('workouts', 'workouts.id', '=', 'workout_sets.workout_id')
+            ->where('workouts.user_id', $user->id)
+            ->whereIn('workout_sets.exercise_id', array_keys($lastSkip))
+            ->groupBy('workout_sets.exercise_id')
+            ->selectRaw('workout_sets.exercise_id as eid, MAX(workouts.finished_at) as trained_at')
+            ->pluck('trained_at', 'eid');
+
+        $debt = [];
+        foreach ($lastSkip as $id => $skippedAt) {
+            $trainedAt = $lastTrain[$id] ?? null;
+            if ($trainedAt === null || $skippedAt->gt(\Illuminate\Support\Carbon::parse($trainedAt))) {
+                $debt[] = (int) $id;
+            }
+        }
+
+        return $debt;
     }
 
     /** @return array<int, list<array{weightKg: float, reps: int}>> */

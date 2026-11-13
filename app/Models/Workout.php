@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workout extends Model
 {
-    protected $fillable = ['client_id', 'started_at', 'finished_at', 'bodyweight_kg'];
+    protected $fillable = ['client_id', 'started_at', 'finished_at', 'bodyweight_kg', 'skipped_exercise_ids'];
 
     protected function casts(): array
     {
@@ -17,6 +17,7 @@ class Workout extends Model
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
             'bodyweight_kg' => 'float',
+            'skipped_exercise_ids' => 'array',
         ];
     }
 

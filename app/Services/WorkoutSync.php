@@ -38,11 +38,14 @@ final class WorkoutSync
     private function create(User $user, array $data): array
     {
         return DB::transaction(function () use ($user, $data) {
+            $skipped = array_values(array_unique(array_map('intval', $data['skipped'] ?? [])));
+
             $workout = $user->workouts()->create([
                 'client_id' => $data['client_id'],
                 'started_at' => $this->localTime($data['started_at']),
                 'finished_at' => $this->localTime($data['finished_at']),
                 'bodyweight_kg' => $user->weight_kg,
+                'skipped_exercise_ids' => $skipped === [] ? null : $skipped,
             ]);
 
             foreach (array_values($data['sets']) as $index => $set) {

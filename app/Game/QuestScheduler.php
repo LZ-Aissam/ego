@@ -248,7 +248,10 @@ final class QuestScheduler
     /** @return list<array> */
     private function completeIfAccomplished(User $user, Quest $quest, Collection $sets): array
     {
-        if (! in_array($quest->status, ['pending', 'failed'], true) || ! $this->evaluator->isAccomplished($quest->objectives, $sets)) {
+        $day = Carbon::parse($quest->date->toDateString());
+
+        if (! in_array($quest->status, ['pending', 'failed'], true)
+            || ! $this->evaluator->isAccomplished($quest->objectives, $sets, $this->skippedOn($user, $day))) {
             return [];
         }
 
@@ -256,8 +259,6 @@ final class QuestScheduler
         if ($quest->type === 'calibration' && $user->calibrated_at === null) {
             return [];
         }
-
-        $day = Carbon::parse($quest->date->toDateString());
 
         $wasFailed = $quest->status === 'failed';
         $xp = $this->rewardFor($this->streaks->compute($user, $day->copy()->subDay()));
@@ -309,6 +310,14 @@ final class QuestScheduler
             ->where('workouts.user_id', $user->id);
 
         return GameDay::constrain($sets, $day)->get(['workout_sets.*']);
+    }
+
+    /** Exercices passés pendant les séances du jour : leurs objectifs ne sont pas punis. @return list<int> */
+    private function skippedOn(User $user, Carbon $day): array
+    {
+        $workouts = GameDay::constrain($user->workouts(), $day, 'finished_at')->get(['skipped_exercise_ids']);
+
+        return $workouts->flatMap(fn ($w) => $w->skipped_exercise_ids ?? [])->unique()->values()->all();
     }
 
     private function nextProgramDay(User $user, Program $program, Carbon $date): ProgramDay

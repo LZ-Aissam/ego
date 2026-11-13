@@ -17,6 +17,8 @@ class SyncWorkoutRequest extends FormRequest
             'client_id' => ['required', 'uuid'],
             'started_at' => ['required', 'date'],
             'finished_at' => ['required', 'date', 'after_or_equal:started_at'],
+            'skipped' => ['nullable', 'array', 'max:50'],
+            'skipped.*' => ['integer', 'exists:exercises,id'],
             'sets' => ['required', 'array', 'min:1', 'max:500'],
             'sets.*.exercise_id' => ['required', 'integer', 'exists:exercises,id'],
             'sets.*.weight_kg' => ['required', 'numeric', 'min:0', 'max:1000'],

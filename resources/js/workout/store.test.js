@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     addExercise, addRest, adjustDraft, allTargetsDone, closeStale, createStore, finishWorkout, goTo, hasSets,
-    effortPending, isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
+    effortPending, isResting, logSet, skipExercise, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, toNumber, toPayload, uuid,
 } from './store';
 
 function memoryStorage() {
@@ -338,5 +338,58 @@ describe('ressenti des séries lourdes', () => {
         logSet(s, t0);
         removeLastSet(s);
         expect(effortPending(s)).toBe(false);
+    });
+});
+
+describe('passer un exercice', () => {
+    const t0 = Date.parse('2026-10-01T16:00:00.000Z');
+    const target = { sets: 3, repsMin: 5, repsMax: 5 };
+
+    it('passe l\'exercice courant sans série fantôme et avance au suivant non fait', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 90, target });
+        s = addExercise(s, pullUp, { restSeconds: 90, target });
+        goTo(s, 0);
+
+        s = skipExercise(s);
+
+        expect(s.exercises[0].skipped).toBe(true);
+        expect(s.exercises[0].sets).toEqual([]);
+        expect(s.currentIndex).toBe(1);
+    });
+
+    it('compte un exercice passé comme réglé : la séance peut se terminer', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 90, target });
+        s = addExercise(s, pullUp, { restSeconds: 90, target });
+        for (let i = 0; i < 3; i++) { logSet(s, t0 + i * 1000); skipRest(s); }      // pullUp (courant) fait 3 séries
+        goTo(s, 0);
+        s = skipExercise(s);
+
+        expect(allTargetsDone(s)).toBe(true);
+    });
+
+    it('met les exercices passés (sans série) dans le champ skipped de l\'envoi', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 90, target });
+        s = addExercise(s, pullUp, { restSeconds: 90, target });
+        goTo(s, 0);
+        s = skipExercise(s);
+
+        expect(toPayload(s, 'f').skipped).toEqual([bench.id]);
+    });
+
+    it('revenir sur un exercice passé le réactive (il n\'est plus ni passé ni dans l\'envoi)', () => {
+        let s = addExercise(newWorkout('id', 't'), bench, { restSeconds: 90, target });
+        s = addExercise(s, pullUp, { restSeconds: 90, target });
+        goTo(s, 0);
+        s = skipExercise(s);
+
+        goTo(s, 0);
+        expect(s.exercises[0].skipped).toBe(false);
+        expect(toPayload(s, 'f').skipped).toEqual([]);
+    });
+
+    it('marque « à reprendre » un exercice remonté par le serveur (resume)', () => {
+        const s = addExercise(newWorkout('id', 't'), { ...bench, resume: true }, { restSeconds: 90, target });
+
+        expect(s.exercises[0].resume).toBe(true);
     });
 });

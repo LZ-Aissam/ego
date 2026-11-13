@@ -1,6 +1,6 @@
 import {
     addExercise, addRest, adjustDraft, allTargetsDone, closeStale, createStore, effortPending, finishWorkout, goTo, hasSets,
-    isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipRest, uuid,
+    isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipExercise, skipRest, uuid,
 } from './store';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
 import { alertPlan, countdownCue, loadSettings, restEndDelay, saveSettings, subtractRest, wavDataUri } from './signals';
@@ -297,6 +297,7 @@ export default function workout() {
         adjust(field, delta) { adjustDraft(this.state, field, delta); },
         go(index) { goTo(this.state, index); },
         undoSet() { removeLastSet(this.state); },
+        skip() { if (this.current) skipExercise(this.state); },
         skipRest() { skipRest(this.state); },
         moreRest() { addRest(this.state, 30, Date.now()); },
 

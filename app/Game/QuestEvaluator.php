@@ -19,14 +19,15 @@ final class QuestEvaluator
         )->count(), $objectives);
     }
 
-    public function isAccomplished(array $objectives, Collection $sets): bool
+    /** @param  list<int>  $skipped  exercices passés faute de temps : l'objectif compte comme réglé, la quête n'est pas punie. */
+    public function isAccomplished(array $objectives, Collection $sets, array $skipped = []): bool
     {
         if ($objectives === []) {
             return false;
         }
 
         foreach ($this->progress($objectives, $sets) as $i => $done) {
-            if ($done < $objectives[$i]['sets']) {
+            if ($done < $objectives[$i]['sets'] && ! in_array($objectives[$i]['exercise_id'], $skipped, true)) {
                 return false;
             }
         }
