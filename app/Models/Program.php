@@ -24,4 +24,10 @@ class Program extends Model
     {
         return $this->hasMany(ProgramDay::class)->orderBy('position');
     }
+
+    /** Enchaînement séquentiel : la séance suit l'ordre du programme et attend d'être faite, au lieu de suivre le calendrier. */
+    public function isSequential(): bool
+    {
+        return ($this->params['sequencing'] ?? 'calendar') === 'sequential';
+    }
 }
