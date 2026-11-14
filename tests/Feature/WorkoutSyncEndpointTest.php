@@ -102,7 +102,8 @@ it('ne renvoie aucune notification pour un envoi déjà enregistré', function (
 });
 
 it('renvoie l\'XP gagnée, la progression et les notifications de jeu', function () {
-    $this->body['sets'] = array_fill(0, 4, $this->body['sets'][0]);
+    // 40 kg : sous le premier rang de force (pas d'XP de rang mêlée à celle de la séance).
+    $this->body['sets'] = array_fill(0, 4, [...$this->body['sets'][0], 'weight_kg' => 40]);
 
     $response = $this->actingAs($this->user)->postJson('/workouts/sync', $this->body);
 

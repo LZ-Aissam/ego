@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addExercise, logSet, newWorkout, replaceExercise, setNote, setPain, setReadiness, toPayload } from './store';
+import { addExercise, effortPending, logSet, newWorkout, replaceExercise, setNote, setPain, setReadiness, toPayload } from './store';
 
 const target = { sets: 3, repsMin: 5, repsMax: 5 };
 const bench = { id: 1, name: 'Développé couché', isBodyweight: false, intent: 'wave', isBarbell: true, recordE1rm: 100 };
@@ -58,6 +58,21 @@ describe('remplacer un exercice', () => {
         s.currentIndex = 0;
         replaceExercise(s, curl);
         expect(s.exercises).toHaveLength(3);
+    });
+});
+
+describe('ressenti de la série de la vague', () => {
+    it('demande Facile · Dur · Limite après la série 5+, 3+, 1+ (le serveur ajuste le max sur « Limite »)', () => {
+        const s = session();
+        logSet(s, Date.parse('2026-11-14T09:05:00Z'));
+        expect(effortPending(s)).toBe(true);
+    });
+
+    it('pas pour un accessoire', () => {
+        const s = session();
+        s.currentIndex = 1;
+        logSet(s, Date.parse('2026-11-14T09:05:00Z'));
+        expect(effortPending(s)).toBe(false);
     });
 });
 

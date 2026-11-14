@@ -108,8 +108,9 @@ export function allTargetsDone(state) {
     return planned.length > 0 && planned.every((ex) => targetDone(ex) || ex.skipped);
 }
 
-// Séries lourdes dont le ressenti (facile · dur · limite) règle la hausse de charge.
-export const RATED_INTENTS = ['top', 'max'];
+// Séries lourdes dont le ressenti (facile · dur · limite) règle la hausse de charge ; la série de la vague « Limite »
+// et ratée fait redescendre son max.
+export const RATED_INTENTS = ['wave', 'top', 'max'];
 
 export function logSet(state, nowMs) {
     const ex = current(state);

@@ -118,7 +118,8 @@
                             </template>
                         </ol>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        {{-- Charge plus large que les répétitions : « 102,5 » doit tenir sur un téléphone --}}
+                        <div class="grid grid-cols-[3fr_2fr] gap-3">
                             <div>
                                 <label class="sys-label mb-1 block text-center" for="draft-weight" x-text="current.perDumbbell ? 'Kg par haltère' : 'Charge kg'">Charge kg</label>
                                 <div class="flex items-center gap-1">

@@ -46,6 +46,7 @@ Route::middleware(['auth', SyncQuests::class])->group(function () {
     Route::get('/maison', HomeGamesPage::class)->name('home-games');
     Route::get('/progress/{exercise}', Progress::class)->name('progress');
     Route::get('/profile', Profile::class)->name('profile');
+    Route::get('/profile/series.csv', \App\Http\Controllers\TrainingExportController::class)->name('profile.export');
     Route::post('/workouts/sync', WorkoutSyncController::class)->name('workouts.sync');
     Route::post('/logout', LogoutController::class)->name('logout');
 });

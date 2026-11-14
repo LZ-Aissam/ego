@@ -81,6 +81,17 @@
 
     <x-sys.button :href="route('workout')" :pulse="true" class="py-5 text-lg">Séance libre <span aria-hidden="true">→</span></x-sys.button>
 
+    @if ($needsWeighIn)
+        <x-sys.window title="PESÉE DE LA SEMAINE" :index="1">
+            <p class="text-sm text-mist">À jeun, le matin. Ton lest et ta force relative partent de ce poids.</p>
+            <form wire:submit="weighIn" class="mt-3 flex items-center gap-2">
+                <input type="text" inputmode="decimal" wire:model="weighKg" class="sys-input sys-num min-w-0 flex-1 text-center text-lg font-bold" placeholder="{{ \App\Support\Format::kg((float) $user->weight_kg) }}" aria-label="Poids en kg">
+                <button type="submit" class="sys-btn !w-auto !px-5">Peser</button>
+            </form>
+            @error('weighKg')<p class="mt-1 text-sm text-alert">{{ $message }}</p>@enderror
+        </x-sys.window>
+    @endif
+
     @if (! $user->sex || ! $user->weight_kg)
         <a href="{{ route('profile') }}" class="block">
             <x-sys.window title="CALIBRAGE REQUIS" :index="1">

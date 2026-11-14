@@ -8,6 +8,25 @@ use Livewire\Component;
 #[Title('Accueil')]
 class Home extends Component
 {
+    /** Pesée de la semaine (virgule acceptée). */
+    public $weighKg = '';
+
+    /** Une pesée est demandée quand la dernière date de plus de 7 jours. */
+    public const WEIGH_EVERY_DAYS = 7;
+
+    public function weighIn(): void
+    {
+        $this->weighKg = str_replace(',', '.', (string) $this->weighKg);
+        $this->validate(['weighKg' => ['required', 'numeric', 'between:30,300']], ['weighKg.*' => 'Indique ton poids en kg (30 à 300).']);
+
+        $user = auth()->user();
+        $kg = round((float) $this->weighKg, 1);
+        $user->bodyWeights()->updateOrCreate(['date' => \App\Game\GameDay::today()->toDateString()], ['kg' => $kg]);
+        // Le lest prescrit et la force relative partent du poids du profil.
+        $user->forceFill(['weight_kg' => $kg])->save();
+        $this->weighKg = '';
+    }
+
     public function render(\App\Game\PlayerStats $stats, \App\Game\QuestEvaluator $evaluator, \App\Game\QuestScheduler $scheduler, \App\Crew\Leaderboard $board, \App\Crew\ChallengeBoard $challengeBoard)
     {
         $user = auth()->user();
@@ -18,9 +37,12 @@ class Home extends Component
             ->where('workouts.user_id', $user->id), $today)
             ->get(['workout_sets.*']);
         $questProgress = fn ($quest) => $quest ? $evaluator->progress($quest->objectives, $todaySets) : [];
+        $lastWeighIn = $user->bodyWeights()->max('date');
 
         return view('livewire.home', [
             'user' => $user,
+            'needsWeighIn' => $user->weight_kg !== null && ($lastWeighIn === null
+                || \Illuminate\Support\Carbon::parse($lastWeighIn)->lte($today->copy()->subDays(self::WEIGH_EVERY_DAYS))),
             'player' => \App\Game\Leveling::progress((int) $user->xp_total),
             'stats' => $stats->for($user),
             'quest' => $todayQuests['training'] ?? $todayQuests['calibration'] ?? $todayQuests['rest'] ?? null,
