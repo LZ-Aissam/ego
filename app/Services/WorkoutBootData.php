@@ -15,10 +15,18 @@ final class WorkoutBootData
     public function for(User $user): array
     {
         $loads = $user->workingLoads()->pluck('target_kg', 'exercise_id');
+        $notes = $this->lastNotes($user);
+        $pains = $this->recentPains($user);
 
         return [
             'restSeconds' => self::REST_SECONDS,
+            'painZones' => \App\Models\ExerciseNote::PAIN_ZONES,
             'exercises' => Exercise::orderBy('name')->get()->map(fn (Exercise $e) => [
+                'isBarbell' => in_array($e->slug, Exercise::BARBELL, true),
+                'lastNote' => $notes[$e->id] ?? null,
+                'pain' => $pains[$e->id] ?? null,
+                'slots' => $e->slots ?? [],
+                'equipment' => $e->equipment ?? [],
                 'id' => $e->id,
                 'slug' => $e->slug,
                 'name' => $e->name,
@@ -39,9 +47,19 @@ final class WorkoutBootData
         $library = collect($boot['exercises'])->keyBy('id');
 
         $boot['questTitle'] = $quest->title;
+        $prescriber = app(\App\Game\LoadPrescriber::class);
+        $catalog = Exercise::all()->keyBy('id');
+        $equipment = $user->equipment ?? 'gym';
         $boot['plan'] = array_map(fn (array $o) => [
             'id' => $o['exercise_id'],
             'name' => $o['name'],
+            'isBarbell' => $library[$o['exercise_id']]['isBarbell'] ?? false,
+            'lastNote' => $library[$o['exercise_id']]['lastNote'] ?? null,
+            'pain' => $library[$o['exercise_id']]['pain'] ?? null,
+            // Maximum estimé à battre sur la série 5+, 3+, 1+ ou la série record.
+            'recordE1rm' => isset($catalog[$o['exercise_id']]) ? $prescriber->recordToBeat($user, $catalog[$o['exercise_id']], $o['intent'] ?? null) : null,
+            // Remplaçants du même emplacement, pour une douleur ou une machine prise.
+            'alternatives' => $this->alternatives($o['slot'] ?? null, $equipment, $o['exercise_id'], $catalog),
             'isBodyweight' => $library[$o['exercise_id']]['isBodyweight'] ?? false,
             'suggestedKg' => $library[$o['exercise_id']]['suggestedKg'] ?? null,
             'intent' => $o['intent'] ?? null,
@@ -60,7 +78,8 @@ final class WorkoutBootData
 
         // Exercices passés à la dernière séance et plus réentraînés : remontés en fin de séance, à reprendre.
         $planned = array_column($boot['plan'], 'id');
-        foreach (array_diff($this->resumeDebt($user), $planned) as $id) {
+        // Un exercice laissé pour une douleur récente n'est pas réclamé.
+        foreach (array_diff($this->resumeDebt($user), $planned, array_keys($this->recentPains($user))) as $id) {
             $lib = $library[$id] ?? null;
             if ($lib === null) {
                 continue;
@@ -68,6 +87,11 @@ final class WorkoutBootData
             $boot['plan'][] = [
                 'id' => $id,
                 'name' => $lib['name'],
+                'isBarbell' => $lib['isBarbell'],
+                'lastNote' => $lib['lastNote'],
+                'pain' => $lib['pain'],
+                'recordE1rm' => null,
+                'alternatives' => [],
                 'isBodyweight' => $lib['isBodyweight'],
                 'suggestedKg' => $lib['suggestedKg'],
                 'intent' => null,
@@ -84,6 +108,36 @@ final class WorkoutBootData
         }
 
         return $boot;
+    }
+
+    /** @return list<int> trois exercices au plus du même emplacement, faisables avec le matériel du joueur */
+    private function alternatives(?string $slot, string $equipment, int $exceptId, \Illuminate\Support\Collection $catalog): array
+    {
+        if ($slot === null) {
+            return [];
+        }
+        $owned = $equipment === 'gym' ? ['gym', 'bodyweight'] : [$equipment];
+
+        return $catalog->filter(fn (Exercise $e) => $e->id !== $exceptId && in_array($slot, $e->slots ?? [], true)
+            && array_intersect($owned, $e->equipment ?? []) !== [])
+            ->sortBy('id')->take(3)->keys()->values()->all();
+    }
+
+    /** Dernière note écrite par exercice. @return array<int, array{text: string, date: string}> */
+    private function lastNotes(User $user): array
+    {
+        return $user->exerciseNotes()->whereNotNull('text')->orderBy('id')->get(['exercise_id', 'text', 'created_at'])
+            ->keyBy('exercise_id')
+            ->map(fn ($n) => ['text' => $n->text, 'date' => $n->created_at->translatedFormat('j M')])->all();
+    }
+
+    /** Douleur signalée ces 14 derniers jours, par exercice. @return array<int, array{zone: string, date: string}> */
+    private function recentPains(User $user): array
+    {
+        return $user->exerciseNotes()->whereNotNull('pain_zone')->where('created_at', '>=', now()->subDays(\App\Models\ExerciseNote::PAIN_DAYS))
+            ->orderBy('id')->get(['exercise_id', 'pain_zone', 'created_at'])
+            ->keyBy('exercise_id')
+            ->map(fn ($n) => ['zone' => \App\Models\ExerciseNote::PAIN_ZONES[$n->pain_zone] ?? $n->pain_zone, 'date' => $n->created_at->translatedFormat('j M')])->all();
     }
 
     /**

@@ -21,6 +21,9 @@ class SyncQuests
                 $this->notifier->push($user, $notification);
             }
             $this->challenges->tick($user);
+            if ($report = app(\App\Game\WeeklyReport::class)->due($user, GameDay::today())) {
+                $this->notifier->push($user, $report);
+            }
         }
 
         return $next($request);

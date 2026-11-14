@@ -29,7 +29,7 @@ it('recalcule les charges quand on régénère vers un autre objectif', function
 
 it('ne met jamais force max, vitesse ou explosif sur un exercice d\'isolation aux haltères', function () {
     foreach (['beginner', 'advanced'] as $level) {
-        foreach ([2, 3, 4, 5, 6] as $days) {
+        foreach ([2, 3, 4, 5, 6, 7] as $days) {
             foreach (($this->power)(['equipment' => 'dumbbells', 'level' => $level, 'days' => $days])['days'] as $day) {
                 foreach ($day['exercises'] as $line) {
                     if (in_array($line['intent'], ['max', 'speed', 'explosive'], true)) {
@@ -42,7 +42,7 @@ it('ne met jamais force max, vitesse ou explosif sur un exercice d\'isolation au
 });
 
 it('garde au moins 4 exercices par séance, quel que soit le matériel', function (string $equipment) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->power)(['equipment' => $equipment, 'days' => $days])['days'] as $day) {
             expect(count($day['exercises']), "$equipment $days j {$day['name']}")->toBeGreaterThanOrEqual(4);
         }

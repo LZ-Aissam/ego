@@ -775,4 +775,37 @@ return [
         ],
         'mistake' => 'Casser les poignets vers le bas pendant la montée.',
     ],
+    'incline-dumbbell-curl' => [
+        'muscles' => 'Biceps (longue portion)',
+        'tempo' => 'Montée 1 s · Descente 3 s',
+        'steps' => [
+            'Banc incliné à 45°, dos et tête collés au dossier, bras qui pendent tendus derrière le buste.',
+            'Paumes vers l\'avant, coudes fixes : ils restent en arrière pendant tout le mouvement.',
+            'Monte les haltères sans avancer les coudes, jusqu\'à la contraction.',
+            'Redescends lentement jusqu\'à l\'étirement complet du biceps.',
+        ],
+        'mistake' => 'Ramener les coudes vers l\'avant : la longue portion n\'est plus étirée.',
+    ],
+    'concentration-curl' => [
+        'muscles' => 'Biceps (courte portion)',
+        'tempo' => 'Montée 1 s · Pause 1 s · Descente 2 s',
+        'steps' => [
+            'Assis, jambes écartées, l\'arrière du bras posé contre l\'intérieur de la cuisse.',
+            'Haltère en main, bras tendu, paume vers le haut.',
+            'Monte l\'haltère vers l\'épaule en tournant le petit doigt vers le haut, serre une seconde.',
+            'Redescends lentement sans décoller le bras de la cuisse.',
+        ],
+        'mistake' => 'Se relever ou balancer le buste pour monter la charge.',
+    ],
+    'overhead-cable-extension' => [
+        'muscles' => 'Triceps (longue portion)',
+        'tempo' => 'Descente 2 s · Extension 1 s',
+        'steps' => [
+            'Dos à la poulie, corde au-dessus de la tête, un pied devant pour la stabilité.',
+            'Coudes pointés vers l\'avant, près de la tête, buste légèrement penché.',
+            'Laisse la corde descendre derrière la tête jusqu\'à l\'étirement du triceps.',
+            'Tends les bras vers l\'avant et le haut, seuls les avant-bras bougent.',
+        ],
+        'mistake' => 'Écarter les coudes : les épaules prennent le relais du triceps.',
+    ],
 ];

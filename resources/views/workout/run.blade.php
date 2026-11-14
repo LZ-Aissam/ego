@@ -62,6 +62,20 @@
                     </template>
                 </nav>
 
+                {{-- Forme du jour : une fois, avant la première série d'une séance de quête --}}
+                <div class="sys-window space-y-3" x-show="askReadiness && !picking">
+                    <header class="sys-window-title"><span class="sys-window-icon" aria-hidden="true">!</span>FORME DU JOUR</header>
+                    <p class="text-sm text-mist">Fatigué : les charges lourdes baissent de 5 % et la séance ne compte pas comme un échec. Au top : vise le record.</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="readiness('low')">Fatigué</button>
+                        <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="readiness('normal')">Normal</button>
+                        <button type="button" class="sys-btn !px-2 !py-3" @click="readiness('high')">Au top</button>
+                    </div>
+                </div>
+                <p class="sys-num text-center text-xs uppercase tracking-wider" x-show="state.readiness && !summary"
+                   :class="state.readiness === 'low' ? 'text-amber' : 'text-ice'"
+                   x-text="{ low: 'Jour fatigué · charges lourdes −5 %', normal: 'Forme normale', high: 'Au top · jour de record' }[state.readiness] ?? ''"></p>
+
                 <template x-if="current && !picking">
                     <div class="sys-window space-y-4">
                         <div>
@@ -78,6 +92,21 @@
                             <p class="sys-num mt-1 text-xs uppercase tracking-wider text-ice" x-show="current.prescribedKg"
                                x-text="!current.prescribedKg ? '' : current.isBodyweight ? 'Lest prescrit par TON EGO · +' + formatKg(current.prescribedKg) : 'Charge prescrite par TON EGO · ' + formatKg(current.prescribedKg) + (current.perDumbbell ? ' par haltère' : '')"></p>
                             <p class="mt-1 text-sm text-mist" x-show="current.isBodyweight">Poids du corps — indique la charge ajoutée (0 si aucune).</p>
+                            <p class="sys-num mt-1 text-xs font-bold uppercase tracking-wider text-amber" x-show="recordText(current)" x-text="'🏆 ' + recordText(current)"></p>
+                            <p class="mt-2 border-l-2 border-alert bg-alert/10 px-3 py-1.5 text-sm" x-show="current.pain"
+                               x-text="current.pain ? 'Douleur ' + current.pain.zone.toLowerCase() + ' signalée le ' + current.pain.date + ' : échauffe-toi bien, réduis l’amplitude, ou remplace l’exercice.' : ''"></p>
+                            <p class="mt-1 text-sm text-mist" x-show="current.lastNote" x-text="current.lastNote ? 'Ta note du ' + current.lastNote.date + ' · ' + current.lastNote.text : ''"></p>
+                        </div>
+
+                        {{-- Montée d'échauffement vers la série lourde : cochée ici, jamais comptée comme une série --}}
+                        <div x-show="warmup(current).length">
+                            <p class="sys-label mb-1">Montée d'échauffement</p>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="(step, i) in warmup(current)" :key="i">
+                                    <button type="button" class="sys-chip sys-num" :class="{ 'sys-chip--active': (current.warmupDone ?? []).includes(i) }" @click="toggleWarmup(current, i)"
+                                            :title="plates(current, step.kg) ?? ''" x-text="(current.isBodyweight ? '+' : '') + formatKg(step.kg) + ' × ' + step.reps"></button>
+                                </template>
+                            </div>
                         </div>
 
                         <ol class="space-y-1.5" x-show="current.sets.length">
@@ -89,7 +118,8 @@
                             </template>
                         </ol>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        {{-- Charge plus large que les répétitions : « 102,5 » doit tenir sur un téléphone --}}
+                        <div class="grid grid-cols-[3fr_2fr] gap-3">
                             <div>
                                 <label class="sys-label mb-1 block text-center" for="draft-weight" x-text="current.perDumbbell ? 'Kg par haltère' : 'Charge kg'">Charge kg</label>
                                 <div class="flex items-center gap-1">
@@ -107,6 +137,7 @@
                                 </div>
                             </div>
                         </div>
+                        <p class="sys-num -mt-2 text-center text-xs text-steel" x-show="plates(current)" x-text="plates(current)"></p>
 
                         <div class="sys-window !p-3 text-center text-sm" x-show="allDone">
                             <span class="font-bold text-ice">Toutes les séries sont faites.</span>
@@ -116,6 +147,30 @@
                                 x-text="resting ? 'Repos en cours · ' + clock(restRemaining) : 'VALIDER LA SÉRIE'">VALIDER LA SÉRIE</button>
                         <button type="button" class="sys-label w-full text-center" x-show="current.sets.length" @click="undoSet()">Annuler la dernière série</button>
                         <button type="button" class="sys-label w-full text-center !text-steel" x-show="current.target && !current.sets.length && !resting" @click="skip()">Passer cet exercice · à reprendre</button>
+
+                        {{-- Carnet : note libre, douleur, remplaçant du même emplacement --}}
+                        <button type="button" class="sys-label w-full text-center" @click="journalOpen = !journalOpen" :aria-expanded="journalOpen"
+                                x-text="(current.note || current.painZone) ? 'Note / douleur · enregistrée' : 'Note / douleur'"></button>
+                        <div class="space-y-3 border-t border-ice/10 pt-3" x-show="journalOpen" x-transition>
+                            <textarea class="sys-input min-h-16 w-full text-sm" maxlength="280" placeholder="Ex. prise trop large, coude sensible…"
+                                      :value="current.note" @input="note($event.target.value)"></textarea>
+                            <div>
+                                <p class="sys-label mb-1">Douleur ?</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="[zone, label] in Object.entries(boot.painZones ?? {})" :key="zone">
+                                        <button type="button" class="sys-chip" :class="{ 'sys-chip--active !border-alert !text-alert': current.painZone === zone }" @click="pain(zone)" x-text="label"></button>
+                                    </template>
+                                </div>
+                            </div>
+                            <div x-show="!current.sets.length && alternativesOfCurrent.length">
+                                <p class="sys-label mb-1">Remplacer par</p>
+                                <div class="flex flex-col gap-2">
+                                    <template x-for="alt in alternativesOfCurrent" :key="alt.id">
+                                        <button type="button" class="sys-btn sys-btn--ghost !py-2 text-sm" @click="replace(alt)" x-text="alt.name"></button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </template>
 
@@ -167,6 +222,11 @@
                     <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="rate('hard')">Dur</button>
                     <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3 !text-alert" @click="rate('limit')">Limite</button>
                 </div>
+            </div>
+            <p class="max-w-xs text-sm text-amber" x-show="restHint" x-text="restHint"></p>
+            <div class="w-full max-w-xs" x-show="current && warmup(current).length">
+                <p class="sys-label mb-1">Prochaine montée</p>
+                <p class="sys-num text-sm text-mist" x-text="current ? warmup(current).map((s) => formatKg(s.kg) + ' × ' + s.reps).join(' · ') : ''"></p>
             </div>
             <div class="grid w-full max-w-xs grid-cols-3 gap-2">
                 <button type="button" class="sys-btn sys-btn--ghost !px-2 !py-3" @click="lessRest()">−15 s</button>

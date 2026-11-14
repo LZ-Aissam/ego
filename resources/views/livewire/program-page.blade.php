@@ -52,7 +52,7 @@
                 @endif
                 @error('goal') <p class="sys-error">{{ $message }}</p> @enderror
             @elseif ($step === 4)
-                <p class="mb-3 text-sm text-mist">Coche les jours où tu t'entraînes (2 à 6). Les autres seront des jours de repos.</p>
+                <p class="mb-3 text-sm text-mist">Coche les jours où tu t'entraînes (2 à 7). Les autres seront des jours de repos ; à 7 jours, un jour de récupération active remplace le repos.</p>
                 <div class="grid grid-cols-7 gap-1">
                     @foreach ($days as $value => $label)
                         <label @class(['sys-chip cursor-pointer px-0 py-3 text-center text-xs', 'sys-chip--active' => in_array((int) $value, array_map('intval', $weekdays), true)])>

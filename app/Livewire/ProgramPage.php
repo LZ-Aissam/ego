@@ -136,7 +136,7 @@ class ProgramPage extends Component
             1 => ['sex' => ['required', 'in:male,female'], 'heightCm' => ['required', 'integer', 'between:100,250'], 'weightKg' => ['required', 'numeric', 'between:30,300']],
             2 => ['level' => ['required', 'in:beginner,intermediate,advanced']],
             3 => ['goal' => ['required', 'in:'.implode(',', array_keys(ProgramBuilder::GOALS))]],
-            4 => ['weekdays' => ['required', 'array', 'min:2', 'max:6'], 'weekdays.*' => ['integer', 'between:1,7', 'distinct']],
+            4 => ['weekdays' => ['required', 'array', 'min:2', 'max:7'], 'weekdays.*' => ['integer', 'between:1,7', 'distinct']],
             5 => ['equipment' => ['required', 'in:gym,dumbbells,bodyweight']],
         };
 
@@ -152,7 +152,6 @@ class ProgramPage extends Component
                 'goal.in' => 'Choisis ton objectif.',
                 'weekdays.required' => 'Coche tes jours d\'entraînement.',
                 'weekdays.min' => 'Coche au moins 2 jours.',
-                'weekdays.max' => 'Coche au plus 6 jours : garde au moins un jour de repos.',
                 'weekdays.*.*' => 'Jour invalide.',
                 'equipment.required' => 'Choisis ton matériel.',
                 'equipment.in' => 'Choisis ton matériel.',

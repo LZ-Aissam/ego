@@ -25,6 +25,11 @@ class SyncWorkoutRequest extends FormRequest
             'sets.*.reps' => ['required', 'integer', 'min:1', 'max:1000'],
             'sets.*.done_at' => ['required', 'date'],
             'sets.*.effort' => ['nullable', 'in:'.implode(',', \App\Game\Effort::KEYS)],
+            'readiness' => ['nullable', 'in:'.implode(',', \App\Models\Workout::READINESS)],
+            'notes' => ['nullable', 'array', 'max:50'],
+            'notes.*.exercise_id' => ['required', 'integer', 'exists:exercises,id'],
+            'notes.*.text' => ['nullable', 'string', 'max:280'],
+            'notes.*.pain_zone' => ['nullable', 'in:'.implode(',', array_keys(\App\Models\ExerciseNote::PAIN_ZONES))],
         ];
     }
 }

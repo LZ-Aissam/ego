@@ -39,6 +39,8 @@ final class GameEvents
         if ($progressLoads) {
             array_push($notifications, ...$this->loads->progress($user, $workout));
         }
+        // Force relative : un rang E → S franchi sur un grand mouvement rapporte de l'XP, une seule fois.
+        array_push($notifications, ...app(StrengthRanks::class)->unlock($user));
         $xp = (int) $user->xp_total - $startXp;
         $after = Leveling::progress((int) $user->xp_total);
 

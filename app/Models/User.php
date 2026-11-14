@@ -42,7 +42,18 @@ class User extends Authenticatable
             'calibration_snoozed_until' => 'date',
             'power_factor' => 'float',
             'home_games' => 'array',
+            'weekly_report_on' => 'date',
         ];
+    }
+
+    public function exerciseNotes(): HasMany
+    {
+        return $this->hasMany(ExerciseNote::class);
+    }
+
+    public function bodyWeights(): HasMany
+    {
+        return $this->hasMany(BodyWeight::class);
     }
 
     public function homeAttempts(): HasMany

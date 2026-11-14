@@ -148,6 +148,11 @@
         @endforeach
     </x-sys.window>
 
+    <x-sys.window title="MES DONNÉES" :index="2">
+        <p class="text-sm text-mist">Toutes tes séries (date, exercice, charge, répétitions, ressenti) dans un fichier tableur, à garder où tu veux.</p>
+        <a href="{{ route('profile.export') }}" class="sys-btn sys-btn--ghost mt-3" download>Télécharger mes séries (.csv)</a>
+    </x-sys.window>
+
     <x-sys.window title="ZONE DANGEREUSE" variant="alert" :index="3">
         @if ($confirmingReset)
             <p class="text-sm">Tout sera effacé : séances, records, profil de force, XP, niveau, titres, série, quêtes, charges et programme. Ton compte, ta morphologie et tes groupes sont gardés. <span class="font-bold text-alert">C'est définitif.</span></p>

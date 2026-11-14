@@ -18,6 +18,45 @@ final class ProgramRefresher
 {
     public function __construct(private ProgramGenerator $generator, private LoadPrescriber $prescriber, private QuestScheduler $scheduler) {}
 
+    /**
+     * Même programme sur plus de jours par semaine (5 → 7) : les journées existantes gardent leur identifiant,
+     * les nouvelles s'ajoutent à la fin, puis le contenu est mis à jour. Les séances vierges d'aujourd'hui
+     * et à venir (repos compris) sont recréées d'après les nouveaux jours.
+     *
+     * @param  list<int>  $weekdays
+     */
+    public function extend(Program $program, array $weekdays): bool
+    {
+        $program->loadMissing('days', 'user');
+        $weekdays = collect($weekdays)->map(fn ($d) => (int) $d)->unique()->sort()->values()->all();
+        if (count($weekdays) < $program->days->count()) {
+            return false;
+        }
+
+        DB::transaction(function () use ($program, $weekdays) {
+            for ($position = $program->days->count() + 1; $position <= count($weekdays); $position++) {
+                $program->days()->create(['position' => $position, 'name' => 'Jour '.$position, 'type' => 'custom']);
+            }
+            $program->update([
+                'params' => [...$program->params, 'weekdays' => $weekdays],
+                'name' => preg_replace('/· \d+ j$/u', '· '.count($weekdays).' j', $program->name),
+            ]);
+            if ($program->user->active_program_id === $program->id) {
+                $program->user->forceFill(['training_weekdays' => $weekdays, 'days_per_week' => count($weekdays)])->save();
+            }
+        });
+
+        $program->unsetRelation('days');
+        if (! $this->refresh($program->fresh())) {
+            return false;
+        }
+        if ($program->user->active_program_id === $program->id) {
+            $this->scheduler->programChanged($program->user->fresh(), \App\Game\GameDay::today());
+        }
+
+        return true;
+    }
+
     public function refresh(Program $program): bool
     {
         $program->loadMissing('days', 'user');

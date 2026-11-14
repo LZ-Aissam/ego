@@ -1,7 +1,8 @@
 import {
     addExercise, addRest, adjustDraft, allTargetsDone, closeStale, createStore, effortPending, finishWorkout, goTo, hasSets,
-    isResting, logSet, newWorkout, rateLastSet, removeLastSet, restProgress, skipExercise, skipRest, uuid,
+    isResting, logSet, newWorkout, rateLastSet, removeLastSet, replaceExercise, restProgress, setNote, setPain, setReadiness, skipExercise, skipRest, toNumber, uuid,
 } from './store';
+import { RAMP_INTENTS, platesText, repsToBeat, warmupRamp } from './plates';
 import { collectNotifications, flushPending, sendWorkout } from './sync';
 import { alertPlan, countdownCue, loadSettings, restEndDelay, saveSettings, subtractRest, wavDataUri } from './signals';
 import { matchExercises } from './search';
@@ -210,7 +211,79 @@ export default function workout() {
             return effortPending(this.state);
         },
 
-        rate(effort) { rateLastSet(this.state, effort); },
+        /**
+         * Ressenti de la série lourde. Limite : 60 s de repos en plus pour récupérer. Facile en force max, des séries
+         * restent : 2,5 kg de plus pour la suivante.
+         */
+        rate(effort) {
+            const at = this.state.lastLogged;
+            rateLastSet(this.state, effort);
+            const ex = at ? this.state.exercises[at.exercise] : null;
+            if (!ex) return;
+            if (effort === 'limit' && this.state.restEndsAt) {
+                addRest(this.state, 60, Date.now());
+                this.restHint = 'Série à la limite : +60 s pour récupérer.';
+            }
+            if (effort === 'easy' && ex.intent === 'max' && ex.target && ex.sets.length < ex.target.sets) {
+                ex.draft.weightKg = Math.round((toNumber(ex.draft.weightKg) + 2.5) * 100) / 100;
+                this.restHint = 'Facile : +2,5 kg sur la prochaine série.';
+            }
+        },
+
+        restHint: '',
+        journalOpen: false,
+
+        /** Forme du jour : demandée une fois, avant la première série d'une séance de quête. */
+        get askReadiness() {
+            return !!this.boot.plan?.length && !this.state.readiness && !hasSets(this.state);
+        },
+
+        readiness(level) { setReadiness(this.state, level); },
+
+        /** Montée d'échauffement : avant la 1re série lourde d'un mouvement (pas avant ses séries de suite). */
+        warmup(ex) {
+            if (!ex || ex.sets.length || !RAMP_INTENTS.includes(ex.intent)) return [];
+            const first = this.state.exercises.findIndex((e) => e.exerciseId === ex.exerciseId && !e.replaced);
+            if (this.state.exercises[first] !== ex) return [];
+            return warmupRamp(toNumber(ex.draft.weightKg), { isBodyweight: ex.isBodyweight });
+        },
+
+        toggleWarmup(ex, i) {
+            ex.warmupDone = ex.warmupDone ?? [];
+            ex.warmupDone = ex.warmupDone.includes(i) ? ex.warmupDone.filter((j) => j !== i) : [...ex.warmupDone, i];
+        },
+
+        plates(ex, kg) {
+            if (!ex) return null;
+            const load = toNumber(kg ?? ex.draft.weightKg);
+            if (ex.isBodyweight) return platesText(load, { isBodyweight: true });
+            return ex.isBarbell ? platesText(load) : null;
+        },
+
+        /** « Record : 8 reps à 90 kg » sur la série 5+, 3+, 1+ ou la série record. */
+        recordText(ex) {
+            if (!ex?.recordE1rm || !['wave', 'top'].includes(ex.intent)) return null;
+            const load = toNumber(ex.draft.weightKg);
+            const reps = repsToBeat(ex.recordE1rm, load);
+            return reps === null ? 'Nouveau record dès 1 répétition à ' + formatKg(load) : 'Record à battre : ' + reps + ' reps à ' + formatKg(load);
+        },
+
+        note(text) { setNote(this.state, text); },
+        pain(zone) { setPain(this.state, zone); },
+
+        get alternativesOfCurrent() {
+            const ids = this.current?.alternatives ?? [];
+            return ids.map((id) => this.boot.exercises.find((e) => e.id === id)).filter(Boolean);
+        },
+
+        replace(exercise) {
+            replaceExercise(this.state, exercise, {
+                lastTime: this.boot.lastTime[exercise.id] ?? null,
+                suggestedKg: exercise.suggestedKg,
+                prescribedKg: exercise.prescribedKg ?? null,
+            });
+            this.journalOpen = false;
+        },
 
         get allDone() {
             return allTargetsDone(this.state);
@@ -307,6 +380,8 @@ export default function workout() {
             this.now = Date.now();
             if (this.resting) return;
             logSet(this.state, this.now);
+            this.restHint = '';
+            this.journalOpen = false;
             this.restExpanded = true;
         },
 

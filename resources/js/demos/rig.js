@@ -472,10 +472,11 @@ const FAMILIES = {
     curl: {
         segments: [['Montée', 1000], ['Contraction', 400], ['Descente contrôlée', 2000], ['Bras tendus', 400]],
         pose(t, v) {
-            const b = standing(2, 0, 2);
-            const elbow = add(b.shoulder, L.upper, -88);
-            const hand = add(elbow, L.fore, lerp(-86, 106, t));
-            const prop = { bar: plate(hand, 8), db: dumbbell(hand), cable: handle(hand) }[v];
+            // Curl incliné : coude resté en arrière du buste (longue portion étirée) ; concentré : bras en avant, contre la cuisse.
+            const b = standing(2, 0, v === 'concentration' ? 30 : 2);
+            const elbow = add(b.shoulder, L.upper, { incline: -112, concentration: -60 }[v] ?? -88);
+            const hand = add(elbow, L.fore, lerp(v === 'incline' ? -110 : -86, v === 'concentration' ? 130 : 106, t));
+            const prop = { bar: plate(hand, 8), db: dumbbell(hand), cable: handle(hand), incline: dumbbell(hand), concentration: dumbbell(hand) }[v];
             return scene(
                 { foot: b.foot, leg: [b.ankle, b.knee, b.hip], torso: [b.hip, b.shoulder], arm: [b.shoulder, elbow, hand] },
                 headOf(b.hip, b.shoulder), [prop], v === 'cable' ? [line([40, -4], hand), line([36, 0], [44, 0])] : [],
@@ -513,13 +514,14 @@ const FAMILIES = {
 
     overheadExt: {
         segments: [['Descente derrière la tête', 2000], ['Étirement', 300], ['Extension', 1000], ['Bras tendus', 400]],
-        pose(t) {
-            const b = standing(2, 0, 3);
-            const elbow = add(b.shoulder, L.upper, 95);
+        pose(t, v) {
+            // À la poulie : dos à la machine, buste penché en avant, câble qui part de derrière.
+            const b = standing(2, 0, v === 'cable' ? 20 : 3);
+            const elbow = add(b.shoulder, L.upper, v === 'cable' ? 75 : 95);
             const hand = add(elbow, L.fore, lerp(92, 238, t));
             return scene(
                 { foot: b.foot, leg: [b.ankle, b.knee, b.hip], torso: [b.hip, b.shoulder], arm: [b.shoulder, elbow, hand] },
-                headOf(b.hip, b.shoulder), [dumbbell(hand)],
+                headOf(b.hip, b.shoulder), [v === 'cable' ? handle(hand) : dumbbell(hand)], v === 'cable' ? [line([-40, -150], hand)] : [],
             );
         },
     },
@@ -743,6 +745,9 @@ export const DEMOS = {
     'hammer-curl': ['curl', 'db'],
     'cable-curl': ['curl', 'cable'],
     'reverse-curl': ['curl', 'bar'],
+    'incline-dumbbell-curl': ['curl', 'incline'],
+    'concentration-curl': ['curl', 'concentration'],
+    'overhead-cable-extension': ['overheadExt', 'cable'],
     'wrist-curl': ['wrist', 'flex'],
     'wrist-extension': ['wrist', 'ext'],
     'triceps-pushdown': ['pushdown'],
@@ -772,6 +777,7 @@ const GRIPS = {
     'pull-up': 'pronation', 'chin-up': 'supination', 'lat-pulldown': 'pronation', 'barbell-row': 'pronation',
     'push-up': 'wide', 'diamond-push-up': 'diamond',
     'barbell-curl': 'curl', 'dumbbell-curl': 'curl', 'cable-curl': 'curl', 'hammer-curl': 'neutral',
+    'incline-dumbbell-curl': 'curl', 'concentration-curl': 'curl',
     'reverse-curl': 'reverse', 'wrist-curl': 'curl', 'wrist-extension': 'reverse',
     'dumbbell-shoulder-press': 'pronation', 'arnold-press': 'arnold',
 };

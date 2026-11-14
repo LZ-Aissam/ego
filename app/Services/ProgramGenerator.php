@@ -13,6 +13,8 @@ final class ProgramGenerator
         4 => ['upper_lower', [['Haut A', 'upper'], ['Bas A', 'lower'], ['Haut B', 'upper'], ['Bas B', 'lower']]],
         5 => ['ppl_ul', [['Push', 'push'], ['Pull', 'pull'], ['Legs', 'legs'], ['Haut', 'upper'], ['Bas', 'lower']]],
         6 => ['ppl', [['Push A', 'push'], ['Pull A', 'pull'], ['Legs A', 'legs'], ['Push B', 'push'], ['Pull B', 'pull'], ['Legs B', 'legs']]],
+        // 7 jours : PPL deux fois, et une séance de bras et de dos, la plus légère pour le système nerveux.
+        7 => ['ppl_arms', [['Push A', 'push'], ['Pull A', 'pull'], ['Legs A', 'legs'], ['Push B', 'push'], ['Pull B', 'pull'], ['Legs B', 'legs'], ['Bras & dos', 'arms']]],
     ];
 
     /** Emplacements ordonnés par type de jour : poly-articulaires d'abord. */
@@ -23,6 +25,7 @@ final class ProgramGenerator
         'push' => ['horizontal_push', 'vertical_push', 'chest_iso', 'triceps', 'shoulder_iso', 'calves', 'core'],
         'pull' => ['vertical_pull', 'horizontal_pull', 'hinge', 'biceps', 'shoulder_iso', 'core', 'calves'],
         'legs' => ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'core'],
+        'arms' => ['vertical_pull', 'horizontal_pull', 'biceps', 'triceps', 'shoulder_iso', 'chest_iso', 'core'],
     ];
 
     /**

@@ -95,6 +95,15 @@ final class SystemMessage
         return self::make('top_down', 'RECORD AJUSTÉ', ['🏆 '.$exercise.' → '.Format::kg($kg), 'TON EGO suit ta forme du jour. Reprends de l\'élan.'], 'alert');
     }
 
+    /** @param  array{rank: string, kg: float}|null  $next */
+    public static function strengthRank(string $lift, string $rank, ?float $ratio, ?array $next): array
+    {
+        return self::make('strength_rank', 'RANG DE FORCE '.$rank, array_values(array_filter([
+            $lift.' · '.number_format((float) $ratio, 2, ',', ' ').' × ton poids',
+            $next ? 'Prochain rang '.$next['rank'].' : '.Format::kg($next['kg']).' estimés.' : 'Rang maximal. TON EGO s\'incline.',
+        ])), highlight: 'RANG '.$rank);
+    }
+
     public static function deload(string $exercise, float $kg): array
     {
         return self::make('deload', 'DÉCHARGE', [$exercise.' → '.Format::kg($kg), 'TON EGO allège. Reconstruis.'], 'alert');

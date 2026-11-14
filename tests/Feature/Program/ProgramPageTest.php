@@ -45,13 +45,13 @@ it('génère et active le programme à la fin du questionnaire', function () {
     $this->get('/program')->assertSee('Full body A')->assertSee('Full body C');
 });
 
-it('refuse moins de 2 ou plus de 6 jours', function (array $days) {
+it('refuse moins de 2 jours', function (array $days) {
     Livewire::test(ProgramPage::class)
         ->call('next')->set('level', 'beginner')->call('next')->set('goal', 'fitness')->call('next')
         ->set('weekdays', $days)->call('next')
         ->assertHasErrors(['weekdays'])
         ->assertSet('step', 4);
-})->with([[[1]], [[1, 2, 3, 4, 5, 6, 7]]]);
+})->with([[[1]], [[]]]);
 
 it('remplace un exercice par une alternative du même emplacement uniquement', function () {
     $program = app(ProgramBuilder::class)->build($this->user, ['level' => 'beginner', 'goal' => 'hypertrophy', 'weekdays' => [1, 3], 'equipment' => 'gym']);
