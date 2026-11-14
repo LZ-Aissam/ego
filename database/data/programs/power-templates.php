@@ -68,10 +68,25 @@ return [
             ['hinge', 'max', 4, 3, 5, 180, ['hip-thrust', 'glute-bridge']],
             ['core', 'mass', 3, 8, 12, 60, ['cable-crunch', 'crunch']],
         ]],
+        // 7ᵉ jour : récupération active, rien de lourd (coiffe des rotateurs, arrière d'épaule, poignets).
+        'recovery' => ['Épaules & poignets · RÉCUP', [
+            ['shoulder_iso', null, 3, 15, 15, 60, ['face-pull', 'rear-delt-fly']],
+            ['shoulder_iso', null, 3, 15, 15, 60, ['rear-delt-fly', 'lateral-raise']],
+            ['forearms', null, 3, 12, 15, 60, ['wrist-curl']],
+            ['forearms', null, 3, 12, 15, 60, ['wrist-extension']],
+            ['forearms', null, 3, 10, 12, 60, ['reverse-curl', 'hammer-curl']],
+            ['core', 'mass', 3, 8, 12, 60, ['hanging-leg-raise', 'crunch']],
+        ]],
+        'recovery_bw' => ['Tirage léger & gainage · RÉCUP', [
+            ['horizontal_pull', null, 3, 8, 12, 90, ['inverted-row']],
+            ['horizontal_push', null, 3, 10, 15, 60, ['push-up']],
+            ['triceps', null, 3, 10, 15, 60, ['diamond-push-up', 'bench-dips']],
+            ['core', null, 3, 10, 15, 60, ['hanging-leg-raise', 'crunch']],
+        ]],
     ],
     // Séances sans assez d'exercices pour un matériel : au poids du corps, pas d'isolation d'épaules ni de 2ᵉ poussée verticale.
     'substitutes' => [
-        'bodyweight' => ['shoulders' => 'upper'],
+        'bodyweight' => ['shoulders' => 'upper', 'recovery' => 'recovery_bw'],
     ],
     // Séances dans l'ordre de la semaine ; les jambes explosives toujours en dernier.
     'weeks' => [
@@ -80,5 +95,6 @@ return [
         4 => ['push', 'pull', 'speed', 'legs_explosive'],
         5 => ['push', 'pull', 'shoulders', 'speed', 'legs_explosive'],
         6 => ['push', 'pull', 'legs_max', 'shoulders', 'speed', 'legs_explosive'],
+        7 => ['push', 'pull', 'legs_max', 'shoulders', 'speed', 'recovery', 'legs_explosive'],
     ],
 ];

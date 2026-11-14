@@ -13,7 +13,13 @@ class Exercise extends Model
         'quads_iso', 'hamstrings_iso', 'calves', 'core', 'forearms', 'jump',
     ];
 
-    protected $fillable = ['slug', 'name', 'primary_muscles', 'equipment', 'kind', 'slots', 'is_bodyweight', 'start_ratio'];
+    /** Exercices à la barre olympique de 20 kg : la séance dit quels disques mettre de chaque côté. */
+    public const BARBELL = [
+        'bench-press', 'incline-bench-press', 'close-grip-bench-press', 'overhead-press', 'push-press', 'barbell-row',
+        'back-squat', 'front-squat', 'deadlift', 'romanian-deadlift', 'hip-thrust',
+    ];
+
+    protected $fillable =['slug', 'name', 'primary_muscles', 'equipment', 'kind', 'slots', 'is_bodyweight', 'start_ratio'];
 
     protected function casts(): array
     {

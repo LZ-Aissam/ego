@@ -46,7 +46,20 @@ final class WorkoutSync
                 'finished_at' => $this->localTime($data['finished_at']),
                 'bodyweight_kg' => $user->weight_kg,
                 'skipped_exercise_ids' => $skipped === [] ? null : $skipped,
+                'readiness' => $data['readiness'] ?? null,
             ]);
+
+            // Carnet : notes et douleurs de la séance, relues à la suivante.
+            foreach ($data['notes'] ?? [] as $note) {
+                $text = trim((string) ($note['text'] ?? ''));
+                if ($text === '' && empty($note['pain_zone'])) {
+                    continue;
+                }
+                $user->exerciseNotes()->create([
+                    'workout_id' => $workout->id, 'exercise_id' => (int) $note['exercise_id'],
+                    'text' => $text === '' ? null : mb_substr($text, 0, 280), 'pain_zone' => $note['pain_zone'] ?? null,
+                ]);
+            }
 
             foreach (array_values($data['sets']) as $index => $set) {
                 $workout->sets()->create([

@@ -9,7 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workout extends Model
 {
-    protected $fillable = ['client_id', 'started_at', 'finished_at', 'bodyweight_kg', 'skipped_exercise_ids'];
+    protected $fillable = ['client_id', 'started_at', 'finished_at', 'bodyweight_kg', 'skipped_exercise_ids', 'readiness'];
+
+    /** Forme du jour annoncée avant la séance. */
+    public const READINESS = ['low', 'normal', 'high'];
 
     protected function casts(): array
     {

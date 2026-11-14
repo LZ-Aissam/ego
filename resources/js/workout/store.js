@@ -31,7 +31,14 @@ export function addExercise(state, exercise, { lastTime = null, suggestedKg = nu
         exerciseId: exercise.id,
         name: exercise.name,
         isBodyweight: exercise.isBodyweight,
+        isBarbell: exercise.isBarbell ?? false,
         perDumbbell: exercise.perDumbbell ?? false,
+        lastNote: exercise.lastNote ?? null,                                        // note de la dernière fois
+        pain: exercise.pain ?? null,                                                // douleur signalée ces 14 derniers jours
+        recordE1rm: exercise.recordE1rm ?? null,                                    // maximum estimé à battre (5+, 3+, 1+, record)
+        alternatives: exercise.alternatives ?? [],
+        note: '',
+        painZone: null,
         intent: exercise.intent ?? null,
         intentBadge: exercise.intentBadge ?? '',
         intentCue: exercise.intentCue ?? null,
@@ -178,12 +185,69 @@ export function hasSets(state) {
     return state.exercises.some((ex) => ex.sets.length > 0);
 }
 
+// Intentions lourdes allégées un jour « fatigué » : la base de la séance, pas les accessoires.
+export const HEAVY_INTENTS = ['wave', 'backoff', 'top', 'max', 'volume'];
+export const LOW_READINESS_FACTOR = 0.95;
+
+/**
+ * Forme du jour annoncée avant la première série. Fatigué : les charges lourdes encore à faire baissent de 5 %
+ * (le serveur ne compte pas ce jour comme un échec). Normal ou au top : charges prescrites.
+ */
+export function setReadiness(state, level) {
+    state.readiness = level;
+    for (const ex of state.exercises) {
+        if (ex.sets.length || !HEAVY_INTENTS.includes(ex.intent) || !ex.prescribedKg) continue;
+        const base = ex.prescribedKg;
+        ex.draft.weightKg = level === 'low'
+            ? Math.max(ex.isBodyweight ? 0 : 2.5, Math.floor((base * LOW_READINESS_FACTOR) / 2.5 + 1e-9) * 2.5)
+            : base;
+    }
+    return state;
+}
+
+/**
+ * Remplace l'exercice courant (pas encore commencé) par un autre du même emplacement : douleur, machine prise.
+ * L'ancien est passé, le remplaçant reprend ses séries visées et se place juste après.
+ */
+export function replaceExercise(state, exercise, { lastTime = null, suggestedKg = null, prescribedKg = null } = {}) {
+    const ex = current(state);
+    if (!ex || ex.sets.length) return state;
+    const index = state.currentIndex;
+    ex.skipped = true;
+    ex.replaced = true;
+    addExercise(state, { ...exercise, intent: null, intentBadge: '', intentCue: null }, {
+        lastTime, suggestedKg, prescribedKg, restSeconds: ex.restSeconds, target: ex.target,
+    });
+    const added = state.exercises.pop();
+    state.exercises.splice(index + 1, 0, added);
+    state.currentIndex = index + 1;
+    return state;
+}
+
+export function setNote(state, text) {
+    const ex = current(state);
+    if (ex) ex.note = String(text ?? '').slice(0, 280);
+    return state;
+}
+
+export function setPain(state, zone) {
+    const ex = current(state);
+    if (ex) ex.painZone = ex.painZone === zone ? null : zone;
+    return state;
+}
+
 export function toPayload(state, finishedAtIso) {
+    const notes = state.exercises
+        .filter((ex) => (ex.note ?? '').trim() || ex.painZone)
+        .map((ex) => ({ exercise_id: ex.exerciseId, text: (ex.note ?? '').trim() || null, pain_zone: ex.painZone ?? null }));
     return {
         client_id: state.clientId,
         started_at: state.startedAt,
         finished_at: finishedAtIso,
+        ...(state.readiness ? { readiness: state.readiness } : {}),
+        ...(notes.length ? { notes } : {}),
         // Exercices passés (aucune série) : à reprendre, remontés par le serveur à la prochaine séance.
+        // Un exercice remplacé (douleur, machine prise) compte comme passé : la quête n'est pas punie.
         skipped: state.exercises.filter((ex) => ex.skipped && ex.target && ex.sets.length === 0).map((ex) => ex.exerciseId),
         sets: state.exercises.flatMap((ex) => ex.sets.map((set) => ({
             exercise_id: ex.exerciseId,

@@ -123,14 +123,71 @@ return [
             ['forearms', null, 3, 12, 12, 60, ['wrist-extension']],
             ['shoulder_iso', null, 3, 10, 12, 60, ['lateral-raise', 'cable-lateral-raise']],
         ]],
+        // Semaine de 7 jours (sans jambes) : 3 jours très lourds (couché, militaire, dos), un jour de volume, deux jours de vitesse,
+        // une récupération active. Chaque mouvement de base n'est très lourd qu'une fois, jamais deux jours d'affilée.
+        // Bras complets : biceps longue (curl incliné) et courte portion (curl concentré), triceps long (au-dessus de la tête)
+        // et court (poulie, prise serrée), avant-bras (poignets, curl inversé), en 5 à 10 répétitions pour la force.
+        'w7_bench' => ['Couché · LOURD', [
+            ['horizontal_push', 'wave', 1, 5, 5, 300, $bench],
+            ['horizontal_push', 'backoff', 3, 5, 5, 180, ['@same']],
+            ['vertical_pull', 'max', 5, 3, 3, 180, ['pull-up', 'chin-up', 'inverted-row']],
+            ['biceps', null, 4, 5, 6, 120, ['barbell-curl', 'dumbbell-curl']],
+            ['shoulder_iso', null, 3, 12, 15, 60, ['face-pull', 'rear-delt-fly']],
+        ]],
+        'w7_press' => ['Militaire · LOURD', [
+            ['vertical_push', 'wave', 1, 5, 5, 300, $press],
+            ['vertical_push', 'backoff', 3, 5, 5, 180, ['@same']],
+            ['triceps', 'max', 4, 3, 5, 180, ['dips']],
+            ['triceps', null, 3, 8, 10, 90, ['overhead-cable-extension', 'overhead-dumbbell-extension', 'diamond-push-up']],
+            ['shoulder_iso', null, 3, 10, 12, 60, ['lateral-raise', 'cable-lateral-raise']],
+            ['forearms', null, 3, 10, 12, 60, ['wrist-curl']],
+        ]],
+        'w7_back' => ['Dos · LOURD', [
+            ['horizontal_pull', 'max', 5, 3, 5, 180, $row],
+            ['vertical_pull', 'max', 4, 3, 5, 180, ['chin-up', 'pull-up', 'inverted-row']],
+            ['biceps', null, 3, 6, 8, 90, ['incline-dumbbell-curl', 'dumbbell-curl']],
+            ['biceps', null, 3, 6, 8, 90, ['hammer-curl', 'dumbbell-curl']],
+            ['shoulder_iso', null, 3, 12, 15, 60, ['rear-delt-fly', 'face-pull']],
+            ['forearms', null, 3, 8, 10, 60, ['reverse-curl']],
+        ]],
+        'w7_volume' => ['Couché · VOLUME + triceps', [
+            ['horizontal_push', 'volume', 5, 5, 5, 150, $bench],
+            ['triceps', null, 4, 5, 6, 150, ['close-grip-bench-press', 'dips', 'diamond-push-up']],
+            ['triceps', null, 3, 8, 10, 90, ['triceps-pushdown', 'bench-dips']],
+            ['shoulder_iso', null, 3, 12, 15, 60, ['cable-lateral-raise', 'lateral-raise']],
+            ['forearms', null, 3, 12, 12, 60, ['wrist-extension']],
+        ]],
+        'w7_speed_bench' => ['Couché · VITESSE + bras', [
+            ['horizontal_push', 'speed', 8, 3, 3, 60, ['bench-press', 'dumbbell-bench-press', 'clap-push-up']],
+            ['horizontal_pull', null, 4, 6, 6, 120, ['chest-supported-row', 'dumbbell-row', 'inverted-row']],
+            ['biceps', null, 3, 8, 10, 60, ['concentration-curl', 'dumbbell-curl']],
+            ['triceps', null, 3, 8, 10, 90, ['overhead-dumbbell-extension', 'skull-crusher', 'diamond-push-up']],
+            ['shoulder_iso', null, 3, 10, 12, 60, ['lateral-raise', 'cable-lateral-raise']],
+        ]],
+        // Récupération active : rien de lourd, coiffe des rotateurs, arrière d'épaule et poignets, pour revenir frais au couché lourd.
+        'recovery' => ['Épaules & poignets · RÉCUP', [
+            ['shoulder_iso', null, 3, 15, 15, 60, ['face-pull', 'rear-delt-fly']],
+            ['shoulder_iso', null, 3, 15, 15, 60, ['rear-delt-fly', 'lateral-raise']],
+            ['forearms', null, 3, 12, 15, 60, ['wrist-curl']],
+            ['forearms', null, 3, 12, 15, 60, ['wrist-extension']],
+            ['forearms', null, 3, 10, 12, 60, ['reverse-curl', 'hammer-curl']],
+        ]],
+        // Au poids du corps, ni poulie ni haltère : tirage léger, triceps et gainage.
+        'recovery_bw' => ['Tirage léger & gainage · RÉCUP', [
+            ['horizontal_pull', null, 3, 8, 12, 90, ['inverted-row']],
+            ['horizontal_push', null, 3, 10, 15, 60, ['push-up']],
+            ['triceps', null, 3, 10, 15, 60, ['diamond-push-up', 'bench-dips']],
+            ['core', null, 3, 10, 15, 60, ['hanging-leg-raise', 'crunch']],
+        ]],
     ],
-    'substitutes' => [],
+    'substitutes' => ['bodyweight' => ['recovery' => 'recovery_bw']],
     'weeks' => [
         2 => ['full_bench_squat', 'full_deadlift_press'],
         3 => ['bench', 'squat', 'deadlift'],
         4 => ['bench', 'squat', 'upper_speed', 'deadlift'],
         5 => ['bench', 'squat', 'upper_speed', 'deadlift', 'shoulders_speed'],
         6 => ['bench', 'squat', 'upper_speed', 'deadlift', 'shoulders_speed', 'legs_speed'],
+        7 => ['bench', 'squat', 'upper_speed', 'deadlift', 'shoulders_speed', 'legs_speed', 'recovery'],
     ],
     'weeks_upper' => [
         2 => ['bench', 'press'],
@@ -138,5 +195,6 @@ return [
         4 => ['bench', 'press', 'upper_speed', 'bench_b'],
         5 => ['wave_bench', 'wave_press', 'wave_volume', 'wave_speed_press', 'wave_speed_bench'],
         6 => ['bench', 'press', 'upper_speed', 'bench_b', 'shoulders_speed', 'upper_speed'],
+        7 => ['w7_bench', 'w7_press', 'w7_back', 'w7_volume', 'wave_speed_press', 'w7_speed_bench', 'recovery'],
     ],
 ];

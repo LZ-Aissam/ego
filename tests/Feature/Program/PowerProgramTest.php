@@ -34,7 +34,7 @@ it('enchaîne les séances selon le nombre de jours, jambes explosives en dernie
 ]);
 
 it('limite les lignes selon le niveau et garde les abdos en dernier', function (string $level, int $max) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->power)(['level' => $level, 'days' => $days])['days'] as $day) {
             expect(count($day['exercises']))->toBeLessThanOrEqual($max)
                 ->and(end($day['exercises'])['slot'])->toBe('core');
@@ -51,7 +51,7 @@ it('ne donne pas de force max 87,5 % à un débutant', function () {
 });
 
 it('respecte le matériel, sans doublon dans une séance', function (string $equipment) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->power)(['equipment' => $equipment, 'days' => $days])['days'] as $day) {
             $ids = array_column($day['exercises'], 'exercise_id');
             expect($ids)->not->toBeEmpty()->and($ids)->toBe(array_values(array_unique($ids)));

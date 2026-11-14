@@ -30,7 +30,7 @@ it('termine chaque séance par un exercice de bras, en tournant biceps, triceps,
 });
 
 it('met 6, 7 ou 8 exercices par séance selon le niveau, bras compris', function (string $level, int $count) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->generate)(['level' => $level, 'days' => $days])['days'] as $day) {
             $slots = array_column($day['exercises'], 'slot');
             expect($day['exercises'])->toHaveCount($count)

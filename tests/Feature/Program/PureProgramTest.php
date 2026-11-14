@@ -48,14 +48,14 @@ it('reprend l\'exercice de la série record pour les séries lourdes, quel que s
 })->with(['gym', 'dumbbells']);
 
 it('ne donne pas de série record à un débutant', function () {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         $intents = collect(($this->pure)(['level' => 'beginner', 'days' => $days])['days'])->flatMap(fn ($d) => $d['exercises'])->pluck('intent');
         expect($intents->all())->not->toContain('top')->not->toContain('max');
     }
 });
 
 it('respecte le matériel', function (string $equipment) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->pure)(['equipment' => $equipment, 'days' => $days])['days'] as $day) {
             expect($day['exercises'])->not->toBeEmpty();
             foreach ($day['exercises'] as $line) {
@@ -81,7 +81,7 @@ it('sans jambes, remplace squat et soulevé de terre par des séances du haut du
 
 it('sans jambes, aucun exercice de jambes quel que soit le nombre de jours et le matériel', function (string $equipment) {
     $legs = ['squat', 'hinge', 'lunge', 'quads_iso', 'hamstrings_iso', 'calves', 'jump'];
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         $days = ($this->pure)(['upper_only' => true, 'equipment' => $equipment, 'days' => $days])['days'];
         foreach ($days as $day) {
             expect($day['exercises'])->not->toBeEmpty();
@@ -98,7 +98,7 @@ it('sans jambes sur 5 jours : semaine vague, un seul jour très lourd par mouvem
 });
 
 it('ne met jamais deux fois le même exercice dans une séance, hors série record ou vague suivie de ses séries', function (string $equipment, bool $upper) {
-    foreach ([2, 3, 4, 5, 6] as $days) {
+    foreach ([2, 3, 4, 5, 6, 7] as $days) {
         foreach (($this->pure)(['equipment' => $equipment, 'days' => $days, 'upper_only' => $upper])['days'] as $day) {
             $ids = array_column($day['exercises'], 'exercise_id');
             expect($ids)->not->toBeEmpty();

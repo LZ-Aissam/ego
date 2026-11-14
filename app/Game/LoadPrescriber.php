@@ -204,6 +204,23 @@ final class LoadPrescriber
         return $base > 0 ? round($base, 1) : $this->bestE1rm($user, $exercise, 5);
     }
 
+    /**
+     * Maximum estimé à battre sur la série au maximum de répétitions (vague 5+, 3+, 1+) ou la série record :
+     * la séance en déduit combien de répétitions font un record. null : rien à battre.
+     */
+    public function recordToBeat(User $user, Exercise $exercise, ?string $intent): ?float
+    {
+        if ($exercise->is_bodyweight) {
+            return null;
+        }
+
+        return match ($intent) {
+            'wave' => $this->waveBase($user, $exercise),
+            'top' => $this->bestE1rm($user, $exercise, 1),
+            default => null,
+        };
+    }
+
     /** Meilleur 1RM estimé (Epley) d'un groupe de séries, au plus 10 répétitions comptées. */
     private function cappedE1rm(Collection $sets): float
     {
@@ -508,6 +525,11 @@ final class LoadPrescriber
 
             // Tout fait plus léger que la cible : la charge est trop lourde, cela compte comme un échec.
             $failed = ($kept->isEmpty() || $kept->contains(fn (WorkoutSet $s) => $s->reps < $line->reps_min)) && ! $strongEnough;
+
+            // Jour « fatigué » annoncé avant la séance : charges allégées exprès, ce n'est pas un échec (rien ne bouge).
+            if ($failed && $workout->readiness === 'low') {
+                continue;
+            }
 
             if ($failed) {
                 $load->fail_streak += 1;

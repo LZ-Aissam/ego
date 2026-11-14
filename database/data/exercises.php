@@ -91,4 +91,8 @@ return [
     ['reverse-curl', 'Curl inversé', ['avant-bras', 'biceps'], ['gym', 'dumbbells'], 'isolation', ['forearms', 'biceps'], 0.06],
     // Force max des triceps sans ceinture de lest (à la place des dips lestés)
     ['close-grip-bench-press', 'Développé couché prise serrée', ['triceps', 'pectoraux', 'épaules'], ['gym'], 'compound', ['triceps', 'horizontal_push'], 0.45],
+    // Bras complets : longue et courte portion du biceps, longue portion du triceps
+    ['incline-dumbbell-curl', 'Curl incliné haltères', ['biceps'], ['gym', 'dumbbells'], 'isolation', ['biceps'], 0.06],
+    ['concentration-curl', 'Curl concentré', ['biceps'], ['gym', 'dumbbells'], 'isolation', ['biceps'], 0.07],
+    ['overhead-cable-extension', 'Extension triceps à la poulie au-dessus de la tête', ['triceps'], ['gym'], 'isolation', ['triceps'], 0.15],
 ];
